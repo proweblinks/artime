@@ -283,6 +283,9 @@ class ScriptGenerationService
         // Words per scene
         $wordsPerScene = (int) ceil($targetWords / $sceneCount);
 
+        // Target speech segments per scene (~1 segment per 5 seconds, minimum 3)
+        $segmentsPerScene = max(3, (int) ceil($avgSceneDuration / 5));
+
         \Log::info('VideoWizard: calculateScriptParameters', [
             'input_duration' => $duration,
             'input_contentDepth' => $contentDepth,
@@ -291,6 +294,7 @@ class ScriptGenerationService
             'calculated_avgSceneDuration' => $avgSceneDuration,
             'calculated_sceneCount' => $sceneCount,
             'calculated_wordsPerScene' => $wordsPerScene,
+            'calculated_segmentsPerScene' => $segmentsPerScene,
             'duration_formula' => "max(3, ceil({$duration} / {$avgSceneDuration})) = max(3, " . ceil($duration / $avgSceneDuration) . ") = {$sceneCount}",
         ]);
 
@@ -300,6 +304,7 @@ class ScriptGenerationService
             'sceneCount' => $sceneCount,
             'avgSceneDuration' => $avgSceneDuration,
             'wordsPerScene' => $wordsPerScene,
+            'segmentsPerScene' => $segmentsPerScene,
         ];
     }
 
@@ -1295,6 +1300,28 @@ PROMPT;
         $prompt .= "VICTOR KANE: I was home. Alone.\n";
         $prompt .= "ELENA REYES: That's interesting, because we have footage of you at the warehouse.\n\n";
         $prompt .= "RULE: Characters MUST speak on screen. Never reduce dialogue to narrator description.\n\n";
+
+        // === LAYER 14C: SEGMENT COUNT & CHARACTER UTILIZATION ===
+        $segmentsPerScene = $params['segmentsPerScene'] ?? max(3, (int) ceil($avgSceneDuration / 5));
+        $prompt .= "=== SEGMENT COUNT REQUIREMENTS (CRITICAL FOR CINEMATIC QUALITY) ===\n";
+        $prompt .= "Each scene MUST have AT LEAST {$segmentsPerScene} distinct speech segment lines.\n";
+        $prompt .= "For scenes longer than 10 seconds: aim for 4-6 segment lines.\n";
+        $prompt .= "For dialogue scenes: alternate between 2+ characters (shot/reverse-shot pattern).\n";
+        $prompt .= "For monologue scenes: break into [MONOLOGUE:] + [INTERNAL:] + [NARRATOR] variety.\n";
+        $prompt .= "NEVER have a scene with only 1 speech segment — this produces static, amateur video.\n";
+        $prompt .= "Put EACH speech marker on its OWN LINE (never combine markers on one line).\n\n";
+        $prompt .= "EXAMPLE (15-second action/dialogue scene with proper segment density):\n";
+        $prompt .= "[NARRATOR] Rain hammers the London backstreet.\n";
+        $prompt .= "SARAH KANE: That signal... it's the same cipher from Prague.\n";
+        $prompt .= "JACK: Are you sure? Last time nearly killed us both.\n";
+        $prompt .= "[MONOLOGUE: SARAH KANE] I swore I'd never go back.\n";
+        $prompt .= "SARAH KANE: We don't have a choice. They're already moving.\n";
+        $prompt .= "[INTERNAL: JACK] She's right. And that terrifies me.\n\n";
+        $prompt .= "CHARACTER UTILIZATION:\n";
+        $prompt .= "- If 2+ characters exist in a scene, EVERY scene must include dialogue from at least 2 characters.\n";
+        $prompt .= "- Single-character scenes: use MONOLOGUE + INTERNAL + NARRATOR variety (min 3 segments).\n";
+        $prompt .= "- Never have the same character speak in consecutive segments without another character responding.\n";
+        $prompt .= "- Distribute dialogue across ALL available characters, not just the protagonist.\n\n";
 
         // === LAYER 15: OUTPUT FORMAT ===
         $prompt .= "=== OUTPUT FORMAT ===\n";

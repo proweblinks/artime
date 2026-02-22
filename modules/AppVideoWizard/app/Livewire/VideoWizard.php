@@ -20525,10 +20525,11 @@ PROMPT;
         ]);
 
         // ═══════════════════════════════════════════════════════════════════════════════
-        // PHASE 11: SPEECH-DRIVEN SHOT CREATION (1:1 mapping)
-        // If scene has speechSegments with dialogue/monologue, CREATE shots from them directly.
-        // This is the PRIMARY path for dialogue scenes - each segment = one shot.
-        // No artificial limits: 5 segments = 5 shots, 12 segments = 12 shots.
+        // PHASE 11: DYNAMICSHOT-ENGINE-DRIVEN DECOMPOSITION WITH SPEECH DISTRIBUTION
+        // DynamicShotEngine determines shot count and types (establishing, medium,
+        // close-up, reaction) based on scene duration, characters, and intensity.
+        // Speech segments are then distributed across those shots instead of 1:1 mapping.
+        // Result: 3-7 cinematically varied shots per scene, not 1 shot per segment.
         // ═══════════════════════════════════════════════════════════════════════════════
         $speechSegments = $scene['speechSegments'] ?? [];
         $dialogueDecomposer = app(\Modules\AppVideoWizard\Services\DialogueSceneDecomposerService::class);
@@ -20539,29 +20540,61 @@ PROMPT;
         });
 
         if (!empty($lipSyncSegments)) {
-            Log::info('VideoWizard: Speech-driven shot creation (1:1 mapping)', [
+            Log::info('VideoWizard: DynamicShotEngine-driven speech decomposition', [
                 'scene_id' => $sceneId,
                 'scene_index' => $sceneIndex,
                 'total_segments' => count($speechSegments),
                 'lip_sync_segments' => count($lipSyncSegments),
             ]);
 
-            // Create shots FROM speech segments (1:1 mapping)
-            $shotsFromSpeech = $this->createShotsFromSpeechSegments($sceneIndex, $speechSegments);
+            // Step 1: Use DynamicShotEngine to determine shot count and types
+            $engine = new DynamicShotEngine();
+            $context = $this->buildDecompositionContext($sceneIndex, $scene);
+            $engineResult = $engine->generateHollywoodShotSequence($scene, $context);
+            $engineShots = $engineResult['shots'] ?? [];
 
-            if (!empty($shotsFromSpeech)) {
+            // Ensure minimum 3 shots for cinematic variety
+            if (count($engineShots) < 3) {
+                // Pad with standard shot types if engine produced too few
+                $padTypes = ['wide', 'medium', 'close-up'];
+                while (count($engineShots) < 3) {
+                    $padIdx = count($engineShots);
+                    $engineShots[] = [
+                        'index' => $padIdx,
+                        'type' => $padTypes[$padIdx] ?? 'medium',
+                        'duration' => 5,
+                        'purpose' => $padIdx === 0 ? 'establishing' : 'coverage',
+                    ];
+                }
+            }
+
+            Log::info('VideoWizard: DynamicShotEngine produced shot plan', [
+                'scene_id' => $sceneId,
+                'engine_shot_count' => count($engineShots),
+                'engine_shot_types' => array_column($engineShots, 'type'),
+            ]);
+
+            // Step 2: Distribute speech segments across engine shots
+            $distributedShots = $this->distributeSpeechSegmentsAcrossShots(
+                $speechSegments,
+                $engineShots,
+                $scene,
+                $sceneIndex
+            );
+
+            if (!empty($distributedShots)) {
                 // Get Character Bible for voice/character mapping
                 $characterBible = $this->sceneMemory['characterBible'] ?? [];
 
-                // Enhance with DialogueSceneDecomposerService patterns (shot types, camera positions)
+                // Step 3: Enhance with DialogueSceneDecomposerService patterns
                 $enhancedShots = $dialogueDecomposer->enhanceShotsWithDialoguePatterns(
-                    $shotsFromSpeech,
+                    $distributedShots,
                     $scene,
                     $characterBible,
                     ['animationModel' => 'seedance']
                 );
 
-                // Convert to standard shot format
+                // Step 4: Convert to standard shot format
                 $shots = $this->convertDialogueShotsToStandardFormat(
                     $enhancedShots,
                     $sceneId,
@@ -20575,11 +20608,12 @@ PROMPT;
                     Log::warning('VideoWizard: Shot/reverse-shot pattern needs review', $patternQuality);
                 }
 
-                Log::info('VideoWizard: Speech-driven shots created', [
+                Log::info('VideoWizard: DynamicShotEngine-driven shots created', [
                     'scene_id' => $sceneId,
                     'shots_created' => count($shots),
-                    'ratio' => '1:1',
-                    'path' => 'speech-driven',
+                    'dialogue_shots' => count(array_filter($shots, fn($s) => $s['needsLipSync'] ?? false)),
+                    'visual_only_shots' => count(array_filter($shots, fn($s) => !($s['needsLipSync'] ?? false))),
+                    'path' => 'engine-driven-speech-distribution',
                 ]);
 
                 return $shots;
@@ -21152,7 +21186,7 @@ PROMPT;
                     ['temperature' => min(0.9, $temperature)]
                 );
 
-                if (!$result['success'] || empty($result['result'])) {
+                if (!($result['success'] ?? false) || empty($result['result'] ?? null)) {
                     Log::warning('Story beat decomposition attempt failed', [
                         'attempt' => $attempt,
                         'error' => $result['error'] ?? 'Empty result',
@@ -27723,6 +27757,241 @@ PROMPT;
             'narratorOverlaySegments' => count($narratorOverlaySegments),
             'shotsCreated' => count($shots),
             'ratio' => '1:1',
+        ]);
+
+        return $shots;
+    }
+
+    /**
+     * Distribute speech segments across DynamicShotEngine-determined shots.
+     *
+     * Instead of 1:1 segment-to-shot mapping, this creates cinematically varied shots
+     * (establishing, medium, close-up, reaction) and maps speech onto them:
+     * - Establishing/wide shots (first 1-2): visual-only, narrator overlay
+     * - Medium/close-up shots: dialogue text assigned, lip-sync ON
+     * - Reaction shots: visual-only (character reacting, no dialogue)
+     * - Long dialogue segments are split across multiple shots at sentence boundaries
+     *
+     * @param array $speechSegments Scene's speech segments
+     * @param array $engineShots Shots from DynamicShotEngine->generateHollywoodShotSequence()
+     * @param array $scene Scene data
+     * @param int $sceneIndex Scene index
+     * @return array Shots with speech distributed across them
+     */
+    protected function distributeSpeechSegmentsAcrossShots(
+        array $speechSegments,
+        array $engineShots,
+        array $scene,
+        int $sceneIndex
+    ): array {
+        // Separate lip-sync segments (dialogue/monologue) from narrator/internal
+        $lipSyncSegments = [];
+        $narratorSegments = [];
+        foreach ($speechSegments as $seg) {
+            $type = strtolower($seg['type'] ?? 'narrator');
+            if (in_array($type, ['dialogue', 'monologue'])) {
+                $lipSyncSegments[] = $seg;
+            } else {
+                $narratorSegments[] = $seg;
+            }
+        }
+
+        $shotCount = count($engineShots);
+
+        // Categorize engine shots by role
+        $establishingIndices = []; // Wide/establishing — visual-only
+        $dialogueIndices = [];     // Medium/close-up — get dialogue
+        $reactionIndices = [];     // Reaction — visual-only
+
+        foreach ($engineShots as $i => $eShot) {
+            $type = $eShot['type'] ?? 'medium';
+            $purpose = $eShot['purpose'] ?? '';
+
+            if (in_array($type, ['establishing', 'extreme-wide']) || $purpose === 'establishing') {
+                $establishingIndices[] = $i;
+            } elseif ($type === 'reaction' || $purpose === 'reaction') {
+                $reactionIndices[] = $i;
+            } else {
+                $dialogueIndices[] = $i;
+            }
+        }
+
+        // If no dialogue-eligible shots (all establishing/reaction), convert middle shots
+        if (empty($dialogueIndices) && !empty($lipSyncSegments)) {
+            // Use all non-establishing shots for dialogue
+            $dialogueIndices = array_diff(range(0, $shotCount - 1), $establishingIndices);
+            $dialogueIndices = array_values($dialogueIndices);
+            if (empty($dialogueIndices)) {
+                // Last resort: use all shots except first for dialogue
+                $dialogueIndices = $shotCount > 1 ? range(1, $shotCount - 1) : [0];
+            }
+        }
+
+        // Split long segments at sentence boundaries if we have more dialogue slots than segments
+        $dialogueSlotCount = count($dialogueIndices);
+        $textChunks = [];
+
+        if (count($lipSyncSegments) === 1 && $dialogueSlotCount > 1) {
+            // Single long segment: split across dialogue shots
+            $seg = $lipSyncSegments[0];
+            $text = trim($seg['text'] ?? '');
+            $wordCount = str_word_count($text);
+
+            if ($wordCount > 10) {
+                $splits = $this->splitTextBySentenceBoundary($text, $dialogueSlotCount);
+                foreach ($splits as $splitText) {
+                    if (!empty(trim($splitText))) {
+                        $textChunks[] = [
+                            'text' => trim($splitText),
+                            'speaker' => $seg['speaker'] ?? null,
+                            'type' => $seg['type'] ?? 'dialogue',
+                            'emotion' => $seg['emotion'] ?? null,
+                            'voiceId' => $seg['voiceId'] ?? null,
+                            'characterId' => $seg['characterId'] ?? null,
+                        ];
+                    }
+                }
+            } else {
+                // Short text — single close-up shot, rest are visual-only
+                $textChunks[] = [
+                    'text' => $text,
+                    'speaker' => $seg['speaker'] ?? null,
+                    'type' => $seg['type'] ?? 'dialogue',
+                    'emotion' => $seg['emotion'] ?? null,
+                    'voiceId' => $seg['voiceId'] ?? null,
+                    'characterId' => $seg['characterId'] ?? null,
+                ];
+            }
+        } elseif (count($lipSyncSegments) > $dialogueSlotCount && $dialogueSlotCount > 0) {
+            // More segments than slots: merge segments into available slots
+            $segmentsPerSlot = (int) ceil(count($lipSyncSegments) / $dialogueSlotCount);
+            $chunks = array_chunk($lipSyncSegments, $segmentsPerSlot);
+            foreach ($chunks as $chunk) {
+                $mergedText = implode(' ', array_map(fn($s) => trim($s['text'] ?? ''), $chunk));
+                $primarySeg = $chunk[0];
+                $textChunks[] = [
+                    'text' => trim($mergedText),
+                    'speaker' => $primarySeg['speaker'] ?? null,
+                    'type' => $primarySeg['type'] ?? 'dialogue',
+                    'emotion' => $primarySeg['emotion'] ?? null,
+                    'voiceId' => $primarySeg['voiceId'] ?? null,
+                    'characterId' => $primarySeg['characterId'] ?? null,
+                ];
+            }
+        } else {
+            // Direct mapping: each lip-sync segment → one dialogue slot
+            foreach ($lipSyncSegments as $seg) {
+                $textChunks[] = [
+                    'text' => trim($seg['text'] ?? ''),
+                    'speaker' => $seg['speaker'] ?? null,
+                    'type' => $seg['type'] ?? 'dialogue',
+                    'emotion' => $seg['emotion'] ?? null,
+                    'voiceId' => $seg['voiceId'] ?? null,
+                    'characterId' => $seg['characterId'] ?? null,
+                ];
+            }
+        }
+
+        // Build the final shots array
+        $shots = [];
+        $chunkIndex = 0;
+        $sceneChars = $this->getCharactersForScene($sceneIndex);
+        $allCharNames = array_map(function ($c) {
+            return is_array($c) ? ($c['name'] ?? $c[0] ?? 'Character') : $c;
+        }, $sceneChars);
+        if (empty($allCharNames) && !empty($lipSyncSegments)) {
+            $allCharNames = [$lipSyncSegments[0]['speaker'] ?? 'Character'];
+        }
+
+        foreach ($engineShots as $i => $eShot) {
+            $shotType = $eShot['type'] ?? 'medium';
+            $duration = $eShot['duration'] ?? 5;
+            $purpose = $eShot['purpose'] ?? 'narrative';
+
+            $isEstablishing = in_array($i, $establishingIndices);
+            $isReaction = in_array($i, $reactionIndices);
+            $isDialogueSlot = in_array($i, $dialogueIndices);
+
+            // Assign dialogue chunk to dialogue-eligible shots
+            $hasDialogue = false;
+            $dialogueText = null;
+            $speaker = null;
+            $segType = 'narrator';
+            $voiceId = null;
+            $emotion = null;
+
+            if ($isDialogueSlot && $chunkIndex < count($textChunks)) {
+                $chunk = $textChunks[$chunkIndex];
+                $chunkIndex++;
+
+                if (!empty(trim($chunk['text']))) {
+                    $hasDialogue = true;
+                    $dialogueText = $chunk['text'];
+                    $speaker = $chunk['speaker'];
+                    $segType = strtolower($chunk['type'] ?? 'dialogue');
+                    $voiceId = $chunk['voiceId'] ?? null;
+                    $emotion = $chunk['emotion'] ?? null;
+                    $duration = $this->calculateDurationFromText($dialogueText, $shotType);
+                }
+            }
+
+            $isDialogueSegment = ($segType === 'dialogue');
+
+            // Build shot structure matching createShotsFromSpeechSegments format
+            $shot = [
+                'id' => uniqid('shot_'),
+                'speechSegments' => $hasDialogue ? [[
+                    'type' => $segType,
+                    'speaker' => $speaker,
+                    'text' => $dialogueText,
+                    'emotion' => $emotion,
+                    'voiceId' => $voiceId,
+                ]] : [],
+                'needsLipSync' => $hasDialogue,
+                'segmentType' => $hasDialogue ? $segType : null,
+                'isDialogueShot' => $hasDialogue && $isDialogueSegment,
+                'dialogue' => ($hasDialogue && $isDialogueSegment) ? $dialogueText : null,
+                'monologue' => ($hasDialogue && !$isDialogueSegment) ? $dialogueText : null,
+                'emotion' => $emotion,
+                'speakingCharacter' => $hasDialogue ? $speaker : null,
+                'speakingCharacters' => $hasDialogue && $speaker ? [$speaker] : [],
+                'charactersInShot' => $allCharNames,
+                'allSceneCharacters' => $allCharNames,
+                'selectedVideoModel' => 'seedance',
+                'type' => $shotType,
+                'purpose' => $isEstablishing ? 'establishing' : ($isReaction ? 'reaction' : ($hasDialogue ? 'dialogue' : 'visual')),
+                'segmentIndex' => $hasDialogue ? ($chunkIndex - 1) : null,
+                'duration' => $duration,
+                // Non-dialogue shots are treated as narrator shots (visual-only)
+                // This ensures enhanceShotsWithDialoguePatterns skips them
+                'narratorShot' => !$hasDialogue,
+                'narratorText' => (!$hasDialogue && $isEstablishing) ? ($narratorSegments[0]['text'] ?? null) : null,
+                'speechType' => $hasDialogue ? $segType : 'narrator',
+                // Engine metadata for DialogueSceneDecomposerService enhancement
+                'engineShotType' => $shotType,
+                'enginePurpose' => $purpose,
+                'emotionalIntensity' => $eShot['emotionalIntensity'] ?? 0.5,
+            ];
+
+            // Assign voice from character
+            if ($hasDialogue && !empty($speaker)) {
+                $shot['voiceId'] = $this->getVoiceForCharacterName($speaker);
+            }
+
+            $shots[] = $shot;
+        }
+
+        Log::info('VideoWizard: distributeSpeechSegmentsAcrossShots complete', [
+            'sceneIndex' => $sceneIndex,
+            'engineShots' => $shotCount,
+            'lipSyncSegments' => count($lipSyncSegments),
+            'narratorSegments' => count($narratorSegments),
+            'textChunks' => count($textChunks),
+            'dialogueSlots' => count($dialogueIndices),
+            'establishingSlots' => count($establishingIndices),
+            'reactionSlots' => count($reactionIndices),
+            'shotsWithDialogue' => count(array_filter($shots, fn($s) => $s['needsLipSync'])),
+            'totalShots' => count($shots),
         ]);
 
         return $shots;
