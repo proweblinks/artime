@@ -17137,7 +17137,8 @@ PROMPT;
             $scoreSummary = [];
             foreach ($matchScores as $sceneIdx => $locScores) {
                 foreach ($locScores as $locIdx => $score) {
-                    $locName = $locationSearchData[$locIdx]['name'] ?? "loc_{$locIdx}";
+                    $locData = $locationSearchData[$locIdx] ?? null;
+                    $locName = is_array($locData) ? ($locData['name'] ?? "loc_{$locIdx}") : "loc_{$locIdx}";
                     $scoreSummary[] = "scene{$sceneIdx}->{$locName}={$score}";
                 }
             }

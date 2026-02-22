@@ -336,7 +336,7 @@ PROMPT;
                 ['temperature' => 0.7]
             );
 
-            if (!$result['success'] || empty($result['result'])) {
+            if (!is_array($result) || empty($result['success']) || empty($result['result'])) {
                 Log::warning('NarrativeMomentService: AI decomposition returned empty result');
                 return [];
             }
