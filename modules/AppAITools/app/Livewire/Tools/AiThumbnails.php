@@ -63,6 +63,8 @@ class AiThumbnails extends Component
     public string $playlistUrl = '';
     public array $bulkItems = [];
     public bool $isBulkProcessing = false;
+    public string $bulkInputTab = 'urls';
+    public ?string $bulkFaceKeyResolved = null; // cached face lock key for bulk run
 
     // Bulk face lock
     public bool $bulkFaceLockEnabled = false;
@@ -499,74 +501,95 @@ class AiThumbnails extends Component
 
     public function processBulk()
     {
-        $this->isBulkProcessing = true;
-        $service = app(ThumbnailService::class);
-
-        // Resolve bulk face lock: if "first" source, grab face from first video's thumbnail
-        $bulkFaceKey = null;
+        // Resolve bulk face lock once at start
+        $this->bulkFaceKeyResolved = null;
         if ($this->bulkFaceLockEnabled) {
             if ($this->bulkFaceLockSource === 'upload' && $this->bulkFaceLockStorageKey) {
-                $bulkFaceKey = $this->bulkFaceLockStorageKey;
+                $this->bulkFaceKeyResolved = $this->bulkFaceLockStorageKey;
             } elseif ($this->bulkFaceLockSource === 'first' && !empty($this->bulkItems[0]['data']['thumbnail'])) {
                 try {
                     $thumbContents = file_get_contents($this->bulkItems[0]['data']['thumbnail']);
                     if ($thumbContents) {
                         $teamId = session('current_team_id', 0);
-                        $bulkFaceKey = $service->storeReferenceImage($teamId, base64_encode($thumbContents), 'jpg');
+                        $service = app(ThumbnailService::class);
+                        $this->bulkFaceKeyResolved = $service->storeReferenceImage($teamId, base64_encode($thumbContents), 'jpg');
                     }
                 } catch (\Exception $e) {}
             }
         }
 
-        foreach ($this->bulkItems as $idx => &$item) {
-            if ($item['status'] !== 'pending') continue;
+        $this->isBulkProcessing = true;
+    }
 
-            $item['status'] = 'processing';
+    /**
+     * Process the next pending bulk item. Called by wire:poll during bulk processing.
+     */
+    public function processNextBulkItem()
+    {
+        if (!$this->isBulkProcessing) return;
 
-            try {
-                $params = [
-                    'mode' => 'upgrade',
-                    'title' => $item['data']['title'] ?? 'Untitled',
-                    'category' => $this->category,
-                    'style' => $this->style,
-                    'imageModel' => $this->imageModel,
-                    'variations' => $this->variations,
-                    'customPrompt' => $this->customPrompt,
-                    'youtubeData' => $item['data'],
-                    'referenceStorageKey' => null,
-                    'referenceType' => $this->referenceType,
-                    'compositionTemplate' => $this->compositionTemplate,
-                    'expressionModifier' => $this->expressionModifier,
-                    'backgroundStyle' => $this->backgroundStyle,
-                    'faceStrength' => $this->faceStrength,
-                    'styleStrength' => $this->styleStrength,
-                    'faceLockStorageKey' => $bulkFaceKey,
-                ];
-
-                // Download YouTube thumbnail as reference
-                if (!empty($item['data']['thumbnail'])) {
-                    try {
-                        $thumbContents = file_get_contents($item['data']['thumbnail']);
-                        if ($thumbContents) {
-                            $teamId = session('current_team_id', 0);
-                            $params['referenceStorageKey'] = $service->storeReferenceImage($teamId, base64_encode($thumbContents), 'jpg');
-                        }
-                    } catch (\Exception $e) {
-                        // Continue without reference
-                    }
-                }
-
-                $item['result'] = $service->generatePro($params);
-                $item['status'] = 'done';
-            } catch (\Exception $e) {
-                $item['status'] = 'error';
-                $item['error'] = $e->getMessage();
+        // Find next pending item
+        $nextIdx = null;
+        foreach ($this->bulkItems as $idx => $item) {
+            if ($item['status'] === 'pending') {
+                $nextIdx = $idx;
+                break;
             }
         }
-        unset($item);
 
-        $this->isBulkProcessing = false;
-        $this->loadHistory();
+        // No more pending items — we're done
+        if ($nextIdx === null) {
+            $this->isBulkProcessing = false;
+            $this->bulkFaceKeyResolved = null;
+            $this->loadHistory();
+            return;
+        }
+
+        // Mark as processing
+        $this->bulkItems[$nextIdx]['status'] = 'processing';
+
+        try {
+            $item = $this->bulkItems[$nextIdx];
+            $service = app(ThumbnailService::class);
+
+            $params = [
+                'mode' => 'upgrade',
+                'title' => $item['data']['title'] ?? 'Untitled',
+                'category' => $this->category,
+                'style' => $this->style,
+                'imageModel' => $this->imageModel,
+                'variations' => $this->variations,
+                'customPrompt' => $this->customPrompt,
+                'youtubeData' => $item['data'],
+                'referenceStorageKey' => null,
+                'referenceType' => $this->referenceType,
+                'compositionTemplate' => $this->compositionTemplate,
+                'expressionModifier' => $this->expressionModifier,
+                'backgroundStyle' => $this->backgroundStyle,
+                'faceStrength' => $this->faceStrength,
+                'styleStrength' => $this->styleStrength,
+                'faceLockStorageKey' => $this->bulkFaceKeyResolved,
+            ];
+
+            // Download YouTube thumbnail as reference
+            if (!empty($item['data']['thumbnail'])) {
+                try {
+                    $thumbContents = file_get_contents($item['data']['thumbnail']);
+                    if ($thumbContents) {
+                        $teamId = session('current_team_id', 0);
+                        $params['referenceStorageKey'] = $service->storeReferenceImage($teamId, base64_encode($thumbContents), 'jpg');
+                    }
+                } catch (\Exception $e) {
+                    // Continue without reference
+                }
+            }
+
+            $this->bulkItems[$nextIdx]['result'] = $service->generatePro($params);
+            $this->bulkItems[$nextIdx]['status'] = 'done';
+        } catch (\Exception $e) {
+            $this->bulkItems[$nextIdx]['status'] = 'error';
+            $this->bulkItems[$nextIdx]['error'] = $e->getMessage();
+        }
     }
 
     public function regenerateBulkItem(int $idx)

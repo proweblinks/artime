@@ -838,13 +838,14 @@ x-init="
         <h2 class="aith-card-title"><span class="aith-emoji">🎨</span> {{ __('Bulk Thumbnail Generator') }}</h2>
 
         <div class="aith-tabs">
-            <button class="aith-tab aith-tab-active" data-aith-tab-group="bulk" data-aith-tab="urls"
-                onclick="aithSetTab('bulk','urls')">{{ __('Paste URLs') }}</button>
-            <button class="aith-tab" data-aith-tab-group="bulk" data-aith-tab="playlist"
-                onclick="aithSetTab('bulk','playlist')">{{ __('Playlist') }}</button>
+            <button class="aith-tab {{ $bulkInputTab === 'urls' ? 'aith-tab-active' : '' }}"
+                wire:click="$set('bulkInputTab', 'urls')">{{ __('Paste URLs') }}</button>
+            <button class="aith-tab {{ $bulkInputTab === 'playlist' ? 'aith-tab-active' : '' }}"
+                wire:click="$set('bulkInputTab', 'playlist')">{{ __('Playlist') }}</button>
         </div>
 
-        <div data-aith-tab-content="bulk" data-aith-pane="urls" class="aith-tab-content aith-tab-active">
+        @if($bulkInputTab === 'urls')
+        <div class="aith-tab-content aith-tab-active">
             <div class="aith-form-group">
                 <label class="aith-label">{{ __('YouTube URLs') }} <span class="aith-label-hint">({{ __('One per line, max 10') }})</span></label>
                 <textarea wire:model="bulkUrls" class="aith-textarea" rows="5" placeholder="https://youtube.com/watch?v=...&#10;https://youtube.com/watch?v=..."></textarea>
@@ -853,8 +854,10 @@ x-init="
                 <i class="fa-light fa-download"></i> {{ __('Fetch All') }}
             </button>
         </div>
+        @endif
 
-        <div data-aith-tab-content="bulk" data-aith-pane="playlist" class="aith-tab-content">
+        @if($bulkInputTab === 'playlist')
+        <div class="aith-tab-content aith-tab-active">
             <div class="aith-youtube-fetch" style="margin-bottom:1rem;">
                 <div class="aith-form-group">
                     <label class="aith-label">{{ __('Playlist URL') }}</label>
@@ -865,6 +868,7 @@ x-init="
                 </button>
             </div>
         </div>
+        @endif
 
         {{-- Shared settings --}}
         <div class="aith-form-group" style="margin-bottom:1rem;">
@@ -984,8 +988,29 @@ x-init="
 
         {{-- Bulk items table --}}
         @if(count($bulkItems) > 0)
-        <div style="margin-top:1rem;">
-            <h3 class="aith-section-title">{{ __('Videos') }} ({{ count($bulkItems) }})</h3>
+        @php
+            $doneCount = collect($bulkItems)->where('status', 'done')->count();
+            $errorCount = collect($bulkItems)->where('status', 'error')->count();
+            $totalCount = count($bulkItems);
+            $processedCount = $doneCount + $errorCount;
+        @endphp
+        <div style="margin-top:1rem;" @if($isBulkProcessing) wire:poll.3s="processNextBulkItem" @endif>
+            <h3 class="aith-section-title">{{ __('Videos') }} ({{ $totalCount }})</h3>
+
+            @if($isBulkProcessing)
+            <div style="margin-bottom:1rem;">
+                <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+                    <i class="fa-light fa-spinner-third fa-spin" style="color:#6366f1;"></i>
+                    <span style="font-size:0.8125rem; font-weight:600; color:#1e293b;">
+                        {{ __('Processing') }} {{ $processedCount + 1 }} {{ __('of') }} {{ $totalCount }}...
+                    </span>
+                </div>
+                <div style="background:#e2e8f0; border-radius:9999px; height:6px; overflow:hidden;">
+                    <div style="background:linear-gradient(90deg,#6366f1,#8b5cf6); height:100%; border-radius:9999px; width:{{ $totalCount > 0 ? round(($processedCount / $totalCount) * 100) : 0 }}%; transition:width 0.5s ease;"></div>
+                </div>
+            </div>
+            @endif
+
             <table class="aith-bulk-table">
                 @foreach($bulkItems as $idx => $item)
                 <tr class="aith-bulk-row">
@@ -1048,12 +1073,8 @@ x-init="
 
             @if(!$isBulkProcessing)
             <button class="aith-btn-primary" wire:click="processBulk" style="margin-top:1rem;">
-                <i class="fa-light fa-bolt"></i> {{ __('Process All') }}
+                <i class="fa-light fa-bolt"></i> {{ __('Process All') }} ({{ $totalCount }} {{ __('videos') }})
             </button>
-            @else
-            <div class="aith-loading" style="margin-top:1rem;">
-                <div class="aith-loading-title"><i class="fa-light fa-spinner-third fa-spin"></i> {{ __('Processing bulk thumbnails...') }}</div>
-            </div>
             @endif
         </div>
         @endif
