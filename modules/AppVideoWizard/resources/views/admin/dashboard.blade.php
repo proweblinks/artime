@@ -6,7 +6,7 @@
         <div class="d-flex justify-content-between align-items-center">
             <div class="mb-0">
                 <div class="fw-7 fs-20 mx-auto mb-2 text-primary-700">{{ __('Video Creator Admin') }}</div>
-                <div class="fw-5 text-gray-700">{{ __('Manage production types, cinematography settings, and view generation logs.') }}</div>
+                <div class="fw-5 text-gray-700">{{ __('Manage AI prompts, production types, and view generation logs.') }}</div>
             </div>
             <div>
                 <form action="{{ route('admin.video-wizard.clear-cache') }}" method="POST" class="d-inline">
@@ -61,10 +61,10 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <div class="fs-12 text-white-50">{{ __('Production Types') }}</div>
-                            <div class="fs-24 fw-bold">{{ $productionTypeCount }}</div>
+                            <div class="fs-12 text-white-50">{{ __('Active Prompts') }}</div>
+                            <div class="fs-24 fw-bold">{{ $activePromptCount }} / {{ $promptCount }}</div>
                         </div>
-                        <i class="fa fa-film fs-30 opacity-50"></i>
+                        <i class="fa fa-file-alt fs-30 opacity-50"></i>
                     </div>
                 </div>
             </div>
@@ -86,6 +86,27 @@
 
     <!-- Navigation Cards -->
     <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-primary bg-opacity-10 rounded-circle p-3 me-3">
+                            <i class="fa fa-file-code text-primary fs-20"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-1">{{ __('AI Prompts') }}</h5>
+                            <small class="text-muted">{{ $promptCount }} {{ __('prompts configured') }}</small>
+                        </div>
+                    </div>
+                    <p class="card-text text-muted small">
+                        {{ __('Edit AI prompts, manage versions, test with sample data, and configure model settings.') }}
+                    </p>
+                    <a href="{{ route('admin.video-wizard.prompts.index') }}" class="btn btn-primary btn-sm">
+                        {{ __('Manage Prompts') }} <i class="fa fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
         <div class="col-md-4">
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body">

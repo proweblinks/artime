@@ -13,6 +13,7 @@ class VideoWizardDatabaseSeeder extends Seeder
     {
         $this->call([
             // Core seeders
+            VwPromptSeeder::class,
             VwProductionTypeSeeder::class,
 
             // Professional Cinematography System seeders

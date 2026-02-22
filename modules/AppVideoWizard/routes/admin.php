@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\AppVideoWizard\Http\Controllers\Admin\VideoWizardAdminController;
-
+use Modules\AppVideoWizard\Http\Controllers\Admin\PromptController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\ProductionTypeController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\GenerationLogController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\NarrativeStructureController;
@@ -29,6 +29,32 @@ Route::middleware(['web', 'auth'])->group(function () {
         // Dashboard
         Route::get('/', [VideoWizardAdminController::class, 'index'])
             ->name('admin.video-wizard.index');
+
+        // Prompts Management
+        Route::prefix('prompts')->group(function () {
+            Route::get('/', [PromptController::class, 'index'])
+                ->name('admin.video-wizard.prompts.index');
+            Route::get('/create', [PromptController::class, 'create'])
+                ->name('admin.video-wizard.prompts.create');
+            Route::post('/', [PromptController::class, 'store'])
+                ->name('admin.video-wizard.prompts.store');
+            Route::get('/{prompt}/edit', [PromptController::class, 'edit'])
+                ->name('admin.video-wizard.prompts.edit');
+            Route::put('/{prompt}', [PromptController::class, 'update'])
+                ->name('admin.video-wizard.prompts.update');
+            Route::delete('/{prompt}', [PromptController::class, 'destroy'])
+                ->name('admin.video-wizard.prompts.destroy');
+            Route::post('/{prompt}/toggle', [PromptController::class, 'toggle'])
+                ->name('admin.video-wizard.prompts.toggle');
+            Route::get('/{prompt}/history', [PromptController::class, 'history'])
+                ->name('admin.video-wizard.prompts.history');
+            Route::post('/{prompt}/rollback/{version}', [PromptController::class, 'rollback'])
+                ->name('admin.video-wizard.prompts.rollback');
+            Route::post('/{prompt}/test', [PromptController::class, 'test'])
+                ->name('admin.video-wizard.prompts.test');
+            Route::post('/seed-defaults', [PromptController::class, 'seedDefaults'])
+                ->name('admin.video-wizard.prompts.seed-defaults');
+        });
 
         // Production Types Management
         Route::prefix('production-types')->group(function () {

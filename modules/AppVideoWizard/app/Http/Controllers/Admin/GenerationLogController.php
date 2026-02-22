@@ -5,6 +5,7 @@ namespace Modules\AppVideoWizard\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Modules\AppVideoWizard\Models\VwGenerationLog;
+use Modules\AppVideoWizard\Models\VwPrompt;
 use Modules\AppVideoWizard\Services\GenerationLogService;
 
 class GenerationLogController extends Controller
@@ -63,7 +64,12 @@ class GenerationLogController extends Controller
 
         $logs = $query->orderBy('created_at', 'desc')->paginate(50);
 
-        $prompts = collect();
+        // Get prompts for filter dropdown (with fallback for empty table)
+        try {
+            $prompts = VwPrompt::orderBy('name')->pluck('name', 'slug');
+        } catch (\Exception $e) {
+            $prompts = collect();
+        }
         $statuses = ['success' => 'Success', 'failed' => 'Failed', 'partial' => 'Partial'];
 
         return view('appvideowizard::admin.logs.index', compact('logs', 'prompts', 'statuses'));
