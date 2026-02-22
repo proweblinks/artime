@@ -224,10 +224,15 @@ RULES;
             $prompt = VwPrompt::getBySlug($slug);
             if (!$prompt) return null;
             $compiled = $prompt->compile($variables);
-            // Clean unresolved empty placeholders (when variable was empty string)
+            // Clean unresolved placeholders (variables never passed)
             $compiled = preg_replace('/,?\s*\{\{\w+\}\}\s*,?/', '', $compiled);
-            $compiled = preg_replace('/,\s*,/', ',', $compiled);
-            $compiled = trim($compiled, " ,.\n");
+            // Clean orphaned punctuation from empty-string variables
+            $compiled = preg_replace('/\.\s*\./', '.', $compiled);   // ". ." → "."
+            $compiled = preg_replace('/,\s*,/', ',', $compiled);     // ", ," → ","
+            $compiled = preg_replace('/\s{2,}/', ' ', $compiled);    // double spaces
+            $compiled = trim($compiled, " ,\n");
+            // Preserve trailing period if template had one
+            $compiled = rtrim($compiled, ' ');
             return !empty($compiled) ? $compiled : null;
         } catch (\Throwable $e) {
             return null;
