@@ -313,9 +313,28 @@ EOT;
             $parts[] = "The thumbnail is for content titled: \"{$title}\"";
         }
 
+        // Text overlay instructions
+        $titleText = $params['title'] ?? ($params['youtubeData']['title'] ?? '');
+        if ($titleText) {
+            // Extract a short, punchy caption (first 5-6 words or a key phrase)
+            $words = explode(' ', $titleText);
+            $shortCaption = implode(' ', array_slice($words, 0, 6));
+            // Remove hashtags and trailing punctuation clutter
+            $shortCaption = preg_replace('/#\S+/', '', $shortCaption);
+            $shortCaption = trim($shortCaption, " \t\n\r\0\x0B.,;:!?");
+
+            $parts[] = "TEXT OVERLAY (CRITICAL - MUST INCLUDE):\n"
+                . "- Add BOLD, large, eye-catching text on the thumbnail\n"
+                . "- Text: \"{$shortCaption}\"\n"
+                . "- Use thick, sans-serif font with strong contrast against the background\n"
+                . "- Text should be LARGE and readable even at small thumbnail sizes\n"
+                . "- Add text shadow, outline, or glow to ensure legibility\n"
+                . "- Position text to complement the visual composition (typically upper or lower area)\n"
+                . "- Text color should POP against the background (white with dark outline, or bright colors)";
+        }
+
         // Universal rules
         $parts[] = "CRITICAL RULES:\n"
-            . "- Do NOT include any text, letters, numbers, or words in the image\n"
             . "- Aspect ratio must be 16:9 (widescreen landscape)\n"
             . "- Must look good at small sizes (mobile-friendly)\n"
             . "- Use strong focal point that draws the eye immediately\n"
