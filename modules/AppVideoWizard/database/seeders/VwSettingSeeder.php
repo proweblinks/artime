@@ -365,6 +365,242 @@ Return ONLY valid JSON (no markdown, no explanation):
             ],
 
             // =============================================
+            // SEEDANCE PIPELINE CONFIGURATION (Admin-editable)
+            // These settings expose hardcoded prompt-building
+            // data from SeedancePromptService for admin editing.
+            // =============================================
+            [
+                'slug' => 'seedance_technical_rules',
+                'name' => 'Seedance Technical Rules',
+                'category' => 'animation',
+                'description' => 'The full technical rules text injected into Seedance prompts. Controls how AI generates video prompt instructions (motion, dialogue, camera, banned patterns, etc.).',
+                'value_type' => 'string',
+                'value' => 'SEEDANCE VIDEO PROMPT RULES:
+
+ADVERBS — Use natural, descriptive adverbs freely:
+- High intensity: rapidly, violently, crazily, intensely, aggressively, wildly, fiercely, powerfully
+- Medium intensity: slowly, gently, steadily, smoothly, carefully, cautiously
+- Temporal: suddenly, immediately, then, finally, instantly
+- Place adverbs BEFORE or AFTER verbs naturally. Write as you would narrate the scene.
+
+EXPLICIT MOTION — Seedance CANNOT infer motion:
+Every movement must be EXPLICITLY described. The model will NOT animate what you don\'t write.
+WRONG: "the cat attacks" (too vague — HOW does it attack?)
+RIGHT: "the cat slaps the man\'s face with its right paw"
+If a body part should move, DESCRIBE the motion. If an object should fly, DESCRIBE the trajectory.
+
+DIALOGUE & SOUNDS — INCLUDE THEM:
+- Include character dialogue in quotes: yells "Get off me!"
+- Include character sounds: meows, yells, screams, growls, hisses
+- Include environmental sounds caused by actions: crashes, clattering, shattering
+- These help Seedance generate accurate audio and mouth movements.
+
+CAMERA STYLE — Describe when relevant:
+- "A chaotic, shaking handheld camera follows the action"
+- "Smooth tracking shot" or "Static wide shot"
+- Camera style helps set the visual tone.
+- Avoid conflicting camera directions in the same prompt.
+
+PHYSICAL ACTION — SPECIFIC BODY PARTS:
+GOOD: "slaps the man\'s face with its right paw"
+GOOD: "lands violently on the man\'s left shoulder, its claws gripping wildly"
+BAD: "the cat attacks him" (which body part? what motion? what gets hit?)
+
+MULTIPLE SUBJECTS — Handle explicitly:
+- Name or describe each subject clearly: "The man in the hat" vs "the woman in red"
+- Describe each subject\'s action separately when multiple subjects are present.
+
+OBJECT DISPLACEMENT — ALWAYS INCLUDE:
+When characters interact with objects during action, describe what happens.
+
+FACE & IDENTITY PRESERVATION:
+- Do NOT add face/identity prefix text — the source IMAGE defines the face.
+- NEVER describe face structure changes.
+- You may mention mouth opening for SPEAKING or SOUND PRODUCTION.
+
+STYLE ANCHOR — ALWAYS end with: "Cinematic, photorealistic."
+
+BANNED:
+- No semicolons
+- No appearance/clothing descriptions
+- No facial micro-expression descriptions
+- No passive voice — only active verbs
+- No weak/generic verbs: "goes", "moves", "does", "gets", "starts", "begins"
+- ABSOLUTELY NO background music descriptions.',
+                'default_value' => null,
+                'input_type' => 'textarea',
+                'input_help' => 'Full Seedance prompt rules. Edit to fine-tune video generation quality. Changes apply to all new animations.',
+                'icon' => 'fa-solid fa-scroll',
+                'is_system' => false,
+                'sort_order' => 20,
+            ],
+            [
+                'slug' => 'seedance_action_fallbacks',
+                'name' => 'Action Fallback Library',
+                'category' => 'animation',
+                'description' => 'JSON map of shot types to fallback action phrases. Used when AI decomposition doesn\'t provide a specific subjectAction for a shot.',
+                'value_type' => 'json',
+                'value' => json_encode([
+                    'establishing'     => ['surveys the landscape', 'enters the scene slowly', 'approaches from the distance'],
+                    'extreme-wide'     => ['stands in the vast space', 'moves through the environment', 'emerges from the distance'],
+                    'wide'             => ['walks forward deliberately', 'crosses the open space', 'stands at the edge'],
+                    'full'             => ['walks forward with purpose', 'stands facing the scene', 'pauses mid-stride'],
+                    'medium'           => ['turns to face the light', 'reaches for an object', 'leans against the surface'],
+                    'medium-close'     => ['pauses mid-motion', 'glances over one shoulder', 'lifts a hand slowly'],
+                    'close-up'         => ['breathes steadily', 'blinks slowly', 'tilts head to one side'],
+                    'extreme-close-up' => ['leans forward, eyes fixed on the object', 'swallows nervously', 'narrows eyes slightly'],
+                    'reaction'         => ['freezes momentarily', 'steps back suddenly', 'inhales sharply'],
+                    'detail'           => ['rotates slowly in the light', 'rests on the surface', 'catches the light'],
+                    'pov'              => ['scans the environment', 'moves through the doorway', 'looks down at hands'],
+                    'over-shoulder'    => ['speaks while gesturing', 'listens intently', 'nods slowly'],
+                ], JSON_PRETTY_PRINT),
+                'default_value' => null,
+                'input_type' => 'json_editor',
+                'input_help' => 'Each shot type maps to an array of 3 fallback actions. One is randomly selected when no specific action is provided.',
+                'icon' => 'fa-solid fa-person-running',
+                'is_system' => false,
+                'sort_order' => 21,
+            ],
+            [
+                'slug' => 'seedance_ambient_cue_map',
+                'name' => 'Ambient Cue Map',
+                'category' => 'animation',
+                'description' => 'JSON map of keywords to ambient sound descriptions. When a keyword is found in the shot description, the corresponding ambient sound is used in the audio direction.',
+                'value_type' => 'json',
+                'value' => json_encode([
+                    'rain'      => 'ambient rain and distant thunder',
+                    'storm'     => 'thunder and heavy rainfall',
+                    'wind'      => 'natural wind and rustling',
+                    'ocean'     => 'ocean waves and seagulls',
+                    'sea'       => 'ocean waves crashing',
+                    'beach'     => 'waves and wind on sand',
+                    'forest'    => 'birds and rustling leaves',
+                    'city'      => 'distant traffic and urban hum',
+                    'street'    => 'footsteps and ambient city noise',
+                    'office'    => 'quiet keyboard clicks and air conditioning hum',
+                    'kitchen'   => 'sizzling and clinking dishes',
+                    'fire'      => 'crackling fire',
+                    'night'     => 'crickets and distant nighttime ambiance',
+                    'snow'      => 'quiet crunching snow underfoot',
+                    'desert'    => 'wind over sand and distant silence',
+                    'water'     => 'flowing water and gentle splashing',
+                    'garden'    => 'birds chirping and gentle breeze',
+                    'crowd'     => 'murmuring crowd ambiance',
+                    'car'       => 'engine hum and road noise',
+                    'church'    => 'quiet reverberant space',
+                    'hospital'  => 'quiet beeping monitors and soft footsteps',
+                    'warehouse' => 'echoing footsteps in empty space',
+                ], JSON_PRETTY_PRINT),
+                'default_value' => null,
+                'input_type' => 'json_editor',
+                'input_help' => 'Add keywords and their ambient sound descriptions. Up to 2 matching cues are included in audio direction.',
+                'icon' => 'fa-solid fa-ear-listen',
+                'is_system' => false,
+                'sort_order' => 22,
+            ],
+            [
+                'slug' => 'seedance_shot_size_map',
+                'name' => 'Shot Type → Size Mapping',
+                'category' => 'animation',
+                'description' => 'JSON map of internal shot type slugs to Seedance shot size labels used in the Camera part of prompts.',
+                'value_type' => 'json',
+                'value' => json_encode([
+                    'establishing'     => 'Wide shot',
+                    'extreme-wide'     => 'Wide shot',
+                    'wide'             => 'Wide shot',
+                    'full'             => 'Full shot',
+                    'medium'           => 'Medium shot',
+                    'medium-close'     => 'Medium close-up',
+                    'close-up'         => 'Close-up',
+                    'extreme-close-up' => 'Extreme close-up',
+                    'reaction'         => 'Close-up',
+                    'detail'           => 'Extreme close-up',
+                    'pov'              => 'POV shot',
+                    'over-shoulder'    => 'Over-the-shoulder',
+                ], JSON_PRETTY_PRINT),
+                'default_value' => null,
+                'input_type' => 'json_editor',
+                'input_help' => 'Maps decomposition shot type slugs to Seedance-friendly camera shot size labels.',
+                'icon' => 'fa-solid fa-expand',
+                'is_system' => false,
+                'sort_order' => 23,
+            ],
+            [
+                'slug' => 'seedance_style_anchor',
+                'name' => 'Style Anchor Text',
+                'category' => 'animation',
+                'description' => 'Default style anchor appended to prompts when no visual style is matched. Also used as fallback in the Style part.',
+                'value_type' => 'string',
+                'value' => 'Cinematic, photorealistic',
+                'default_value' => 'Cinematic, photorealistic',
+                'input_type' => 'text',
+                'input_help' => 'Short style descriptor injected into every prompt. Change to alter the base visual look.',
+                'icon' => 'fa-solid fa-palette',
+                'is_system' => false,
+                'sort_order' => 24,
+            ],
+            [
+                'slug' => 'seedance_audio_fallback_text',
+                'name' => 'Audio Fallback Text',
+                'category' => 'animation',
+                'description' => 'Default audio direction text when no ambient cues are detected and audio direction is disabled.',
+                'value_type' => 'string',
+                'value' => 'Ambient sound only.',
+                'default_value' => 'Ambient sound only.',
+                'input_type' => 'text',
+                'input_help' => 'Fallback audio instruction when no environmental context is available.',
+                'icon' => 'fa-solid fa-volume-low',
+                'is_system' => false,
+                'sort_order' => 25,
+            ],
+            [
+                'slug' => 'seedance_sanitize_patterns',
+                'name' => 'Sanitization Patterns',
+                'category' => 'animation',
+                'description' => 'JSON object with regex patterns grouped by phase: compounds, passive_verbs, facial_patterns, appearance_patterns, adverbs_to_deduplicate. Used to clean prompts for Seedance compliance.',
+                'value_type' => 'json',
+                'value' => json_encode([
+                    'compounds' => [
+                        'razor[\\s-]*sharp' => 'sharp',
+                        'razor\\s+claws' => 'sharp claws',
+                    ],
+                    'passive_verbs' => [
+                        'nestled' => 'pressing',
+                        'nestling' => 'pressing',
+                        'begins to' => '',
+                        'starts to' => '',
+                    ],
+                    'facial_patterns' => [
+                        ',?\\s*\\beyes?\\s+(?:crinkling|crinkel|crinkle|crinkled|widening|widen|widened|narrowing|narrow|narrowed|squinting|squint|twinkling|twinkle|sparkling|sparkle|gleaming|gleam|glinting|glint)\\s*\\w*' => '',
+                        ',?\\s*\\beyes?\\s+wide\\s*\\w*' => '',
+                        '\\bbrows?\\s+(?:furrowing|furrowed|knitting|knitted|raised|raising)\\b' => '',
+                        '\\bjaws?\\s+(?:clenching|clenched|dropping|dropped|setting|set)\\b' => '',
+                        '\\bin\\s+(?:amusement|delight|horror|disgust|surprise|wonder|disbelief|shock)\\b' => '',
+                        '\\bwith\\s+(?:a\\s+)?(?:\\w+\\s+)?(?:glint|grin|smirk|sneer)\\b' => '',
+                        ',?\\s*\\b(?:smiles?|smiled|smiling)\\s+\\w*\\s*(?:with\\s+\\w+)?' => '',
+                        ',?\\s*\\bface\\s+(?:transforms?|changes?|shifts?|contorts?|morphs?|lights?\\s+up)\\s*\\w*[^,.]*[.,]?' => '',
+                        '\\bmouth\\s+(?:forms?|makes?|creates?)\\s+(?:a?\\s*)?(?:shape|circle|oval|o\\b)[^,.]*[.,]?' => 'mouth opens',
+                        '\\bwith\\s+(?:joy|delight|glee|satisfaction|pleasure|excitement|enthusiasm|pride|happiness)\\b' => 'powerfully',
+                        ',?\\s*\\bface\\s+(?:brightens?|glows?|beams?|softens?|hardens?|relaxes?|tenses?|scrunches?|crumples?|falls?)\\b[^,.]*[.,]?' => '',
+                        ',?\\s*\\blooks?\\s+(?:satisfied|happy|pleased|guilty|innocent|content|proud|sad|angry|worried|confused|surprised|shocked|terrified|bored|amused|annoyed|disgusted|excited)\\b[^,.]*[.,]?' => '',
+                    ],
+                    'appearance_patterns' => [
+                        ',?\\s*wrapped\\s+(?:from|around)\\s+[^,.]+' => '',
+                        ',?\\s*(?:wearing|dressed\\s+in|clad\\s+in)\\s+[^,.]+' => '',
+                        '\\b(?:brightly|dimly|softly|warmly|harshly)\\s+lit\\b' => '',
+                        '\\bbright\\s+(?=\\w)' => '',
+                    ],
+                    'adverbs_to_deduplicate' => ['crazily', 'violently', 'rapidly', 'intensely', 'slowly', 'gently', 'steadily', 'smoothly'],
+                ], JSON_PRETTY_PRINT),
+                'default_value' => null,
+                'input_type' => 'json_editor',
+                'input_help' => 'Regex patterns for prompt sanitization. Keys: compounds, passive_verbs, facial_patterns, appearance_patterns, adverbs_to_deduplicate. Patterns use PHP regex syntax without delimiters.',
+                'icon' => 'fa-solid fa-broom',
+                'is_system' => false,
+                'sort_order' => 26,
+            ],
+
+            // =============================================
             // DURATION SETTINGS
             // =============================================
             [
@@ -713,7 +949,7 @@ Return ONLY valid JSON (no markdown, no explanation):
                 'slug' => 'ai_script_model',
                 'name' => 'Script Generation Model',
                 'category' => 'ai_providers',
-                'description' => 'AI model to use for script generation.',
+                'description' => 'Fallback AI model for script generation. VwPrompt model field takes precedence when set.',
                 'value_type' => 'string',
                 'value' => 'gpt-4',
                 'default_value' => 'gpt-4',

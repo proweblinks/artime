@@ -3,8 +3,9 @@
 namespace App\Services;
 
 use GuzzleHttp\Client;
-use Illuminate\Support\Facades\Log;
 use GuzzleHttp\Exception\ClientException;
+use Illuminate\Support\Facades\Log;
+use Modules\AppVideoWizard\Models\VwSetting;
 
 class WaveSpeedService
 {
@@ -46,8 +47,9 @@ class WaveSpeedService
         }
 
         // Anti-speech suffix: prevents Seedance from generating unwanted spoken dialogue.
-        // Now opt-IN (default false). The caller explicitly sets anti_speech=true when needed.
-        $antiSpeech = $options['anti_speech'] ?? false;
+        // Reads default from VwSetting `seedance_anti_speech_default` (admin-configurable).
+        $antiSpeechDefault = filter_var(VwSetting::getValue('seedance_anti_speech_default', false), FILTER_VALIDATE_BOOLEAN);
+        $antiSpeech = $options['anti_speech'] ?? $antiSpeechDefault;
         if ($antiSpeech) {
             $hasAudioDirection = preg_match('/\b(no speech|ambient sound only|no music\. only)\b/i', $prompt);
             if (!$hasAudioDirection) {

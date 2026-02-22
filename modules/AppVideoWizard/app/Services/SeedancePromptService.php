@@ -18,9 +18,9 @@ class SeedancePromptService
 {
     /**
      * Fallback action library organized by shot type.
-     * Single present-tense verbs — not emotional prose.
+     * Used when DB setting `seedance_action_fallbacks` is not configured.
      */
-    protected const ACTION_FALLBACKS = [
+    protected const DEFAULT_ACTION_FALLBACKS = [
         'establishing'     => ['surveys the landscape', 'enters the scene slowly', 'approaches from the distance'],
         'extreme-wide'     => ['stands in the vast space', 'moves through the environment', 'emerges from the distance'],
         'wide'             => ['walks forward deliberately', 'crosses the open space', 'stands at the edge'],
@@ -28,11 +28,170 @@ class SeedancePromptService
         'medium'           => ['turns to face the light', 'reaches for an object', 'leans against the surface'],
         'medium-close'     => ['pauses mid-motion', 'glances over one shoulder', 'lifts a hand slowly'],
         'close-up'         => ['breathes steadily', 'blinks slowly', 'tilts head to one side'],
-        'extreme-close-up' => ['focuses intently', 'swallows nervously', 'narrows eyes slightly'],
+        'extreme-close-up' => ['leans forward, eyes fixed on the object', 'swallows nervously', 'narrows eyes slightly'],
         'reaction'         => ['freezes momentarily', 'steps back suddenly', 'inhales sharply'],
         'detail'           => ['rotates slowly in the light', 'rests on the surface', 'catches the light'],
         'pov'              => ['scans the environment', 'moves through the doorway', 'looks down at hands'],
         'over-shoulder'    => ['speaks while gesturing', 'listens intently', 'nods slowly'],
+    ];
+
+    /** Default style anchor text for prompts. */
+    protected const DEFAULT_STYLE_ANCHOR = 'Cinematic, photorealistic';
+
+    /** Default audio fallback when no ambient cues are found. */
+    protected const DEFAULT_AUDIO_FALLBACK = 'Ambient sound only.';
+
+    /** Default shot type → Seedance shot size mapping. */
+    protected const DEFAULT_SHOT_SIZE_MAP = [
+        'establishing'     => 'Wide shot',
+        'extreme-wide'     => 'Wide shot',
+        'wide'             => 'Wide shot',
+        'full'             => 'Full shot',
+        'medium'           => 'Medium shot',
+        'medium-close'     => 'Medium close-up',
+        'close-up'         => 'Close-up',
+        'extreme-close-up' => 'Extreme close-up',
+        'reaction'         => 'Close-up',
+        'detail'           => 'Extreme close-up',
+        'pov'              => 'POV shot',
+        'over-shoulder'    => 'Over-the-shoulder',
+    ];
+
+    /** Default ambient cue keyword → sound description mapping. */
+    protected const DEFAULT_AMBIENT_CUE_MAP = [
+        'rain'      => 'ambient rain and distant thunder',
+        'storm'     => 'thunder and heavy rainfall',
+        'wind'      => 'natural wind and rustling',
+        'ocean'     => 'ocean waves and seagulls',
+        'sea'       => 'ocean waves crashing',
+        'beach'     => 'waves and wind on sand',
+        'forest'    => 'birds and rustling leaves',
+        'city'      => 'distant traffic and urban hum',
+        'street'    => 'footsteps and ambient city noise',
+        'office'    => 'quiet keyboard clicks and air conditioning hum',
+        'kitchen'   => 'sizzling and clinking dishes',
+        'fire'      => 'crackling fire',
+        'night'     => 'crickets and distant nighttime ambiance',
+        'snow'      => 'quiet crunching snow underfoot',
+        'desert'    => 'wind over sand and distant silence',
+        'water'     => 'flowing water and gentle splashing',
+        'garden'    => 'birds chirping and gentle breeze',
+        'crowd'     => 'murmuring crowd ambiance',
+        'car'       => 'engine hum and road noise',
+        'church'    => 'quiet reverberant space',
+        'hospital'  => 'quiet beeping monitors and soft footsteps',
+        'warehouse' => 'echoing footsteps in empty space',
+    ];
+
+    /** Default technical rules text. */
+    protected const DEFAULT_TECHNICAL_RULES = <<<'RULES'
+SEEDANCE VIDEO PROMPT RULES:
+
+ADVERBS — Use natural, descriptive adverbs freely:
+- High intensity: rapidly, violently, crazily, intensely, aggressively, wildly, fiercely, powerfully
+- Medium intensity: slowly, gently, steadily, smoothly, carefully, cautiously
+- Temporal: suddenly, immediately, then, finally, instantly
+- Place adverbs BEFORE or AFTER verbs naturally. Write as you would narrate the scene.
+
+EXPLICIT MOTION — Seedance CANNOT infer motion:
+Every movement must be EXPLICITLY described. The model will NOT animate what you don't write.
+WRONG: "the cat attacks" (too vague — HOW does it attack?)
+RIGHT: "the cat slaps the man's face with its right paw"
+If a body part should move, DESCRIBE the motion. If an object should fly, DESCRIBE the trajectory.
+
+DIALOGUE & SOUNDS — INCLUDE THEM:
+- Include character dialogue in quotes: yells "Get off me!"
+- Include character sounds: meows, yells, screams, growls, hisses
+- Include environmental sounds caused by actions: crashes, clattering, shattering
+- These help Seedance generate accurate audio and mouth movements.
+
+CAMERA STYLE — Describe when relevant:
+- "A chaotic, shaking handheld camera follows the action"
+- "Smooth tracking shot" or "Static wide shot"
+- Camera style helps set the visual tone.
+- Avoid conflicting camera directions in the same prompt.
+
+PHYSICAL ACTION — SPECIFIC BODY PARTS:
+GOOD: "slaps the man's face with its right paw"
+GOOD: "lands violently on the man's left shoulder, its claws gripping wildly"
+BAD: "the cat attacks him" (which body part? what motion? what gets hit?)
+
+MULTIPLE SUBJECTS — Handle explicitly:
+- Name or describe each subject clearly: "The man in the hat" vs "the woman in red"
+- Describe each subject's action separately when multiple subjects are present.
+
+OBJECT DISPLACEMENT — ALWAYS INCLUDE:
+When characters interact with objects during action, describe what happens.
+
+FACE & IDENTITY PRESERVATION:
+- Do NOT add face/identity prefix text — the source IMAGE defines the face.
+- NEVER describe face structure changes.
+- You may mention mouth opening for SPEAKING or SOUND PRODUCTION.
+
+STYLE ANCHOR — ALWAYS end with: "Cinematic, photorealistic."
+
+BANNED:
+- No semicolons
+- No appearance/clothing descriptions
+- No facial micro-expression descriptions
+- No passive voice — only active verbs
+- No weak/generic verbs: "goes", "moves", "does", "gets", "starts", "begins"
+- ABSOLUTELY NO background music descriptions.
+RULES;
+
+    /** Default sanitization patterns grouped by phase. */
+    protected const DEFAULT_SANITIZE_PATTERNS = [
+        'compounds' => [
+            'razor[\\s-]*sharp' => 'sharp',
+            'razor\\s+claws' => 'sharp claws',
+        ],
+        'passive_verbs' => [
+            'nestled' => 'pressing',
+            'nestling' => 'pressing',
+            'begins to' => '',
+            'starts to' => '',
+        ],
+        'facial_patterns' => [
+            ',?\\s*\\beyes?\\s+(?:crinkling|crinkel|crinkle|crinkled|widening|widen|widened|narrowing|narrow|narrowed|squinting|squint|twinkling|twinkle|sparkling|sparkle|gleaming|gleam|glinting|glint)\\s*\\w*' => '',
+            ',?\\s*\\beyes?\\s+wide\\s*\\w*' => '',
+            ',?\\s*\\beyes?\\s+(?:stare|stares?|staring|gaze|gazes?|gazing|peer|peers?|peering|glare|glares?|glaring|look|looks?|looking)\\b[^,.]*[.,]?' => '',
+            ',?\\s*(?:with\\s+)?(?:crinkled|squinted|narrowed|widened|teary|watery|half-closed|droopy)\\s+eyes?\\b[^,.]*[.,]?' => '',
+            ',?\\s*\\bmouth\\s+(?:curves?|twists?|forms?|breaks?|turns?)\\s+(?:wide\\s+)?(?:into|in)\\s+(?:\\w+\\s+){0,2}(?:smile|grin|frown|smirk)' => '',
+            ',?\\s*\\bmouth\\s+curves?\\s+wide\\s+in\\s+\\w+[^.]*(?=\\.)' => '',
+            '\\beyes\\s+lock\\s+on\\s+[^,.]*(?:glint|gleam|look|gaze|stare)\\b' => '',
+            '\\bbrows?\\s+(?:furrowing|furrowed|knitting|knitted|raised|raising)\\b' => '',
+            '\\bjaws?\\s+(?:clenching|clenched|dropping|dropped|setting|set)\\b' => '',
+            '\\bin\\s+(?:amusement|delight|horror|disgust|surprise|wonder|disbelief|shock)\\b' => '',
+            '\\bwith\\s+(?:a\\s+)?(?:\\w+\\s+)?(?:glint|grin|smirk|sneer)\\b' => '',
+            '\\bexpression\\s+(?:shifts?|changes?)\\s+to\\s+[^,.]*(?:smile|grin|frown|smirk)' => '',
+            '\\b(?:\\w+\\s+)?(?:toothless|wide|bright|warm|soft|gentle|sly|knowing|wicked)\\s+smile\\b' => '',
+            '\\bbreaks?\\s+into\\s+(?:a\\s+)?(?:smile|grin|laugh)\\b' => '',
+            ',?\\s*eyes?\\s+(?:looking|gazing|staring|glancing|locked|fixed|focused|trained)\\s+(?:\\w+\\s+)?(?:at|on|toward|towards)\\s+(?:the\\s+)?camera\\b[^,.]*[.,]?' => '',
+            ',?\\s*(?:looking|facing|turning|glancing|locked|fixed|focused)\\s+(?:at|on|toward|towards)\\s+(?:the\\s+)?camera\\b' => '',
+            '\\s+(?:at|to|toward|towards)\\s+(?:the\\s+)?camera\\b' => '',
+            ',?\\s*(?:maintaining|making|holding|with)\\s+(?:direct\\s+)?eye\\s+contact\\b[^,.]*[.,]?' => '',
+            ',?\\s*(?:with\\s+)?cheeks?\\s+(?:puffing|puffed|bulging|inflating|inflated)\\b[^,.]*[.,]?' => '',
+            ',?\\s*\\b(?:smiles?|smiled|smiling)\\s+\\w*\\s*(?:with\\s+\\w+)?' => '',
+            ',?\\s*\\bface\\s+(?:transforms?|changes?|shifts?|contorts?|morphs?|lights?\\s+up)\\s*\\w*[^,.]*[.,]?' => '',
+            '\\bmouth\\s+(?:forms?|makes?|creates?)\\s+(?:a?\\s*)?(?:shape|circle|oval|o\\b)[^,.]*[.,]?' => 'mouth opens',
+            '\\bwith\\s+(?:joy|delight|glee|satisfaction|pleasure|excitement|enthusiasm|pride|happiness)\\b' => 'powerfully',
+            '\\bin\\s+(?:laugh|laughter|giggle|giggling)\\s+with\\s+[^,.]+' => 'producing crazy giggle',
+            ',?\\s*\\bface\\s+(?:brightens?|glows?|beams?|softens?|hardens?|relaxes?|tenses?|scrunches?|crumples?|falls?)\\b[^,.]*[.,]?' => '',
+            ',?\\s*\\blooks?\\s+(?:satisfied|happy|pleased|guilty|innocent|content|proud|sad|angry|worried|confused|surprised|shocked|terrified|bored|amused|annoyed|disgusted|excited)\\b[^,.]*[.,]?' => '',
+            '\\b(?:sleeping|resting|dozing|napping)\\s+(?=(?:mother|father|woman|man|person|baby|infant|child))' => '',
+        ],
+        'appearance_patterns' => [
+            ',?\\s*wrapped\\s+(?:from|around)\\s+[^,.]+' => '',
+            ',?\\s*(?:with\\s+)?(?:food|sauce|liquid|cream|crumbs?)\\s+(?:residue\\s+)?(?:smudged|splattered|dripping|stuck|remaining|visible|smeared|caked)\\s+(?:on|around|over)\\s+[^,.]+' => '',
+            ',?\\s*(?:with\\s+)?(?:food|sauce|liquid|cream|crumbs?)\\s+residue\\b[^,.]*[.,]?' => '',
+            ',?\\s*(?:wearing|dressed\\s+in|clad\\s+in)\\s+[^,.]+' => '',
+            ',?\\s*(?:in\\s+)?(?:a\\s+)?(?:white|blue|red|black|green|pink|yellow|brown)\\s+(?:shirt|jacket|hoodie|polo|sweater|dress|gown|towel|blanket)\\b' => '',
+            '\\b(?:brightly|dimly|softly|warmly|harshly)\\s+lit\\b' => '',
+            '\\blit\\s+(?=(?:hospital|room|space|corridor|hallway|ward|chamber|studio|kitchen|office|area))' => '',
+            '\\bbright\\s+(?=\\w)' => '',
+            '\\bclear\\s+(?=(?:plastic|glass|shhh|shush|gesture|chewing|slapping|tapping|sound))' => '',
+        ],
+        'adverbs_to_deduplicate' => ['crazily', 'violently', 'rapidly', 'intensely', 'slowly', 'gently', 'steadily', 'smoothly'],
     ];
 
     /**
@@ -199,7 +358,7 @@ class SeedancePromptService
         if ($visualStyle) {
             $parts[] = $visualStyle['promptSyntax'];
         } else {
-            $parts[] = 'Cinematic, photorealistic';
+            $parts[] = $this->getStyleAnchor();
         }
 
         // Lighting
@@ -246,8 +405,9 @@ class SeedancePromptService
 
         // Check if audio direction is enabled
         $enabled = VwSetting::getValue('seedance_audio_direction_enabled', true);
+        $fallbackText = $this->getAudioFallbackText();
         if (!$enabled) {
-            return 'Ambient sound only.';
+            return $fallbackText;
         }
 
         // Extract environmental cues from visual description
@@ -259,7 +419,7 @@ class SeedancePromptService
         }
 
         // Generic fallback
-        return 'Ambient sound only.';
+        return $fallbackText;
     }
 
     /**
@@ -312,8 +472,9 @@ class SeedancePromptService
         }
 
         // Style anchor (ensure present)
+        $styleAnchor = $this->getStyleAnchor();
         if (!preg_match('/cinematic|photorealistic/i', $prompt)) {
-            $prompt .= ' Cinematic, photorealistic.';
+            $prompt .= ' ' . $styleAnchor . '.';
         }
 
         // Audio direction (append if not already present)
@@ -334,77 +495,34 @@ class SeedancePromptService
 
     /**
      * Sanitize a prompt for Seedance compliance.
+     * Patterns are loaded from VwSetting `seedance_sanitize_patterns` with fallback to DEFAULT_SANITIZE_PATTERNS.
      */
     public static function sanitize(string $text): string
     {
+        $patterns = self::getSanitizePatterns();
+
         // Phase 1: Fix compound phrases
-        $compounds = [
-            '/\brazor[\s-]*sharp\b/i' => 'sharp',
-            '/\brazor\s+claws\b/i' => 'sharp claws',
-        ];
+        $compounds = $patterns['compounds'] ?? [];
         foreach ($compounds as $pattern => $replacement) {
-            $text = preg_replace($pattern, $replacement, $text);
+            $text = preg_replace('/\b' . $pattern . '\b/i', $replacement, $text);
         }
 
         // Phase 2: Replace passive/weak verbs
-        $passiveReplacements = [
-            '/\bnestled\b/i' => 'pressing',
-            '/\bnestling\b/i' => 'pressing',
-            '/\bbegins to\b/i' => '',
-            '/\bstarts to\b/i' => '',
-        ];
-        foreach ($passiveReplacements as $pattern => $replacement) {
-            $text = preg_replace($pattern, $replacement, $text);
+        $passiveVerbs = $patterns['passive_verbs'] ?? [];
+        foreach ($passiveVerbs as $pattern => $replacement) {
+            $text = preg_replace('/\b' . $pattern . '\b/i', $replacement, $text);
         }
 
         // Phase 3: Remove banned facial expression descriptions
-        $facialPatterns = [
-            '/,?\s*\beyes?\s+(?:crinkling|crinkel|crinkle|crinkled|widening|widen|widened|narrowing|narrow|narrowed|squinting|squint|twinkling|twinkle|sparkling|sparkle|gleaming|gleam|glinting|glint)\s*\w*/i' => '',
-            '/,?\s*\beyes?\s+wide\s*\w*/i' => '',
-            '/,?\s*\beyes?\s+(?:stare|stares?|staring|gaze|gazes?|gazing|peer|peers?|peering|glare|glares?|glaring|look|looks?|looking)\b[^,.]*[.,]?/i' => '',
-            '/,?\s*(?:with\s+)?(?:crinkled|squinted|narrowed|widened|teary|watery|half-closed|droopy)\s+eyes?\b[^,.]*[.,]?/i' => '',
-            '/,?\s*\bmouth\s+(?:curves?|twists?|forms?|breaks?|turns?)\s+(?:wide\s+)?(?:into|in)\s+(?:\w+\s+){0,2}(?:smile|grin|frown|smirk)/i' => '',
-            '/,?\s*\bmouth\s+curves?\s+wide\s+in\s+\w+[^.]*(?=\.)/i' => '',
-            '/\beyes\s+lock\s+on\s+[^,.]*(?:glint|gleam|look|gaze|stare)\b/i' => '',
-            '/\bbrows?\s+(?:furrowing|furrowed|knitting|knitted|raised|raising)\b/i' => '',
-            '/\bjaws?\s+(?:clenching|clenched|dropping|dropped|setting|set)\b/i' => '',
-            '/\bin\s+(?:amusement|delight|horror|disgust|surprise|wonder|disbelief|shock)\b/i' => '',
-            '/\bwith\s+(?:a\s+)?(?:\w+\s+)?(?:glint|grin|smirk|sneer)\b/i' => '',
-            '/\bexpression\s+(?:shifts?|changes?)\s+to\s+[^,.]*(?:smile|grin|frown|smirk)/i' => '',
-            '/\b(?:\w+\s+)?(?:toothless|wide|bright|warm|soft|gentle|sly|knowing|wicked)\s+smile\b/i' => '',
-            '/\bbreaks?\s+into\s+(?:a\s+)?(?:smile|grin|laugh)\b/i' => '',
-            '/,?\s*eyes?\s+(?:looking|gazing|staring|glancing|locked|fixed|focused|trained)\s+(?:\w+\s+)?(?:at|on|toward|towards)\s+(?:the\s+)?camera\b[^,.]*[.,]?/i' => '',
-            '/,?\s*(?:looking|facing|turning|glancing|locked|fixed|focused)\s+(?:at|on|toward|towards)\s+(?:the\s+)?camera\b/i' => '',
-            '/\s+(?:at|to|toward|towards)\s+(?:the\s+)?camera\b/i' => '',
-            '/,?\s*(?:maintaining|making|holding|with)\s+(?:direct\s+)?eye\s+contact\b[^,.]*[.,]?/i' => '',
-            '/,?\s*(?:with\s+)?cheeks?\s+(?:puffing|puffed|bulging|inflating|inflated)\b[^,.]*[.,]?/i' => '',
-            '/,?\s*\b(?:smiles?|smiled|smiling)\s+\w*\s*(?:with\s+\w+)?/i' => '',
-            '/,?\s*\bface\s+(?:transforms?|changes?|shifts?|contorts?|morphs?|lights?\s+up)\s*\w*[^,.]*[.,]?/i' => '',
-            '/\bmouth\s+(?:forms?|makes?|creates?)\s+(?:a?\s*)?(?:shape|circle|oval|o\b)[^,.]*[.,]?/i' => 'mouth opens',
-            '/\bwith\s+(?:joy|delight|glee|satisfaction|pleasure|excitement|enthusiasm|pride|happiness)\b/i' => 'powerfully',
-            '/\bin\s+(?:laugh|laughter|giggle|giggling)\s+with\s+[^,.]+/i' => 'producing crazy giggle',
-            '/,?\s*\bface\s+(?:brightens?|glows?|beams?|softens?|hardens?|relaxes?|tenses?|scrunches?|crumples?|falls?)\b[^,.]*[.,]?/i' => '',
-            '/,?\s*\blooks?\s+(?:satisfied|happy|pleased|guilty|innocent|content|proud|sad|angry|worried|confused|surprised|shocked|terrified|bored|amused|annoyed|disgusted|excited)\b[^,.]*[.,]?/i' => '',
-            '/\b(?:sleeping|resting|dozing|napping)\s+(?=(?:mother|father|woman|man|person|baby|infant|child))/i' => '',
-        ];
+        $facialPatterns = $patterns['facial_patterns'] ?? [];
         foreach ($facialPatterns as $pattern => $replacement) {
-            $text = preg_replace($pattern, $replacement, $text);
+            $text = preg_replace('/' . $pattern . '/i', $replacement, $text);
         }
 
         // Phase 4: Remove appearance/clothing descriptions
-        $appearancePatterns = [
-            '/,?\s*wrapped\s+(?:from|around)\s+[^,.]+/i' => '',
-            '/,?\s*(?:with\s+)?(?:food|sauce|liquid|cream|crumbs?)\s+(?:residue\s+)?(?:smudged|splattered|dripping|stuck|remaining|visible|smeared|caked)\s+(?:on|around|over)\s+[^,.]+/i' => '',
-            '/,?\s*(?:with\s+)?(?:food|sauce|liquid|cream|crumbs?)\s+residue\b[^,.]*[.,]?/i' => '',
-            '/,?\s*(?:wearing|dressed\s+in|clad\s+in)\s+[^,.]+/i' => '',
-            '/,?\s*(?:in\s+)?(?:a\s+)?(?:white|blue|red|black|green|pink|yellow|brown)\s+(?:shirt|jacket|hoodie|polo|sweater|dress|gown|towel|blanket)\b/i' => '',
-            '/\b(?:brightly|dimly|softly|warmly|harshly)\s+lit\b/i' => '',
-            '/\blit\s+(?=(?:hospital|room|space|corridor|hallway|ward|chamber|studio|kitchen|office|area))/i' => '',
-            '/\bbright\s+(?=\w)/i' => '',
-            '/\bclear\s+(?=(?:plastic|glass|shhh|shush|gesture|chewing|slapping|tapping|sound))/i' => '',
-        ];
+        $appearancePatterns = $patterns['appearance_patterns'] ?? [];
         foreach ($appearancePatterns as $pattern => $replacement) {
-            $text = preg_replace($pattern, $replacement, $text);
+            $text = preg_replace('/' . $pattern . '/i', $replacement, $text);
         }
 
         // Phase 5: Fix dangling "wrapped"
@@ -420,7 +538,8 @@ class SeedancePromptService
         $text = preg_replace('/,\s*\./', '.', $text);
 
         // Phase 7: Deduplicate adverbs
-        $text = self::deduplicateAdverbs($text);
+        $adverbs = $patterns['adverbs_to_deduplicate'] ?? ['crazily', 'violently', 'rapidly', 'intensely', 'slowly', 'gently', 'steadily', 'smoothly'];
+        $text = self::deduplicateAdverbs($text, $adverbs);
 
         $text = preg_replace('/\s{2,}/', ' ', $text);
         return trim($text);
@@ -429,9 +548,12 @@ class SeedancePromptService
     /**
      * Deduplicate overused Seedance adverbs using count-aware replacement.
      */
-    public static function deduplicateAdverbs(string $text): string
+    public static function deduplicateAdverbs(string $text, ?array $allAdverbs = null): string
     {
-        $allAdverbs = ['crazily', 'violently', 'rapidly', 'intensely', 'slowly', 'gently', 'steadily', 'smoothly'];
+        if ($allAdverbs === null) {
+            $patterns = self::getSanitizePatterns();
+            $allAdverbs = $patterns['adverbs_to_deduplicate'] ?? ['crazily', 'violently', 'rapidly', 'intensely', 'slowly', 'gently', 'steadily', 'smoothly'];
+        }
 
         $counts = [];
         foreach ($allAdverbs as $adv) {
@@ -478,58 +600,11 @@ class SeedancePromptService
 
     /**
      * Get Seedance technical rules for prompt building.
+     * Reads from VwSetting `seedance_technical_rules`, falls back to DEFAULT_TECHNICAL_RULES.
      */
     public function getTechnicalRules(string $version = '1.5'): string
     {
-        return <<<'RULES'
-SEEDANCE VIDEO PROMPT RULES:
-
-ADVERBS — Use natural, descriptive adverbs freely:
-- High intensity: rapidly, violently, crazily, intensely, aggressively, wildly, fiercely, powerfully
-- Medium intensity: slowly, gently, steadily, smoothly, carefully, cautiously
-- Temporal: suddenly, immediately, then, finally, instantly
-- Place adverbs BEFORE or AFTER verbs naturally. Write as you would narrate the scene.
-
-EXPLICIT MOTION — Seedance CANNOT infer motion:
-Every movement must be EXPLICITLY described. The model will NOT animate what you don't write.
-WRONG: "the cat attacks" (too vague — HOW does it attack?)
-RIGHT: "the cat slaps the man's face with its right paw"
-If a body part should move, DESCRIBE the motion. If an object should fly, DESCRIBE the trajectory.
-
-DIALOGUE & SOUNDS — INCLUDE THEM:
-- Include character dialogue in quotes: yells "Get off me!"
-- Include character sounds: meows, yells, screams, growls, hisses
-- Include environmental sounds caused by actions: crashes, clattering, shattering
-- These help Seedance generate accurate audio and mouth movements.
-
-CAMERA STYLE — Describe when relevant:
-- "A chaotic, shaking handheld camera follows the action"
-- "Smooth tracking shot" or "Static wide shot"
-- Camera style helps set the visual tone.
-
-PHYSICAL ACTION — SPECIFIC BODY PARTS:
-GOOD: "slaps the man's face with its right paw"
-GOOD: "lands violently on the man's left shoulder, its claws gripping wildly"
-BAD: "the cat attacks him" (which body part? what motion? what gets hit?)
-
-OBJECT DISPLACEMENT — ALWAYS INCLUDE:
-When characters interact with objects during action, describe what happens.
-
-FACE & IDENTITY PRESERVATION:
-- Do NOT add face/identity prefix text — the source IMAGE defines the face.
-- NEVER describe face structure changes.
-- You may mention mouth opening for SPEAKING or SOUND PRODUCTION.
-
-STYLE ANCHOR — ALWAYS end with: "Cinematic, photorealistic."
-
-BANNED:
-- No semicolons
-- No appearance/clothing descriptions
-- No facial micro-expression descriptions
-- No passive voice — only active verbs
-- No weak/generic verbs: "goes", "moves", "does", "gets", "starts", "begins"
-- ABSOLUTELY NO background music descriptions.
-RULES;
+        return VwSetting::getValue('seedance_technical_rules', self::DEFAULT_TECHNICAL_RULES);
     }
 
     // =========================================================================
@@ -747,65 +822,32 @@ RULES;
 
     /**
      * Get a fallback action for a shot type.
+     * Reads from VwSetting `seedance_action_fallbacks`, falls back to DEFAULT_ACTION_FALLBACKS.
      */
     protected function getFallbackAction(string $shotType): string
     {
-        $actions = self::ACTION_FALLBACKS[$shotType] ?? self::ACTION_FALLBACKS['medium'];
+        $fallbacks = $this->getActionFallbacks();
+        $actions = $fallbacks[$shotType] ?? $fallbacks['medium'] ?? ['turns to face the light'];
         return $actions[array_rand($actions)];
     }
 
     /**
      * Map shot type to Seedance shot size bucket.
+     * Reads from VwSetting `seedance_shot_size_map`, falls back to DEFAULT_SHOT_SIZE_MAP.
      */
     protected function mapShotTypeToSize(string $shotType): string
     {
-        $sizeMap = [
-            'establishing'     => 'Wide shot',
-            'extreme-wide'     => 'Wide shot',
-            'wide'             => 'Wide shot',
-            'full'             => 'Full shot',
-            'medium'           => 'Medium shot',
-            'medium-close'     => 'Medium close-up',
-            'close-up'         => 'Close-up',
-            'extreme-close-up' => 'Extreme close-up',
-            'reaction'         => 'Close-up',
-            'detail'           => 'Extreme close-up',
-            'pov'              => 'POV shot',
-            'over-shoulder'    => 'Over-the-shoulder',
-        ];
-
+        $sizeMap = $this->getShotSizeMap();
         return $sizeMap[$shotType] ?? 'Medium shot';
     }
 
     /**
      * Extract ambient sound cues from a visual description.
+     * Reads from VwSetting `seedance_ambient_cue_map`, falls back to DEFAULT_AMBIENT_CUE_MAP.
      */
     protected function extractAmbientCues(string $description): string
     {
-        $cueMap = [
-            'rain'      => 'ambient rain and distant thunder',
-            'storm'     => 'thunder and heavy rainfall',
-            'wind'      => 'natural wind and rustling',
-            'ocean'     => 'ocean waves and seagulls',
-            'sea'       => 'ocean waves crashing',
-            'beach'     => 'waves and wind on sand',
-            'forest'    => 'birds and rustling leaves',
-            'city'      => 'distant traffic and urban hum',
-            'street'    => 'footsteps and ambient city noise',
-            'office'    => 'quiet keyboard clicks and air conditioning hum',
-            'kitchen'   => 'sizzling and clinking dishes',
-            'fire'      => 'crackling fire',
-            'night'     => 'crickets and distant nighttime ambiance',
-            'snow'      => 'quiet crunching snow underfoot',
-            'desert'    => 'wind over sand and distant silence',
-            'water'     => 'flowing water and gentle splashing',
-            'garden'    => 'birds chirping and gentle breeze',
-            'crowd'     => 'murmuring crowd ambiance',
-            'car'       => 'engine hum and road noise',
-            'church'    => 'quiet reverberant space',
-            'hospital'  => 'quiet beeping monitors and soft footsteps',
-            'warehouse' => 'echoing footsteps in empty space',
-        ];
+        $cueMap = $this->getAmbientCueMap();
 
         $found = [];
         foreach ($cueMap as $keyword => $cue) {
@@ -816,5 +858,85 @@ RULES;
         }
 
         return implode(' and ', $found);
+    }
+
+    // =========================================================================
+    // VwSetting accessor helpers (DB-configurable with const fallbacks)
+    // =========================================================================
+
+    /**
+     * Get action fallbacks from VwSetting or default constant.
+     */
+    protected function getActionFallbacks(): array
+    {
+        $json = VwSetting::getValue('seedance_action_fallbacks', null);
+        if ($json) {
+            $decoded = is_string($json) ? json_decode($json, true) : $json;
+            if (is_array($decoded) && !empty($decoded)) {
+                return $decoded;
+            }
+        }
+        return self::DEFAULT_ACTION_FALLBACKS;
+    }
+
+    /**
+     * Get shot size map from VwSetting or default constant.
+     */
+    protected function getShotSizeMap(): array
+    {
+        $json = VwSetting::getValue('seedance_shot_size_map', null);
+        if ($json) {
+            $decoded = is_string($json) ? json_decode($json, true) : $json;
+            if (is_array($decoded) && !empty($decoded)) {
+                return $decoded;
+            }
+        }
+        return self::DEFAULT_SHOT_SIZE_MAP;
+    }
+
+    /**
+     * Get ambient cue map from VwSetting or default constant.
+     */
+    protected function getAmbientCueMap(): array
+    {
+        $json = VwSetting::getValue('seedance_ambient_cue_map', null);
+        if ($json) {
+            $decoded = is_string($json) ? json_decode($json, true) : $json;
+            if (is_array($decoded) && !empty($decoded)) {
+                return $decoded;
+            }
+        }
+        return self::DEFAULT_AMBIENT_CUE_MAP;
+    }
+
+    /**
+     * Get style anchor text from VwSetting or default constant.
+     */
+    protected function getStyleAnchor(): string
+    {
+        return VwSetting::getValue('seedance_style_anchor', self::DEFAULT_STYLE_ANCHOR);
+    }
+
+    /**
+     * Get audio fallback text from VwSetting or default constant.
+     */
+    protected function getAudioFallbackText(): string
+    {
+        return VwSetting::getValue('seedance_audio_fallback_text', self::DEFAULT_AUDIO_FALLBACK);
+    }
+
+    /**
+     * Get sanitization patterns from VwSetting or default constant.
+     */
+    protected static function getSanitizePatterns(): array
+    {
+        $json = VwSetting::getValue('seedance_sanitize_patterns', null);
+        if ($json) {
+            $decoded = is_string($json) ? json_decode($json, true) : $json;
+            if (is_array($decoded) && !empty($decoded)) {
+                return $decoded;
+            }
+        }
+        return self::DEFAULT_SANITIZE_PATTERNS;
     }
 }
