@@ -563,9 +563,49 @@ USER;
                 }
             }
 
-            // Extract potential speaker names
-            if (preg_match_all('/\b([A-Z][a-z]+):\s/i', $narration, $matches)) {
-                foreach ($matches[1] as $speaker) {
+            // Extract potential speaker names from multiple formats:
+            // 1. Bracket markers: [MONOLOGUE: NAME], [DIALOGUE: NAME], [INTERNAL: NAME]
+            // 2. Bracket shorthand: [CHARACTER NAME] text
+            // 3. Implicit: CHARACTER NAME: text
+            $reservedKeywords = ['NARRATOR', 'MONOLOGUE', 'DIALOGUE', 'INTERNAL', 'MIXED', 'SFX', 'MUSIC', 'TRANSITION', 'CUT', 'FADE'];
+
+            // Extract from bracket markers: [MONOLOGUE: ELARA VOSS], [DIALOGUE: KAI REN]
+            if (preg_match_all('/\[(?:MONOLOGUE|DIALOGUE|INTERNAL):\s*([^\]]+)\]/i', $narration, $bracketMatches)) {
+                foreach ($bracketMatches[1] as $speaker) {
+                    $speaker = trim($speaker);
+                    if ($speaker && !in_array(strtoupper($speaker), $reservedKeywords)) {
+                        $detectedSpeakers[$speaker] = ($detectedSpeakers[$speaker] ?? 0) + 1;
+                    }
+                }
+            }
+
+            // Extract from shorthand brackets: [ELARA VOSS] text (but not [NARRATOR] or [MONOLOGUE:...])
+            if (preg_match_all('/\[([A-Z][A-Za-z\s\-\'\.]+)\]\s/u', $narration, $shorthandMatches)) {
+                foreach ($shorthandMatches[1] as $speaker) {
+                    $speaker = trim($speaker);
+                    if ($speaker && !in_array(strtoupper($speaker), $reservedKeywords) && !str_contains($speaker, ':')) {
+                        $detectedSpeakers[$speaker] = ($detectedSpeakers[$speaker] ?? 0) + 1;
+                    }
+                }
+            }
+
+            // Extract implicit: ELARA VOSS: text (multi-word uppercase names before colon, NOT inside brackets)
+            // Strip bracket markers first to avoid matching [MONOLOGUE: ...]
+            $cleanNarration = preg_replace('/\[[^\]]+\]/', '', $narration);
+            if (preg_match_all('/(?:^|\.\s+)([A-Z][A-Z\s\-\'\.]+):\s/mu', $cleanNarration, $implicitMatches)) {
+                foreach ($implicitMatches[1] as $speaker) {
+                    $speaker = trim($speaker);
+                    if ($speaker && strlen($speaker) > 1 && !in_array(strtoupper($speaker), $reservedKeywords)) {
+                        $detectedSpeakers[$speaker] = ($detectedSpeakers[$speaker] ?? 0) + 1;
+                    }
+                }
+            }
+
+            // Also extract from pre-parsed speechSegments if available (most reliable source)
+            $speechSegments = $scene['speechSegments'] ?? [];
+            foreach ($speechSegments as $segment) {
+                $speaker = $segment['speaker'] ?? null;
+                if ($speaker && !in_array(strtoupper($speaker), $reservedKeywords)) {
                     $detectedSpeakers[$speaker] = ($detectedSpeakers[$speaker] ?? 0) + 1;
                 }
             }

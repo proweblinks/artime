@@ -1130,8 +1130,9 @@ trait WithCharacterBible
             $speakerName = trim($speaker['name'] ?? $speaker);
             $speakerUpper = strtoupper($speakerName);
 
-            // Skip narrator
-            if ($speakerUpper === 'NARRATOR') {
+            // Skip reserved keywords (not real character names)
+            $reservedKeywords = ['NARRATOR', 'MONOLOGUE', 'DIALOGUE', 'INTERNAL', 'MIXED', 'SFX', 'MUSIC', 'TRANSITION', 'CUT', 'FADE'];
+            if (in_array($speakerUpper, $reservedKeywords)) {
                 continue;
             }
 

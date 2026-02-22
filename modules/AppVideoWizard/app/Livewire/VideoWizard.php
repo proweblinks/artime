@@ -8227,16 +8227,36 @@ PROMPT;
                 }
             }
 
-            // Count speakers from dialogue (if narrationStyle is dialogue)
+            // Count speakers from dialogue — prefer speechSegments, fallback to regex
             if ($this->characterIntelligence['narrationStyle'] === 'dialogue') {
-                // Extract speaker names from narration (format: "SPEAKER: text")
-                $narration = $scene['narration'] ?? '';
-                if (preg_match_all('/^([A-Z][A-Z\s]+):/m', $narration, $matches)) {
-                    foreach ($matches[1] as $speaker) {
-                        $speakers[trim($speaker)] = true;
-                        $dialogueLines++;
+                $segments = $scene['speechSegments'] ?? [];
+                $reservedKeywords = ['NARRATOR', 'MONOLOGUE', 'DIALOGUE', 'INTERNAL', 'MIXED'];
+                if (!empty($segments)) {
+                    // Use pre-parsed speechSegments (most reliable source)
+                    foreach ($segments as $segment) {
+                        $segSpeaker = $segment['speaker'] ?? null;
+                        if ($segSpeaker && !in_array(strtoupper($segSpeaker), $reservedKeywords)) {
+                            $speakers[trim($segSpeaker)] = true;
+                            $dialogueLines++;
+                        }
                     }
-                    $scenesWithDialogue++;
+                    if (count(array_filter($segments, fn($s) => !empty($s['speaker']))) > 0) {
+                        $scenesWithDialogue++;
+                    }
+                } else {
+                    // Fallback: Extract speaker names from narration
+                    $narration = $scene['narration'] ?? '';
+                    $cleanNarration = preg_replace('/\[[^\]]+\]/', '', $narration);
+                    if (preg_match_all('/(?:^|\.\s+)([A-Z][A-Z\s\-\'\.]+):\s/mu', $cleanNarration, $matches)) {
+                        foreach ($matches[1] as $speaker) {
+                            $speaker = trim($speaker);
+                            if ($speaker && !in_array(strtoupper($speaker), $reservedKeywords)) {
+                                $speakers[$speaker] = true;
+                                $dialogueLines++;
+                            }
+                        }
+                        $scenesWithDialogue++;
+                    }
                 }
             }
         }
