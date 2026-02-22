@@ -4,10 +4,18 @@ namespace Modules\AppVideoWizard\Services;
 
 use App\Facades\AI;
 use Illuminate\Support\Facades\Log;
+use Modules\AppVideoWizard\Models\VwSetting;
 use Modules\AppVideoWizard\Models\WizardProject;
 
 class ConceptService
 {
+    protected PromptService $promptService;
+
+    public function __construct()
+    {
+        $this->promptService = app(PromptService::class);
+    }
+
     /**
      * Call AI with engine-based model selection.
      */
@@ -74,6 +82,16 @@ class ConceptService
             }
         }
 
+        $compiled = $this->promptService->getCompiledPrompt('concept_improve', [
+            'rawInput' => $rawInput,
+            'typeContext' => $typeContext,
+        ]);
+
+        if ($compiled) {
+            return $compiled;
+        }
+
+        // Fallback to hardcoded prompt
         return <<<PROMPT
 You are a creative video concept developer. Transform this rough idea into a refined, detailed concept.
 
@@ -195,7 +213,12 @@ PROMPT;
         $teamId = $options['teamId'] ?? session('current_team_id', 0);
         $aiEngine = $options['aiEngine'] ?? $options['aiModelTier'] ?? 'grok';
 
-        $prompt = <<<PROMPT
+        $compiled = $this->promptService->getCompiledPrompt('concept_variations', [
+            'count' => $count,
+            'concept' => $concept,
+        ]);
+
+        $prompt = $compiled ?? <<<PROMPT
 Based on this video concept, generate {$count} unique variations that explore different angles or approaches:
 
 ORIGINAL CONCEPT:
@@ -323,6 +346,21 @@ PROMPT;
         $technicalRules = $this->getSeedanceTechnicalRules();
         $templateExample = $this->getTemplateExample($templateId);
 
+        $compiled = $this->promptService->getCompiledPrompt('concept_viral_seedance', [
+            'themeContext' => $themeContext,
+            'count' => $count,
+            'styleModifier' => $styleModifier,
+            'chaosModifier' => $chaosModifier,
+            'structureRules' => $structureRules,
+            'technicalRules' => $technicalRules,
+            'templateExample' => $templateExample,
+        ]);
+
+        if ($compiled) {
+            return $compiled;
+        }
+
+        // Fallback to hardcoded prompt
         return <<<PROMPT
 You are a viral content specialist who creates massively shareable short-form video concepts.
 
@@ -401,6 +439,18 @@ PROMPT;
      */
     protected function buildInfiniteTalkViralPrompt(string $themeContext, int $count, string $styleModifier = '', string $chaosModifier = ''): string
     {
+        $compiled = $this->promptService->getCompiledPrompt('concept_viral_infinitetalk', [
+            'themeContext' => $themeContext,
+            'count' => $count,
+            'styleModifier' => $styleModifier,
+            'chaosModifier' => $chaosModifier,
+        ]);
+
+        if ($compiled) {
+            return $compiled;
+        }
+
+        // Fallback to hardcoded prompt
         return <<<PROMPT
 You are a viral content specialist who creates massively shareable short-form video concepts.
 
@@ -469,6 +519,13 @@ PROMPT;
      */
     protected function getStylePromptModifier(string $subtype): string
     {
+        // Try VwSetting JSON lookup first
+        $styleModifiers = VwSetting::getValue('concept_style_modifiers');
+        if (is_array($styleModifiers) && !empty($styleModifiers[$subtype])) {
+            return str_replace('\\n', "\n", $styleModifiers[$subtype]);
+        }
+
+        // Fallback to hardcoded match
         return match ($subtype) {
             'viral' => <<<'STYLE'
 CONTENT STYLE — VIRAL/TRENDING:
@@ -598,6 +655,12 @@ STYLE,
      */
     public function getChaosModeSupercharger(): string
     {
+        $fromSetting = VwSetting::getValue('concept_chaos_supercharger');
+        if (!empty($fromSetting)) {
+            return $fromSetting;
+        }
+
+        // Fallback to hardcoded text
         return <<<'CHAOS'
 === CHAOS MODE ACTIVE — OVERRIDE STRUCTURE ===
 
@@ -780,6 +843,12 @@ RULES;
      */
     protected function getCloneTechnicalRules(): string
     {
+        $fromSetting = VwSetting::getValue('concept_clone_technical_rules');
+        if (!empty($fromSetting)) {
+            return $fromSetting;
+        }
+
+        // Fallback to hardcoded text
         return <<<'CLONE_RULES'
 === CLONE VIDEO PROMPT FORMAT ===
 
@@ -1035,7 +1104,15 @@ CLONE_RULES;
             $cloneOverride = '';
         }
 
-        $validationPrompt = <<<PROMPT
+        $compiled = $this->promptService->getCompiledPrompt('concept_seedance_compliance', [
+            'rules' => $rules,
+            'wordCount' => $wordCount,
+            'prompt' => $prompt,
+            'cloneOverride' => $cloneOverride,
+            'wordCountSection' => $wordCountSection,
+        ]);
+
+        $validationPrompt = $compiled ?? <<<PROMPT
 You are a Seedance video prompt compliance validator. Scan the prompt below and fix violations.
 
 === RULES ===
@@ -1726,7 +1803,12 @@ EXAMPLE,
             }
         }
 
-        $recheckPrompt = <<<PROMPT
+        $compiled = $this->promptService->getCompiledPrompt('concept_object_displacement', [
+            'objectList' => $objectList,
+            'specificChallenge' => $specificChallenge,
+        ]);
+
+        $recheckPrompt = $compiled ?? <<<PROMPT
 Watch this video frame by frame. The video contains INTENSE physical action.
 
 The following objects were identified on surfaces (counters, tables, shelves, etc.): {$objectList}
@@ -1863,6 +1945,19 @@ PROMPT;
      */
     protected function buildVideoAnalysisPrompt(): string
     {
+        // Try VwSetting first (admin-editable)
+        $fromSetting = VwSetting::getValue('concept_video_analysis_prompt');
+        if (!empty($fromSetting)) {
+            return $fromSetting;
+        }
+
+        // Try VwPrompt (concept_video_analysis has no variables — static prompt)
+        $compiled = $this->promptService->getCompiledPrompt('concept_video_analysis');
+        if ($compiled) {
+            return $compiled;
+        }
+
+        // Fallback to hardcoded prompt
         return <<<'PROMPT'
 You are analyzing a short-form video (TikTok/Reels/Shorts). You can see the FULL video with all its temporal flow, motion, and audio cues. Analyze it with EXTREME PRECISION.
 
@@ -2203,8 +2298,9 @@ STEP 7: End with "Cinematic, photorealistic."
 The videoPrompt MUST be 120-200 words. Count your words before outputting. Use the FULL budget — do NOT stop early when there are more action phases to cover.
 PROMPT;
 
+        $chaosModeSupercharger = $chaosMode ? $this->getChaosModeSupercharger() : '';
         if ($chaosMode) {
-            $prompt .= "\n\n" . $this->getChaosModeSupercharger();
+            $prompt .= "\n\n" . $chaosModeSupercharger;
         }
 
         // Count action phases from the visual analysis to set exact expectations
@@ -2213,10 +2309,25 @@ PROMPT;
         if ($phaseCount < 3) $phaseCount = 7; // fallback if parsing fails
         $targetWords = $phaseCount * 15; // 15 words per sentence average
 
-        // Use system/user message split for better instruction following.
-        // System message contains the critical videoPrompt rules that must always be followed.
-        // User message contains the analysis data and JSON template.
-        $systemMessage = <<<SYSTEM
+        // Try VwPrompt system+user pair first
+        $promptMessages = $this->promptService->getCompiledPromptWithSystem('concept_synthesize', [
+            'phaseCount' => $phaseCount,
+            'targetWords' => $targetWords,
+            'visualAnalysis' => $visualAnalysis,
+            'transcriptSection' => $transcriptSection,
+            'videoPromptInstruction' => $videoPromptInstruction,
+            'structureRules' => $structureRules,
+            'technicalRules' => $technicalRules,
+            'chaosModeSupercharger' => $chaosModeSupercharger,
+            'templateExample' => $templateExample,
+        ]);
+
+        if ($promptMessages && $promptMessages['system']) {
+            $systemMessage = $promptMessages['system'];
+            $userMessage = $promptMessages['user'];
+        } else {
+            // Fallback to hardcoded system message
+            $systemMessage = <<<SYSTEM
 You are a Seedance 1.5 Pro video prompt specialist. Your #1 job is generating the "videoPrompt" field — a vivid, natural narrative describing ALL actions in the video.
 
 The analysis contains {$phaseCount} action phases. Your videoPrompt MUST cover ALL {$phaseCount} phases — especially the FINAL resolution/departure beat.
@@ -2250,10 +2361,12 @@ If objects are knocked off, scattered, displaced, or sent flying, this MUST appe
 CORRECT: "The cat crazily jumps onto the counter, violently knocking the iced coffee cup and straw dispenser off the counter to the floor."
 WRONG: "The cat crazily jumps onto the counter." (MISSING the objects — the generated video will look flat and wrong)
 SYSTEM;
+            $userMessage = $prompt;
+        }
 
         $messages = [
             ['role' => 'system', 'content' => $systemMessage],
-            ['role' => 'user', 'content' => $prompt],
+            ['role' => 'user', 'content' => $userMessage],
         ];
 
         $result = $this->callAIWithEngine($messages, $aiEngine, $teamId, [
@@ -2299,10 +2412,25 @@ SYSTEM;
             $wordCount = str_word_count($concept['videoPrompt']);
             if ($wordCount < 100) {
                 Log::info("ConceptCloner: videoPrompt only {$wordCount} words, expanding to 120-150");
-                $expandPrompt = [
-                    ['role' => 'system', 'content' => "You rewrite Seedance 1.5 Pro video prompts to hit 120-150 words. Keep the SAME actions in the SAME order. Expand short sentences by adding: body parts (arms, paws, chest, fingers), directions (forward, backward, upward), emotional states as part of actions (leans aggressively, angrily points), dialogue in quotes from the scene, character sounds (meows, yells, screams). Use natural adverbs freely. PRESERVE existing dialogue and sounds — never remove them. Return ONLY the rewritten prompt, nothing else."],
-                    ['role' => 'user', 'content' => "This prompt is only {$wordCount} words. Expand each sentence to reach 120-150 total:\n\n{$concept['videoPrompt']}"],
-                ];
+
+                // Try VwPrompt for expand system+user pair
+                $expandMessages = $this->promptService->getCompiledPromptWithSystem('concept_synthesize_expand', [
+                    'wordCount' => $wordCount,
+                    'videoPrompt' => $concept['videoPrompt'],
+                ]);
+
+                if ($expandMessages && $expandMessages['system']) {
+                    $expandPrompt = [
+                        ['role' => 'system', 'content' => $expandMessages['system']],
+                        ['role' => 'user', 'content' => $expandMessages['user']],
+                    ];
+                } else {
+                    // Fallback to hardcoded
+                    $expandPrompt = [
+                        ['role' => 'system', 'content' => "You rewrite Seedance 1.5 Pro video prompts to hit 120-150 words. Keep the SAME actions in the SAME order. Expand short sentences by adding: body parts (arms, paws, chest, fingers), directions (forward, backward, upward), emotional states as part of actions (leans aggressively, angrily points), dialogue in quotes from the scene, character sounds (meows, yells, screams). Use natural adverbs freely. PRESERVE existing dialogue and sounds — never remove them. Return ONLY the rewritten prompt, nothing else."],
+                        ['role' => 'user', 'content' => "This prompt is only {$wordCount} words. Expand each sentence to reach 120-150 total:\n\n{$concept['videoPrompt']}"],
+                    ];
+                }
                 $expandResult = $this->callAIWithEngine($expandPrompt, $aiEngine, $teamId, [
                     'maxResult' => 1,
                     'max_tokens' => 500,
@@ -2411,7 +2539,17 @@ SYSTEM;
             $chaosScalingBlock = "\n\nCHAOS SCALING ({$chaosLabel} — {$chaosLevel}/100):\n{$degreeOverride}{$supercharger}\n";
         }
 
-        $prompt = <<<PROMPT
+        $compiled = $this->promptService->getCompiledPrompt('concept_fit_skeleton', [
+            'example' => $example,
+            'skeleton' => $skeleton,
+            'situation' => $concept['situation'] ?? '',
+            'dialogueContext' => $dialogueContext,
+            'characterContext' => $characterContext,
+            'rawPrompt' => $rawPrompt,
+            'chaosScalingBlock' => $chaosScalingBlock,
+        ]);
+
+        $prompt = $compiled ?? <<<PROMPT
 Rewrite the source material below following the MANDATORY STRUCTURE. Match the energy and beat pattern EXACTLY.
 
 REFERENCE (match this flow and energy):

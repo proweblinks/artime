@@ -30,6 +30,55 @@ class PromptService
     }
 
     /**
+     * Get a prompt by slug, compile both system_message and prompt_template with variables.
+     * Returns null if prompt not found. Returns array with 'system' and 'user' keys.
+     */
+    public function getCompiledPromptWithSystem(string $slug, array $variables = []): ?array
+    {
+        $prompt = $this->getPrompt($slug);
+
+        if (!$prompt) {
+            Log::warning("VideoWizard: Prompt not found: {$slug}, using fallback for system+user");
+            return $this->getFallbackPromptWithSystem($slug, $variables);
+        }
+
+        return [
+            'system' => $prompt->compileSystemMessage($variables),
+            'user' => $prompt->compile($variables),
+        ];
+    }
+
+    /**
+     * Get fallback prompt with system message when DB prompt is not available.
+     */
+    protected function getFallbackPromptWithSystem(string $slug, array $variables = []): ?array
+    {
+        $defaults = $this->getDefaultPrompts();
+
+        if (!isset($defaults[$slug])) {
+            return null;
+        }
+
+        $config = $defaults[$slug];
+        $userTemplate = $config['template'];
+        $systemTemplate = $config['system_message'] ?? null;
+
+        foreach ($variables as $key => $value) {
+            if (is_scalar($value)) {
+                $userTemplate = str_replace(['{{' . $key . '}}', '{$' . $key . '}'], $value, $userTemplate);
+                if ($systemTemplate) {
+                    $systemTemplate = str_replace(['{{' . $key . '}}', '{$' . $key . '}'], $value, $systemTemplate);
+                }
+            }
+        }
+
+        return [
+            'system' => $systemTemplate,
+            'user' => $userTemplate,
+        ];
+    }
+
+    /**
      * Get a prompt model by slug.
      */
     public function getPrompt(string $slug): ?VwPrompt

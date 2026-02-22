@@ -14,6 +14,7 @@ class VwPromptHistory extends Model
         'prompt_id',
         'version',
         'prompt_template',
+        'system_message',
         'variables',
         'model',
         'temperature',

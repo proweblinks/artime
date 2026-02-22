@@ -16,6 +16,7 @@ class VwPrompt extends Model
         'name',
         'description',
         'prompt_template',
+        'system_message',
         'variables',
         'model',
         'temperature',
@@ -78,6 +79,26 @@ class VwPrompt extends Model
     }
 
     /**
+     * Compile the system_message template with variables.
+     */
+    public function compileSystemMessage(array $variables = []): ?string
+    {
+        if (empty($this->system_message)) {
+            return null;
+        }
+
+        $template = $this->system_message;
+
+        foreach ($variables as $key => $value) {
+            if (is_scalar($value)) {
+                $template = str_replace(['{{' . $key . '}}', '{$' . $key . '}'], $value, $template);
+            }
+        }
+
+        return $template;
+    }
+
+    /**
      * Get available variable placeholders from the template.
      */
     public function getPlaceholders(): array
@@ -96,6 +117,7 @@ class VwPrompt extends Model
             'prompt_id' => $this->id,
             'version' => $this->version,
             'prompt_template' => $this->prompt_template,
+            'system_message' => $this->system_message,
             'variables' => $this->variables,
             'model' => $this->model,
             'temperature' => $this->temperature,

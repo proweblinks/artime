@@ -2217,6 +2217,155 @@ BANNED:
                 'is_system' => true,
                 'sort_order' => 3,
             ],
+
+            // =============================================
+            // CONCEPT DEVELOPMENT SETTINGS
+            // =============================================
+            [
+                'slug' => 'concept_clone_technical_rules',
+                'name' => 'Clone Technical Rules',
+                'category' => 'concept',
+                'description' => 'Technical rules for CLONE videoPrompts — prioritizes action timeline faithfulness over aggressive Seedance formatting. Used in synthesizeConcept() for video cloning.',
+                'value_type' => 'string',
+                'value' => '=== CLONE VIDEO PROMPT FORMAT ===
+
+Write a natural, vivid narrative that describes the complete action of the source video.
+Use clear, descriptive language. Include dialogue, sounds, and camera style.
+
+PROMPT STRUCTURE — FOLLOW THE COMPLETE ACTION TIMELINE:
+Write flowing prose that covers EVERY action phase from the analysis. Do NOT skip any phase.
+Connect actions with natural transitions: "then", "suddenly", "in a quick motion".
+End with: "Cinematic, photorealistic."
+If the analysis describes 8 action phases → cover ALL 8 in your narrative.
+
+INCLUDE:
+- Dialogue in quotes from the audio transcript: yells "How can you ruin this?"
+- Character sounds: meows, yells, screams — these drive accurate audio generation
+- Camera style when notable: "A chaotic, shaking handheld camera follows the action"
+- Emotional states as part of actions: "leans aggressively", "angrily points"
+- Specific body parts: "slaps the man\'s face with its right paw", "lands on the man\'s left shoulder"
+- Object displacement as cause-and-effect: "jumps onto the counter and violently knocks over the iced coffee cup"
+
+DO NOT INCLUDE:
+- NO scene/setting/environment descriptions — the source image provides the scene.
+- NO appearance/clothing/color descriptions — the source image provides appearance.
+- NO background music mentions — Seedance generates audio from text, any music reference creates unwanted audio.
+- NO facial micro-expressions ("eyes widen", "brow furrows") — convey emotion through body language.
+- NO semicolons, NO passive voice.
+- Do NOT fabricate actions not in the analysis. Faithful to what actually happened.
+- Match intensity to the analysis: calm scene = gently/steadily, intense scene = crazily/violently.
+- If characters are miniaturized/enlarged, MENTION the size — it affects rendering.
+- Target: 100-150 words (8+ action phases → aim for 120-150 words). Under 90 = missing key actions. Completeness over brevity — include every phase from FIRST to LAST.
+
+GOLD-STANDARD EXAMPLE (~75 words — this prompt produced excellent Seedance results):
+"The bear steadily walks forward. The bike\'s front wheel bumps into the bear\'s butt. The bear rapidly glances back over his shoulder, flashing a big funny smile, then turns his head forward. Instantly the bear starts a rhythmic hip-swaying butt dance, hips crazily bobbing side to side with large amplitude at high frequency, its whole body bouncing in a funny groove. The bear\'s arms swing loosely with large amplitude matching the hip rhythm. Continuous comedic energy throughout. Cinematic, photorealistic."
+
+WHY IT WORKS — Follow this pattern for ANY video:
+- Setup: First action — what starts the scene (1 sentence)
+- Trigger: What causes the chain reaction (1 sentence)
+- Reaction: Immediate response (1-2 sentences)
+- Main action: The core — most detail here (1-3 sentences)
+- Aftermath/Resolution: What happens AFTER the climax — pulling off, throwing, walking away, giving up. DO NOT SKIP THIS. (1-3 sentences)
+- Style: "Cinematic, photorealistic." (always last)
+The bear example is SHORT because the bear has no resolution phase. For videos with more phases, write MORE sentences.
+CRITICAL: Your LAST action sentence should describe the FINAL thing that happens in the video, NOT the climax.',
+                'default_value' => null,
+                'input_type' => 'textarea',
+                'input_help' => 'Technical rules injected into clone videoPrompt generation. These control how the AI writes video prompts when cloning existing videos.',
+                'icon' => 'fa-solid fa-clone',
+                'is_system' => false,
+                'sort_order' => 1,
+            ],
+            [
+                'slug' => 'concept_chaos_supercharger',
+                'name' => 'Chaos Mode Supercharger',
+                'category' => 'concept',
+                'description' => 'Structural override appended when Chaos Mode toggle is active. Replaces normal action structure with fewer mega-beats and front-loaded explosion.',
+                'value_type' => 'string',
+                'value' => '=== CHAOS MODE ACTIVE — OVERRIDE STRUCTURE ===
+
+IMPORTANT: Chaos Mode overrides the normal action structure. Follow THESE rules instead:
+
+FEWER MEGA-BEATS (3-4 maximum):
+Instead of 6-8 rapid micro-actions, write ONLY 3-4 MASSIVE action beats.
+Each beat gets 2-3 full sentences of detailed physical description.
+More detail per beat = more motion energy Seedance allocates to each movement.
+
+FRONT-LOAD THE IMPACT:
+The BIGGEST, most intense action happens IMMEDIATELY after "Instantly".
+Do NOT build up gradually. The first physical strike is the most intense one.
+Structure: TRIGGER → INSTANT MEGA-STRIKE → escalation → peak destruction
+
+EXAMPLE — CHAOS MODE PROMPT:
+"The man says \'This is the worst pizza I\'ve ever had!\' Instantly the cat
+reacts at high frequency and crazy intensity, lunging forward fast and
+violently from behind the counter directly at the man\'s face, front claws
+swiping wildly with large amplitude, slamming into his chest powerfully,
+sending him staggering violently backwards. The man crashes fast into a shelf
+of glass bottles, his arms flailing wildly as bottles shatter and liquid
+sprays with large amplitude in every direction. The cat\'s hind legs kick at
+high frequency against the man\'s torso, shredding fabric fast while the cat
+screams a crazy intense yowl, mouth gaping wide. The man collapses
+powerfully onto the floor, pulling an entire display rack down with him,
+plates and cups crashing violently around him as the cat stands on his chest
+screaming wildly. Continuous crazy aggressive cat screaming throughout.
+Cinematic, photorealistic."
+
+KEY DIFFERENCES FROM NORMAL MODE:
+- 4 mega-beats instead of 8 micro-beats
+- Each beat has 2-3 sentences of detailed motion
+- First action (the launch) is the BIGGEST
+- "crazy" appears 3+ times
+- Every action has 2+ combined degree words',
+                'default_value' => null,
+                'input_type' => 'textarea',
+                'input_help' => 'Override instructions for Chaos Mode. Appended to chaos modifier when the Chaos Mode toggle is active.',
+                'icon' => 'fa-solid fa-explosion',
+                'is_system' => false,
+                'sort_order' => 2,
+            ],
+            [
+                'slug' => 'concept_style_modifiers',
+                'name' => 'Style Prompt Modifiers',
+                'category' => 'concept',
+                'description' => 'JSON object mapping production subtypes to style modifier prompts. Keys: viral, meme-comedy, educational-short, story-short, product, lifestyle.',
+                'value_type' => 'json',
+                'value' => '{"viral":"CONTENT STYLE — VIRAL/TRENDING:\\nFocus on maximum shareability and instant visual hooks. Lean into animal chaos, physical comedy,\\nand visual absurdity. Single continuous shots with dramatic reactions, objects flying, and pure\\nslapstick energy. Every idea should make someone immediately want to tag a friend.","meme-comedy":"CONTENT STYLE — MEME/COMEDY:\\nLean into specific meme formats and internet comedy tropes. Think \\"when your...\\" scenarios,\\nanimals with deadpan delivery, absurd workplace humor, and quotable dialogue lines. The comedy\\nshould come from relatable situations twisted into absurdity. Prioritize punchy one-liners,\\nsarcastic comebacks, and reaction-worthy moments over pure physical comedy.","educational-short":"CONTENT STYLE — QUICK EXPLAINER:\\nFrame ideas as bite-sized educational content. A character or narrator explains a fascinating\\nconcept, science fact, or \\"did you know?\\" tidbit. Keep it visual — show don\'t tell. The hook\\nshould be a surprising fact or counter-intuitive truth that makes viewers watch to the end.","story-short":"CONTENT STYLE — STORY/NARRATIVE:\\nCreate mini-narratives with emotional arcs. Each idea needs a setup, tension, and payoff —\\na twist ending, a heartwarming reveal, or a \\"wait for it\\" moment. Focus on character-driven\\nscenarios that make viewers feel something. The hook is curiosity: \\"what happens next?\\"","product":"CONTENT STYLE — PRODUCT SHOWCASE:\\nFrame ideas around satisfying product reveals, unboxing moments, or \\"watch this\\" demonstrations.\\nDynamic close-ups, before/after transformations, and aspirational lifestyle context. Every concept\\nshould make the viewer think \\"I need that.\\" Emphasize visual satisfaction and desire.","lifestyle":"CONTENT STYLE — LIFESTYLE:\\nCreate aspirational, aesthetically pleasing content. Morning routines, cozy moments, day-in-the-life\\nmontages with warm color grading. Focus on visual beauty, satisfying sequences, and \\"living my\\nbest life\\" energy. The mood should be calming, inspiring, or aesthetically satisfying."}',
+                'default_value' => null,
+                'input_type' => 'json_editor',
+                'input_help' => 'JSON object with production subtype keys and style modifier text values. Edit individual styles to change how AI generates concepts for each content type.',
+                'icon' => 'fa-solid fa-paintbrush',
+                'is_system' => false,
+                'sort_order' => 3,
+            ],
+            [
+                'slug' => 'concept_video_analysis_prompt',
+                'name' => 'Video Analysis Prompt',
+                'category' => 'concept',
+                'description' => 'The comprehensive prompt sent to Gemini for native video analysis when cloning videos. Covers characters, setting, action timeline, audio, camera style, and viral formula detection.',
+                'value_type' => 'string',
+                'value' => '',
+                'default_value' => null,
+                'input_type' => 'textarea',
+                'input_help' => 'Leave empty to use the built-in video analysis prompt. This is the ~1100 word prompt that drives Gemini video understanding for concept cloning.',
+                'icon' => 'fa-solid fa-video',
+                'is_system' => false,
+                'sort_order' => 4,
+            ],
+            [
+                'slug' => 'concept_seedance_system_message',
+                'name' => 'Seedance Specialist System Message',
+                'category' => 'concept',
+                'description' => 'System message used in synthesizeConcept() — instructs the AI as a Seedance 1.5 Pro video prompt specialist. Contains writing style rules and examples.',
+                'value_type' => 'string',
+                'value' => '',
+                'default_value' => null,
+                'input_type' => 'textarea',
+                'input_help' => 'Leave empty to use the built-in system message. This is the system prompt for the concept synthesis AI call.',
+                'icon' => 'fa-solid fa-robot',
+                'is_system' => false,
+                'sort_order' => 5,
+            ],
         ];
 
         foreach ($settings as $setting) {
