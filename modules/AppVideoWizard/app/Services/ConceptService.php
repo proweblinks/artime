@@ -706,6 +706,13 @@ CHAOS;
      */
     protected function getSeedanceTechnicalRules(): string
     {
+        // Delegate to SeedancePromptService (canonical location)
+        try {
+            return app(SeedancePromptService::class)->getTechnicalRules();
+        } catch (\Throwable $e) {
+            // Fallback to inline rules if service unavailable
+        }
+
         return <<<'RULES'
 SEEDANCE VIDEO PROMPT RULES:
 

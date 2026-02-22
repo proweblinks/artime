@@ -10,6 +10,7 @@ use Modules\AppVideoWizard\Http\Controllers\Admin\CinematographyController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\GenrePresetController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\CameraMovementController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\CoveragePatternController;
+use Modules\AppVideoWizard\Http\Controllers\Admin\SeedanceStyleController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\SettingsController;
 
 /*
@@ -235,6 +236,26 @@ Route::middleware(['web', 'auth'])->group(function () {
                     ->name('admin.video-wizard.cinematography.coverage-patterns.seed-defaults');
                 Route::post('/test-detection', [CoveragePatternController::class, 'testDetection'])
                     ->name('admin.video-wizard.cinematography.coverage-patterns.test-detection');
+            });
+
+            // Seedance Styles (Prompt Style Vocabulary)
+            Route::prefix('seedance-styles')->group(function () {
+                Route::get('/', [SeedanceStyleController::class, 'index'])
+                    ->name('admin.video-wizard.cinematography.seedance-styles');
+                Route::get('/create', [SeedanceStyleController::class, 'create'])
+                    ->name('admin.video-wizard.cinematography.seedance-styles.create');
+                Route::post('/', [SeedanceStyleController::class, 'store'])
+                    ->name('admin.video-wizard.cinematography.seedance-styles.store');
+                Route::get('/{seedanceStyle}/edit', [SeedanceStyleController::class, 'edit'])
+                    ->name('admin.video-wizard.cinematography.seedance-styles.edit');
+                Route::put('/{seedanceStyle}', [SeedanceStyleController::class, 'update'])
+                    ->name('admin.video-wizard.cinematography.seedance-styles.update');
+                Route::delete('/{seedanceStyle}', [SeedanceStyleController::class, 'destroy'])
+                    ->name('admin.video-wizard.cinematography.seedance-styles.destroy');
+                Route::post('/{seedanceStyle}/toggle', [SeedanceStyleController::class, 'toggle'])
+                    ->name('admin.video-wizard.cinematography.seedance-styles.toggle');
+                Route::post('/seed-defaults', [SeedanceStyleController::class, 'seedDefaults'])
+                    ->name('admin.video-wizard.cinematography.seedance-styles.seed-defaults');
             });
 
             // Bulk Operations

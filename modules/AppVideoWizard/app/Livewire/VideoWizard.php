@@ -3825,12 +3825,23 @@ class VideoWizard extends Component
      */
     protected function assembleSeedancePrompt(string $basePrompt, array $shot): string
     {
+        try {
+            $service = app(\Modules\AppVideoWizard\Services\SeedancePromptService::class);
+            return $service->assemble($basePrompt, $shot, $service->getActiveVersion());
+        } catch (\Throwable $e) {
+            \Log::warning('SeedancePromptService::assemble failed, using inline fallback', ['error' => $e->getMessage()]);
+            return $this->assembleSeedancePromptLegacy($basePrompt, $shot);
+        }
+    }
+
+    /**
+     * Legacy inline assembly (fallback if service fails).
+     */
+    protected function assembleSeedancePromptLegacy(string $basePrompt, array $shot): string
+    {
         $prompt = trim($basePrompt);
         $chaosMode = $shot['seedanceChaosMode'] ?? false;
 
-        // Strip background music references unless explicitly enabled.
-        // Seedance generates audio from prompt text — any music mention causes
-        // unwanted background music. Remove common patterns the AI might produce.
         $bgMusic = $shot['seedanceBackgroundMusic'] ?? false;
         if (!$bgMusic) {
             $prompt = preg_replace(
@@ -3849,7 +3860,6 @@ class VideoWizard extends Component
             $prompt .= " {$musicDesc} background music playing throughout.";
         }
 
-        // Camera: Chaos Mode auto-forces handheld+dynamic, otherwise use picker
         if ($chaosMode) {
             $prompt .= ' Shaky handheld camera rapidly whip-pans and jerks violently tracking the chaos.';
         } else {
@@ -3863,7 +3873,6 @@ class VideoWizard extends Component
             }
         }
 
-        // Ensure style anchor at end (if not already present)
         if (!preg_match('/cinematic|photorealistic/i', $prompt)) {
             $prompt .= ' Cinematic, photorealistic.';
         }
@@ -3880,6 +3889,47 @@ class VideoWizard extends Component
         // Skip if prompt is already rich (>200 chars likely means it was pre-built)
         if (strlen($basePrompt) > 200) {
             return $basePrompt;
+        }
+
+        // In four_part mode, delegate to SeedancePromptService instead of Hollywood builder
+        $format = \Modules\AppVideoWizard\Models\VwSetting::getValue('seedance_prompt_format', 'four_part');
+        if ($format === 'four_part') {
+            try {
+                $service = app(\Modules\AppVideoWizard\Services\SeedancePromptService::class);
+                $scene = $this->script['scenes'][$sceneIndex] ?? $this->script['scenes'][0] ?? [];
+                $genrePreset = $this->getGenrePreset();
+
+                $shotData = [
+                    'type' => $shot['type'] ?? $shot['shotType'] ?? 'medium',
+                    'subjectAction' => $shot['subjectAction'] ?? $shot['description'] ?? $basePrompt,
+                    'description' => $shot['description'] ?? $basePrompt,
+                    'needsLipSync' => $shot['needsLipSync'] ?? false,
+                    'hasDialogue' => $shot['hasDialogue'] ?? false,
+                    'charactersInShot' => $shot['charactersInShot'] ?? [],
+                    'movementSlug' => $shot['movementSlug'] ?? null,
+                    'cameraMovement' => $shot['cameraMovement'] ?? [],
+                    'selectedDuration' => $shot['selectedDuration'] ?? 8,
+                ];
+
+                $context = [
+                    'mood' => $shot['musicMood'] ?? $scene['mood'] ?? $scene['emotionalBeat'] ?? 'cinematic',
+                    'genre' => $genrePreset['slug'] ?? 'cinematic',
+                    'narration' => $scene['narration'] ?? '',
+                    'atmosphere' => $genrePreset['atmosphere'] ?? '',
+                    'characterBible' => $this->script['characterBible'] ?? [],
+                ];
+
+                $result = $service->buildPrompt($shotData, $context);
+
+                if (($result['success'] ?? false) && !empty($result['prompt'])) {
+                    if (!empty($basePrompt) && strlen($basePrompt) > 20) {
+                        return trim($basePrompt) . '. ' . $result['prompt'];
+                    }
+                    return $result['prompt'];
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Seedance enrichment failed, falling through to Hollywood', ['error' => $e->getMessage()]);
+            }
         }
 
         try {
@@ -3929,26 +3979,13 @@ class VideoWizard extends Component
      */
     protected function getSeedanceCameraInstruction(string $move, string $intensity): string
     {
-        $adverbs = [
-            'subtle'   => 'gently',
-            'moderate' => 'slowly',
-            'dynamic'  => 'rapidly',
-        ];
-
-        $adverb = $adverbs[$intensity] ?? 'slowly';
-
-        $movements = [
-            'push-in'   => "Camera {$adverb} pushes in toward the subject.",
-            'pull-out'  => "Camera {$adverb} pulls back, revealing the scene.",
-            'pan-left'  => "Camera pans {$adverb} to the left.",
-            'pan-right' => "Camera pans {$adverb} to the right.",
-            'orbit'     => "Camera {$adverb} orbits around the subject.",
-            'tracking'  => "Camera tracks {$adverb} alongside the subject.",
-            'handheld'  => "Handheld camera with organic, natural movement.",
-            'crane-up'  => "Camera {$adverb} rises in a crane shot.",
-        ];
-
-        return $movements[$move] ?? '';
+        // Delegate to SeedancePromptService (canonical location)
+        try {
+            return app(\Modules\AppVideoWizard\Services\SeedancePromptService::class)
+                ->getSeedanceCameraInstruction($move, $intensity);
+        } catch (\Throwable $e) {
+            return '';
+        }
     }
 
     /**
@@ -3957,62 +3994,13 @@ class VideoWizard extends Component
      */
     protected function mapDecompositionCameraToSeedance(string $movementSlug): string
     {
-        // Normalize: lowercase, trim, convert spaces to hyphens for consistent lookup
-        $normalized = str_replace(' ', '-', strtolower(trim($movementSlug)));
-
-        $mapping = [
-            // Direct Seedance pill values
-            'push-in'   => 'push-in',
-            'pull-out'  => 'pull-out',
-            'pan-left'  => 'pan-left',
-            'pan-right' => 'pan-right',
-            'orbit'     => 'orbit',
-            'tracking'  => 'tracking',
-            'handheld'  => 'handheld',
-            'crane-up'  => 'crane-up',
-            // ShotIntelligence slug aliases
-            'slow-push' => 'push-in',
-            'slow-pan'  => 'pan-left',
-            'dolly-in'  => 'push-in',
-            'dolly-out' => 'pull-out',
-            'dolly-zoom' => 'push-in',
-            'zoom-in'   => 'push-in',
-            'zoom-out'  => 'pull-out',
-            'tilt-up'   => 'crane-up',
-            'tilt-down' => 'crane-up',
-            'crane'     => 'crane-up',
-            'jib'       => 'crane-up',
-            'steadicam' => 'tracking',
-            'follow'    => 'tracking',
-            'whip-pan'  => 'pan-left',
-            'rack-focus' => 'none',
-            'static'    => 'none',
-            'hold'      => 'none',
-            'locked'    => 'none',
-            // Natural language from AI decomposition (space→hyphen normalized)
-            'gentle-push-in' => 'push-in',
-            'gentle-pull-out' => 'pull-out',
-            'gentle-pan' => 'pan-left',
-            'subtle-movement' => 'handheld',
-            'subtle-push' => 'push-in',
-            'subtle-drift' => 'handheld',
-            'drift' => 'handheld',
-            'slow-drift' => 'handheld',
-            'slight-push-in' => 'push-in',
-            'slow-zoom-in' => 'push-in',
-            'slow-zoom-out' => 'pull-out',
-            'slow-orbit' => 'orbit',
-            'slow-track' => 'tracking',
-            'slow-tracking' => 'tracking',
-            'pan' => 'pan-left',
-            'push' => 'push-in',
-            'pull' => 'pull-out',
-            'dolly' => 'push-in',
-            'zoom' => 'push-in',
-            'tilt' => 'crane-up',
-        ];
-
-        return $mapping[$normalized] ?? 'none';
+        // Delegate to SeedancePromptService (canonical location)
+        try {
+            return app(\Modules\AppVideoWizard\Services\SeedancePromptService::class)
+                ->mapMovementToSeedance($movementSlug);
+        } catch (\Throwable $e) {
+            return 'none';
+        }
     }
 
     /**
@@ -24328,6 +24316,70 @@ PROMPT;
      */
     protected function getMotionDescriptionForShot(string $shotType, string $cameraMovement, string $visualDescription, array $shotContext = []): string
     {
+        // Route based on prompt format setting
+        $format = \Modules\AppVideoWizard\Models\VwSetting::getValue('seedance_prompt_format', 'four_part');
+
+        if ($format === 'four_part') {
+            return $this->buildSeedanceNativePrompt($shotType, $cameraMovement, $visualDescription, $shotContext);
+        }
+
+        return $this->getMotionDescriptionForShotLegacy($shotType, $cameraMovement, $visualDescription, $shotContext);
+    }
+
+    /**
+     * Seedance-native four-part prompt builder. Delegates to SeedancePromptService.
+     */
+    protected function buildSeedanceNativePrompt(string $shotType, string $cameraMovement, string $visualDescription, array $shotContext = []): string
+    {
+        try {
+            $service = app(\Modules\AppVideoWizard\Services\SeedancePromptService::class);
+
+            $shot = [
+                'type' => $shotType,
+                'subjectAction' => $shotContext['subjectAction'] ?? '',
+                'description' => $visualDescription,
+                'cameraMovement' => $cameraMovement,
+                'movementSlug' => $shotContext['movementSlug'] ?? null,
+                'needsLipSync' => $shotContext['needsLipSync'] ?? false,
+                'hasDialogue' => $shotContext['hasDialogue'] ?? false,
+                'charactersInShot' => $shotContext['charactersInShot'] ?? [],
+                'selectedDuration' => $shotContext['selectedDuration'] ?? 8,
+            ];
+
+            $scene = [];
+            $sceneIndex = $shotContext['sceneIndex'] ?? 0;
+            if (isset($this->script['scenes'][$sceneIndex])) {
+                $scene = $this->script['scenes'][$sceneIndex];
+            }
+
+            $genrePreset = $this->getGenrePreset();
+
+            $context = [
+                'mood' => $scene['mood'] ?? $scene['emotionalBeat'] ?? 'cinematic',
+                'genre' => $genrePreset['slug'] ?? 'cinematic',
+                'narration' => $scene['narration'] ?? '',
+                'atmosphere' => $genrePreset['atmosphere'] ?? '',
+                'characterBible' => $this->script['characterBible'] ?? [],
+            ];
+
+            $result = $service->buildPrompt($shot, $context);
+
+            if (($result['success'] ?? false) && !empty($result['prompt'])) {
+                return $result['prompt'];
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Seedance native prompt failed, falling back to legacy', ['error' => $e->getMessage()]);
+        }
+
+        // Fallback to legacy if four_part fails
+        return $this->getMotionDescriptionForShotLegacy($shotType, $cameraMovement, $visualDescription, $shotContext);
+    }
+
+    /**
+     * Legacy 7-layer Hollywood prompt builder (original getMotionDescriptionForShot code).
+     */
+    protected function getMotionDescriptionForShotLegacy(string $shotType, string $cameraMovement, string $visualDescription, array $shotContext = []): string
+    {
         // Get genre preset for additional context (uses database-backed service)
         $genrePreset = $this->getGenrePreset();
 
@@ -24335,7 +24387,6 @@ PROMPT;
         $parts = [];
 
         // 1. SUBJECT ACTION (MOST CRITICAL - determines video quality)
-        // For image-to-video: use "the subject" or "the figure" per MiniMax/Runway best practices
         $subjectAction = $this->generateHollywoodSubjectAction($shotType, $visualDescription, $shotContext);
         if (!empty($subjectAction)) {
             $parts[] = $subjectAction;
@@ -24372,9 +24423,8 @@ PROMPT;
 
         // 7. Brief visual context (only if adds value, heavily truncated)
         if (strlen($visualDescription) > 50) {
-            $maxLength = 100; // Reduced since we have more action content
+            $maxLength = 100;
             $contextSnippet = $this->truncateAtWordBoundary($visualDescription, $maxLength);
-            // Only add if not redundant with subject action
             if (!str_contains(strtolower($parts[0] ?? ''), strtolower(substr($contextSnippet, 0, 30)))) {
                 $parts[] = "Context: {$contextSnippet}";
             }

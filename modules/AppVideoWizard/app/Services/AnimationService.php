@@ -28,11 +28,31 @@ class AnimationService
             'supportsLipSync' => true,
             'supportsAudioGen' => true,
             'requiresAudio' => false,
+            'supportsTextToVideo' => false,
             'provider' => 'wavespeed',
             'variants' => [
                 'pro'  => ['name' => 'Pro', 'description' => 'Full-fidelity, production-grade quality'],
                 'fast' => ['name' => 'Fast', 'description' => 'Speed-optimized, cheaper per run'],
             ],
+        ],
+        'seedance_v2' => [
+            'name' => 'Seedance 2.0',
+            'description' => 'Next-gen cinematic video with extended durations, timecoded segments, and style transitions',
+            'durations' => [4, 5, 6, 8, 10, 12, 15, 20],
+            'defaultDuration' => 10,
+            'supportsLipSync' => true,
+            'supportsAudioGen' => true,
+            'requiresAudio' => false,
+            'supportsTextToVideo' => true,
+            'supportsMultiReference' => true,
+            'supportsTimecodedSegments' => true,
+            'supportsStyleTransitions' => true,
+            'provider' => 'wavespeed',
+            'variants' => [
+                'pro'  => ['name' => 'Pro', 'description' => 'Full-fidelity v2.0 quality'],
+                'fast' => ['name' => 'Fast', 'description' => 'Speed-optimized v2.0'],
+            ],
+            'status' => 'pending_endpoint',
         ],
     ];
 
@@ -107,6 +127,7 @@ class AnimationService
             'camera_fixed' => $options['camera_fixed'] ?? false,
             'variant' => $options['variant'] ?? 'pro',
             'end_image_url' => $options['end_image_url'] ?? null,
+            'seedance_version' => $options['seedance_version'] ?? '1.5',
         ]);
 
         if (!$result['success']) {
@@ -160,11 +181,21 @@ class AnimationService
         $waveSpeedService = new WaveSpeedService();
         $available = $waveSpeedService->isConfigured();
 
-        return [
+        $models = [
             'seedance' => array_merge(self::ANIMATION_MODELS['seedance'], [
                 'available' => $available,
             ]),
         ];
+
+        // Include v2 only if endpoint is configured
+        $v2Config = self::ANIMATION_MODELS['seedance_v2'];
+        $v2Endpoint = \Modules\AppVideoWizard\Models\VwSetting::getValue('seedance_v2_endpoint', '');
+        $models['seedance_v2'] = array_merge($v2Config, [
+            'available' => $available && !empty($v2Endpoint),
+            'status' => !empty($v2Endpoint) ? 'active' : 'pending_endpoint',
+        ]);
+
+        return $models;
     }
 
     /**

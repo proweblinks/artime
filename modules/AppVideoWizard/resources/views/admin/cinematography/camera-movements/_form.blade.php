@@ -123,6 +123,43 @@
             </div>
         </div>
 
+        <!-- Seedance 2.0 Compatibility -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="fa fa-wand-magic-sparkles me-2"></i>{{ __('Seedance 2.0 Compatibility') }}</h6>
+            </div>
+            <div class="card-body">
+                <div class="form-check form-switch mb-3">
+                    <input type="hidden" name="seedance_compatible" value="0">
+                    <input class="form-check-input" type="checkbox" name="seedance_compatible" value="1"
+                           id="seedanceCompatible" {{ old('seedance_compatible', $movement?->seedance_compatible ?? true) ? 'checked' : '' }}>
+                    <label class="form-check-label fw-semibold" for="seedanceCompatible">{{ __('Seedance Compatible') }}</label>
+                    <div class="small text-muted">{{ __('Whether this movement exists in Seedance\'s native vocabulary') }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">{{ __('Seedance Prompt Syntax') }}</label>
+                    <input type="text" name="seedance_prompt_syntax" class="form-control @error('seedance_prompt_syntax') is-invalid @enderror"
+                           value="{{ old('seedance_prompt_syntax', $movement?->seedance_prompt_syntax) }}"
+                           placeholder="Push-in, Eye-level, Normal lens" maxlength="512">
+                    @error('seedance_prompt_syntax') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    <small class="text-muted">{{ __('Seedance-native camera string: [Movement], [Angle], [Lens type]') }}</small>
+                </div>
+
+                <div class="mb-0">
+                    <label class="form-label fw-semibold">{{ __('Seedance Shot Size') }}</label>
+                    <select name="seedance_shot_size" class="form-select @error('seedance_shot_size') is-invalid @enderror">
+                        <option value="">{{ __('None') }}</option>
+                        <option value="wide" {{ old('seedance_shot_size', $movement?->seedance_shot_size) === 'wide' ? 'selected' : '' }}>{{ __('Wide') }}</option>
+                        <option value="medium" {{ old('seedance_shot_size', $movement?->seedance_shot_size) === 'medium' ? 'selected' : '' }}>{{ __('Medium') }}</option>
+                        <option value="close" {{ old('seedance_shot_size', $movement?->seedance_shot_size) === 'close' ? 'selected' : '' }}>{{ __('Close') }}</option>
+                    </select>
+                    @error('seedance_shot_size') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    <small class="text-muted">{{ __('Maps to Seedance shot size bucket for the four-part prompt') }}</small>
+                </div>
+            </div>
+        </div>
+
         <!-- Duration Settings -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white">

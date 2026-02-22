@@ -47,10 +47,12 @@ class WaveSpeedService
 
         // Anti-speech suffix: prevents Seedance from generating unwanted spoken dialogue.
         // Disabled when the shot has dialogue/lip-sync so characters can speak naturally.
+        // Smart check: skip if prompt already has audio direction from SeedancePromptService.
         $antiSpeech = $options['anti_speech'] ?? true;
         if ($antiSpeech) {
-            $antiSpeechSuffix = ' No speech, no dialogue, no voiceover, no dubbing, no singing, no spoken words. Sound effects and ambient audio only.';
-            if (!str_contains($prompt, 'No speech, no dialogue')) {
+            $hasAudioDirection = preg_match('/\b(no speech|ambient audio only|no music\. only)\b/i', $prompt);
+            if (!$hasAudioDirection) {
+                $antiSpeechSuffix = ' No speech, no dialogue, no voiceover, no dubbing, no singing, no spoken words. Sound effects and ambient audio only.';
                 $prompt = rtrim($prompt) . $antiSpeechSuffix;
             }
         }
@@ -71,11 +73,32 @@ class WaveSpeedService
             $payload['end_image_url'] = $options['end_image_url'];
         }
 
-        // Determine endpoint variant: 'pro' (quality) or 'fast' (speed/cost)
+        // Determine endpoint: version-aware routing
         $variant = $options['variant'] ?? 'pro';
-        $endpoint = $variant === 'fast'
-            ? 'bytedance/seedance-v1.5-pro/image-to-video-fast'
-            : 'bytedance/seedance-v1.5-pro/image-to-video';
+        $seedanceVersion = $options['seedance_version'] ?? '1.5';
+
+        if ($seedanceVersion === '2.0') {
+            // v2.0 endpoints from VwSetting
+            $v2ProEndpoint = \Modules\AppVideoWizard\Models\VwSetting::getValue('seedance_v2_endpoint', '');
+            $v2FastEndpoint = \Modules\AppVideoWizard\Models\VwSetting::getValue('seedance_v2_endpoint_fast', '');
+
+            if ($variant === 'fast' && !empty($v2FastEndpoint)) {
+                $endpoint = $v2FastEndpoint;
+            } elseif (!empty($v2ProEndpoint)) {
+                $endpoint = $v2ProEndpoint;
+            } else {
+                // Fallback to v1.5 if v2.0 endpoints not configured
+                Log::warning('WaveSpeedService: v2.0 endpoint not configured, falling back to v1.5');
+                $endpoint = $variant === 'fast'
+                    ? 'bytedance/seedance-v1.5-pro/image-to-video-fast'
+                    : 'bytedance/seedance-v1.5-pro/image-to-video';
+            }
+        } else {
+            // v1.5 endpoints (default)
+            $endpoint = $variant === 'fast'
+                ? 'bytedance/seedance-v1.5-pro/image-to-video-fast'
+                : 'bytedance/seedance-v1.5-pro/image-to-video';
+        }
 
         Log::info('WaveSpeedService: Submitting Seedance video generation', [
             'image_url' => substr($imageUrl, 0, 80) . '...',

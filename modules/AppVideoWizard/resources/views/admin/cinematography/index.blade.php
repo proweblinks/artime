@@ -171,6 +171,28 @@
             </div>
         </div>
 
+        <!-- Seedance Styles -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="bg-purple bg-opacity-10 rounded-3 p-3">
+                            <i class="fa fa-wand-magic-sparkles fa-2x text-purple"></i>
+                        </div>
+                        <span class="badge bg-success">{{ \Modules\AppVideoWizard\Models\VwSeedanceStyle::where('is_active', true)->count() }} {{ __('active') }}</span>
+                    </div>
+                    <h5 class="card-title">{{ __('Seedance Styles') }}</h5>
+                    <p class="text-muted small mb-3">{{ __('Visual, lighting, and color treatment styles for Seedance-native prompts') }}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small">{{ __('3 categories') }}</span>
+                        <a href="{{ route('admin.video-wizard.cinematography.seedance-styles') }}" class="btn btn-sm btn-outline-primary">
+                            {{ __('Manage') }} <i class="fa fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Shot Continuity (Phase 3) -->
         <div class="col-md-6 col-lg-4">
             <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">

@@ -145,6 +145,21 @@ class VideoPromptBuilderService
      */
     public function buildPrompt(array $shot, array $context = []): array
     {
+        // In four_part mode, delegate to SeedancePromptService
+        try {
+            $format = \Modules\AppVideoWizard\Models\VwSetting::getValue('seedance_prompt_format', 'four_part');
+            if ($format === 'four_part') {
+                $seedanceService = app(SeedancePromptService::class);
+                $result = $seedanceService->buildPrompt($shot, $context);
+                if ($result['success'] ?? false) {
+                    return $result;
+                }
+                // Fall through to legacy on failure
+            }
+        } catch (\Throwable $e) {
+            // Fall through to legacy builder
+        }
+
         try {
             // Extract shot data
             $shotType = $shot['type'] ?? 'medium-shot';

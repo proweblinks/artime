@@ -128,6 +128,7 @@
                         <th>{{ __('Category') }}</th>
                         <th>{{ __('Prompt Syntax') }}</th>
                         <th>{{ __('Intensity') }}</th>
+                        <th>{{ __('Seedance') }}</th>
                         <th>{{ __('Duration') }}</th>
                         <th>{{ __('Stackable') }}</th>
                         <th style="width: 100px;">{{ __('Actions') }}</th>
@@ -171,6 +172,20 @@
                                 <span class="badge bg-{{ $intensityColors[$movement->intensity] ?? 'secondary' }}">
                                     {{ $movement->getIntensityLabel() }}
                                 </span>
+                            </td>
+                            <td class="align-middle">
+                                @if($movement->seedance_compatible)
+                                    <span class="badge bg-success" title="{{ $movement->seedance_prompt_syntax }}">
+                                        <i class="fa fa-check me-1"></i>{{ __('Compatible') }}
+                                    </span>
+                                    @if($movement->seedance_shot_size)
+                                        <div class="small text-muted mt-1">{{ $movement->seedance_shot_size }}</div>
+                                    @endif
+                                @else
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fa fa-exclamation-triangle me-1"></i>{{ __('v1.5 only') }}
+                                    </span>
+                                @endif
                             </td>
                             <td class="align-middle">
                                 <small class="text-muted">

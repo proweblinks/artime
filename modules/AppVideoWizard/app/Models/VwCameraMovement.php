@@ -29,6 +29,9 @@ class VwCameraMovement extends Model
         'best_for_emotions',
         'natural_continuation',
         'ending_state',
+        'seedance_compatible',
+        'seedance_prompt_syntax',
+        'seedance_shot_size',
         'is_active',
         'sort_order',
     ];
@@ -39,6 +42,7 @@ class VwCameraMovement extends Model
         'best_for_emotions' => 'array',
         'typical_duration_min' => 'integer',
         'typical_duration_max' => 'integer',
+        'seedance_compatible' => 'boolean',
         'is_active' => 'boolean',
         'sort_order' => 'integer',
     ];
@@ -217,6 +221,9 @@ class VwCameraMovement extends Model
             'bestForEmotions' => $this->best_for_emotions ?? [],
             'naturalContinuation' => $this->natural_continuation,
             'endingState' => $this->ending_state,
+            'seedanceCompatible' => $this->seedance_compatible ?? true,
+            'seedancePromptSyntax' => $this->seedance_prompt_syntax,
+            'seedanceShotSize' => $this->seedance_shot_size,
         ];
     }
 

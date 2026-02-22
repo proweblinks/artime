@@ -117,6 +117,9 @@ class CameraMovementController extends Controller
             'best_for_emotions' => ['nullable', 'array'],
             'natural_continuation' => ['nullable', 'string', 'max:100'],
             'ending_state' => ['nullable', 'string', 'max:255'],
+            'seedance_compatible' => ['boolean'],
+            'seedance_prompt_syntax' => ['nullable', 'string', 'max:512'],
+            'seedance_shot_size' => ['nullable', 'in:wide,medium,close'],
             'is_active' => ['boolean'],
         ]);
 
@@ -127,6 +130,7 @@ class CameraMovementController extends Controller
             ? json_encode($validated['best_for_shot_types']) : null;
         $validated['best_for_emotions'] = isset($validated['best_for_emotions'])
             ? json_encode($validated['best_for_emotions']) : null;
+        $validated['seedance_compatible'] = $request->boolean('seedance_compatible');
 
         $movement = VwCameraMovement::create($validated);
 
@@ -200,6 +204,9 @@ class CameraMovementController extends Controller
             'best_for_emotions' => ['nullable', 'array'],
             'natural_continuation' => ['nullable', 'string', 'max:100'],
             'ending_state' => ['nullable', 'string', 'max:255'],
+            'seedance_compatible' => ['boolean'],
+            'seedance_prompt_syntax' => ['nullable', 'string', 'max:512'],
+            'seedance_shot_size' => ['nullable', 'in:wide,medium,close'],
             'is_active' => ['boolean'],
         ]);
 
@@ -210,6 +217,7 @@ class CameraMovementController extends Controller
             ? json_encode($validated['best_for_shot_types']) : null;
         $validated['best_for_emotions'] = isset($validated['best_for_emotions'])
             ? json_encode($validated['best_for_emotions']) : null;
+        $validated['seedance_compatible'] = $request->boolean('seedance_compatible');
 
         $cameraMovement->update($validated);
 

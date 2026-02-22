@@ -498,10 +498,52 @@ class VwCameraMovementSeeder extends Seeder
             ],
         ];
 
+        // Seedance 2.0 compatibility data for each movement.
+        // Format: slug => [seedance_compatible, seedance_prompt_syntax, seedance_shot_size]
+        $seedanceData = [
+            'zoom-in'          => [true, 'Push-in, Eye-level, Normal lens', 'close'],
+            'zoom-out'         => [true, 'Pull-out, Eye-level, Normal lens', 'wide'],
+            'crash-zoom-in'    => [false, null, null],
+            'dolly-zoom'       => [false, null, null],
+            'dolly-in'         => [true, 'Dolly, Eye-level, Normal lens', 'medium'],
+            'dolly-out'        => [true, 'Dolly, Eye-level, Normal lens', 'wide'],
+            'tracking-left'    => [true, 'Tracking shot, Eye-level, Normal lens', 'medium'],
+            'tracking-right'   => [true, 'Tracking shot, Eye-level, Normal lens', 'medium'],
+            'push-in'          => [true, 'Push-in, Eye-level, Normal lens', 'close'],
+            'pull-back'        => [true, 'Pull-out, Eye-level, Normal lens', 'wide'],
+            'crane-up'         => [true, 'Crane shot, Low-angle, Wide lens', 'wide'],
+            'crane-down'       => [true, 'Crane shot, High-angle, Wide lens', 'wide'],
+            'jib-up'           => [true, 'Crane shot, Eye-level, Normal lens', 'medium'],
+            'jib-down'         => [true, 'Crane shot, Eye-level, Normal lens', 'medium'],
+            'pan-left'         => [true, 'Pan, Eye-level, Normal lens', 'medium'],
+            'pan-right'        => [true, 'Pan, Eye-level, Normal lens', 'medium'],
+            'tilt-up'          => [true, 'Tilt-up, Eye-level, Normal lens', 'medium'],
+            'tilt-down'        => [true, 'Tilt-down, Eye-level, Normal lens', 'medium'],
+            'whip-pan'         => [false, null, null],
+            'arc-left'         => [true, 'Steadicam orbit, Eye-level, Normal lens', 'medium'],
+            'arc-right'        => [true, 'Steadicam orbit, Eye-level, Normal lens', 'medium'],
+            'orbit-360'        => [true, 'Steadicam orbit, Eye-level, Normal lens', 'medium'],
+            'static'           => [true, 'Locked-off, Eye-level, Normal lens', 'medium'],
+            'handheld'         => [true, 'Handheld, Eye-level, Normal lens', 'medium'],
+            'steadicam-follow' => [true, 'Steadicam, Eye-level, Normal lens', 'medium'],
+            'fpv-drone'        => [true, 'Overhead, Bird\'s-eye, Wide lens', 'wide'],
+            'aerial-pullback'  => [true, 'Overhead, Bird\'s-eye, Wide lens', 'wide'],
+            'rack-focus'       => [false, null, null],
+            'dutch-angle'      => [true, 'Dutch angle, Tilted, Normal lens', 'medium'],
+        ];
+
         foreach ($movements as $movement) {
+            $slug = $movement['slug'];
+            $seedance = $seedanceData[$slug] ?? [true, null, null];
+
             VwCameraMovement::updateOrCreate(
-                ['slug' => $movement['slug']],
-                array_merge($movement, ['is_active' => true])
+                ['slug' => $slug],
+                array_merge($movement, [
+                    'is_active' => true,
+                    'seedance_compatible' => $seedance[0],
+                    'seedance_prompt_syntax' => $seedance[1],
+                    'seedance_shot_size' => $seedance[2],
+                ])
             );
         }
     }
