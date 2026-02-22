@@ -2563,12 +2563,12 @@
 
                         {{-- Narration/Voiceover Section --}}
                         @php
-                            $currentSpeechType = $scene['voiceover']['speechType'] ?? $scene['speechType'] ?? 'narrator';
+                            $currentSpeechType = $scene['voiceover']['speechType'] ?? $scene['speechType'] ?? 'dialogue';
                             $speechTypeOptions = [
-                                'narrator' => ['label' => '🎙️ Narrator', 'desc' => 'External voiceover (no lip movement)'],
-                                'internal' => ['label' => '💭 Internal', 'desc' => 'Character thoughts (no lip movement)'],
-                                'monologue' => ['label' => '🗣️ Monologue', 'desc' => 'Character speaks aloud (lips move)'],
                                 'dialogue' => ['label' => '💬 Dialogue', 'desc' => 'Characters talking (lips move)'],
+                                'monologue' => ['label' => '🗣️ Monologue', 'desc' => 'Character speaks aloud (lips move)'],
+                                'internal' => ['label' => '💭 Internal', 'desc' => 'Character thoughts (no lip movement)'],
+                                'narrator' => ['label' => '🎙️ Narrator', 'desc' => 'External voiceover (no lip movement)'],
                                 'mixed' => ['label' => '🎬 Mixed', 'desc' => 'Multiple speakers/types (dynamic segments)'],
                             ];
                             $speechSegments = $scene['speechSegments'] ?? [];
@@ -2746,12 +2746,12 @@
                                         {{-- Add Segment Row --}}
                                         <div class="vw-segments-add-row">
                                             <button class="vw-segment-add-btn"
-                                                    wire:click="addSegment({{ $index }}, 'narrator')">
-                                                + 🎙️ {{ __('Narrator') }}
-                                            </button>
-                                            <button class="vw-segment-add-btn"
                                                     wire:click="addSegment({{ $index }}, 'dialogue')">
                                                 + 💬 {{ __('Dialogue') }}
+                                            </button>
+                                            <button class="vw-segment-add-btn"
+                                                    wire:click="addSegment({{ $index }}, 'narrator')">
+                                                + 🎙️ {{ __('Narrator') }}
                                             </button>
                                             <button class="vw-segments-parse-btn"
                                                     wire:click="parseNarrationToSegments({{ $index }})"

@@ -2261,6 +2261,7 @@ class VideoWizard extends Component
             'assemblyStatus' => 'pending',
             'renderProgress' => 0,
             'finalVideoUrl' => null,
+            'narratorTracks' => [], // Per-scene narrator audio URLs with timing (populated from narratorOverlay)
         ];
 
         // Scene Memory (Bibles)
@@ -3914,7 +3915,7 @@ class VideoWizard extends Component
                 $context = [
                     'mood' => $shot['musicMood'] ?? $scene['mood'] ?? $scene['emotionalBeat'] ?? 'cinematic',
                     'genre' => $genrePreset['slug'] ?? 'cinematic',
-                    'narration' => $scene['narration'] ?? '',
+                    'narration' => $this->extractCharacterLinesOnly($scene['narration'] ?? ''),
                     'atmosphere' => $genrePreset['atmosphere'] ?? '',
                     'characterBible' => $this->script['characterBible'] ?? [],
                 ];
@@ -3948,7 +3949,7 @@ class VideoWizard extends Component
                 'mood' => $shot['musicMood'] ?? $scene['mood'] ?? $scene['emotionalBeat'] ?? 'cinematic',
                 'genre' => 'cinematic',
                 'qualityLevel' => 'cinematic',
-                'narration' => $scene['narration'] ?? '',
+                'narration' => $this->extractCharacterLinesOnly($scene['narration'] ?? ''),
             ];
 
             $result = $promptBuilder->buildPrompt($shotData, $context);
@@ -7160,7 +7161,7 @@ PROMPT;
         // Validate speech type (now includes 'mixed' for dynamic segments)
         $validTypes = ['narrator', 'internal', 'monologue', 'dialogue', 'mixed'];
         if (!in_array($speechType, $validTypes, true)) {
-            $speechType = 'narrator'; // Default to narrator if invalid
+            $speechType = 'dialogue'; // Default to dialogue if invalid
         }
 
         // Initialize voiceover structure if needed
@@ -7202,7 +7203,7 @@ PROMPT;
     /**
      * Add a new speech segment to a scene.
      */
-    public function addSegment(int $sceneIndex, string $type = 'narrator'): void
+    public function addSegment(int $sceneIndex, string $type = 'dialogue'): void
     {
         if (!isset($this->script['scenes'][$sceneIndex])) {
             $this->dispatch('toast-error', message: __('Scene not found'));
@@ -7225,7 +7226,7 @@ PROMPT;
 
         // Validate type using SpeechSegment constants
         if (!in_array($type, SpeechSegment::VALID_TYPES, true)) {
-            $type = SpeechSegment::TYPE_NARRATOR;
+            $type = SpeechSegment::TYPE_DIALOGUE;
         }
 
         // Create new segment using SpeechSegment class
@@ -7629,7 +7630,7 @@ PROMPT;
             $this->script['scenes'][$sceneIndex]['speechType'] = 'mixed';
         } elseif (count($segments) === 1) {
             // Single segment, use its type
-            $type = $segments[0]['type'] ?? 'narrator';
+            $type = $segments[0]['type'] ?? 'dialogue';
             $this->script['scenes'][$sceneIndex]['voiceover']['speechType'] = $type;
             $this->script['scenes'][$sceneIndex]['speechType'] = $type;
         }
@@ -8033,9 +8034,9 @@ PROMPT;
 
         // Validate speechType
         $validSpeechTypes = ['narrator', 'internal', 'monologue', 'dialogue'];
-        $speechType = $voiceover['speechType'] ?? 'narrator';
+        $speechType = $voiceover['speechType'] ?? 'dialogue';
         if (!in_array($speechType, $validSpeechTypes)) {
-            $speechType = 'narrator';
+            $speechType = 'dialogue';
         }
 
         return [
@@ -8540,7 +8541,7 @@ PROMPT;
 
             if (empty(trim($narration))) {
                 $scene['speechSegments'] = [];
-                $scene['speechType'] = 'narrator'; // Default for empty
+                $scene['speechType'] = 'dialogue'; // Default for empty
                 return;
             }
 
@@ -8588,7 +8589,7 @@ PROMPT;
         $scene = &$this->script['scenes'][$sceneIndex];
         $narration = $scene['narration'] ?? '';
         $voiceover = $scene['voiceover'] ?? [];
-        $speechType = $voiceover['speechType'] ?? $scene['speechType'] ?? 'narrator';
+        $speechType = $voiceover['speechType'] ?? $scene['speechType'] ?? 'dialogue';
         $voiceoverText = $voiceover['text'] ?? '';
 
         // Determine best text source for parsing
@@ -8621,7 +8622,7 @@ PROMPT;
                     $hasDialogue = in_array('dialogue', $types) || in_array('monologue', $types);
 
                     $scene['speechSegments'] = $segmentArrays;
-                    $scene['speechType'] = count($types) > 1 ? 'mixed' : ($segmentArrays[0]['type'] ?? 'narrator');
+                    $scene['speechType'] = count($types) > 1 ? 'mixed' : ($segmentArrays[0]['type'] ?? 'dialogue');
 
                     Log::info('VideoWizard: Parsed narration into segments for decomposition', [
                         'sceneIndex' => $sceneIndex,
@@ -8677,7 +8678,7 @@ PROMPT;
                                 if (!empty($dialogueSegments)) {
                                     $scene['speechSegments'] = $dialogueSegments;
                                     $dialogueTypes = array_unique(array_column($dialogueSegments, 'type'));
-                                    $scene['speechType'] = count($dialogueTypes) > 1 ? 'mixed' : ($dialogueTypes[0] ?? 'narrator');
+                                    $scene['speechType'] = count($dialogueTypes) > 1 ? 'mixed' : ($dialogueTypes[0] ?? 'dialogue');
 
                                     Log::info('VideoWizard: Dialogue extraction succeeded', [
                                         'sceneIndex' => $sceneIndex,
@@ -12810,6 +12811,7 @@ PROMPT;
                 'position' => 'bottom',
                 'size' => 1,
             ],
+            'narratorTracks' => [],
         ];
 
         $this->sceneMemory = [
@@ -23343,7 +23345,7 @@ PROMPT;
         $emotionalBeat = $scene['emotionalBeat'] ?? $scene['mood'] ?? null;
         // Use speechType to determine if scene has actual dialogue/monologue (requires lip-sync)
         // narrator/internal = NO lip-sync, monologue/dialogue = lip-sync required
-        $speechType = $scene['voiceover']['speechType'] ?? $scene['speechType'] ?? 'narrator';
+        $speechType = $scene['voiceover']['speechType'] ?? $scene['speechType'] ?? 'dialogue';
         $hasDialogue = in_array($speechType, ['monologue', 'dialogue'], true);
         $pacing = $this->content['pacing'] ?? 'balanced';
 
@@ -24357,7 +24359,7 @@ PROMPT;
             $context = [
                 'mood' => $scene['mood'] ?? $scene['emotionalBeat'] ?? 'cinematic',
                 'genre' => $genrePreset['slug'] ?? 'cinematic',
-                'narration' => $scene['narration'] ?? '',
+                'narration' => $this->extractCharacterLinesOnly($scene['narration'] ?? ''),
                 'atmosphere' => $genrePreset['atmosphere'] ?? '',
                 'characterBible' => $this->script['characterBible'] ?? [],
             ];
@@ -27432,12 +27434,12 @@ PROMPT;
                 // Validate segment type - log error if missing (VOC-02)
                 $segType = $segment['type'] ?? null;
                 if ($segType === null) {
-                    Log::error('Missing segment type, defaulting to narrator', [
+                    Log::error('Missing segment type, defaulting to dialogue', [
                         'sceneIndex' => $sceneIndex,
                         'segmentIndex' => $segmentIndex ?? null,
                         'speaker' => $segment['speaker'] ?? 'unknown',
                     ]);
-                    $segType = 'narrator';
+                    $segType = 'dialogue';
                 }
                 $segType = strtolower($segType);
                 $segText = trim($segment['text'] ?? '');
@@ -27559,54 +27561,35 @@ PROMPT;
         $lipSyncTypes = ['dialogue', 'monologue'];
         $skippedCount = 0;
         $emptyTextCount = 0;
+        $narratorOverlaySegments = [];
 
         foreach ($speechSegments as $segmentIndex => $segment) {
-            // Validate segment type - log error if missing (VOC-02)
+            // Validate segment type - log error if missing
             $segType = $segment['type'] ?? null;
             if ($segType === null) {
-                Log::error('Missing segment type, defaulting to narrator', [
+                Log::error('Missing segment type, defaulting to dialogue', [
                     'sceneIndex' => $sceneIndex,
                     'segmentIndex' => $segmentIndex ?? null,
                     'speaker' => $segment['speaker'] ?? 'unknown',
                 ]);
-                $segType = 'narrator';
+                $segType = 'dialogue';
             }
             $segType = strtolower($segType);
 
-            // Narrator segments create visual shots WITHOUT lip-sync (establishing/cinematic)
-            // Internal thought segments are skipped (voiceover overlay only)
+            // Narrator and internal segments do NOT create visual shots.
+            // They are stored as overlay metadata for future TTS in Assembly step.
             if (!in_array($segType, $lipSyncTypes)) {
                 if ($segType === 'narrator' && !empty(trim($segment['text'] ?? ''))) {
-                    $narratorText = trim($segment['text']);
-                    $narratorShot = [
-                        'id' => uniqid('shot_'),
-                        'speechSegments' => [$segment],
-                        'needsLipSync' => false,
-                        'useMultitalk' => false,
-                        'narration' => $narratorText,
-                        'narratorText' => $narratorText,
-                        'hasNarratorVoiceover' => true,
-                        'speechType' => 'narrator',
-                        'narratorShot' => true,
-                        'selectedVideoModel' => 'seedance',
-                        'type' => 'wide',
-                        'purpose' => 'establishing',
+                    // Store for voiceover overlay only — do NOT create a visual shot
+                    $narratorOverlaySegments[] = [
+                        'text' => trim($segment['text']),
                         'segmentIndex' => $segmentIndex,
-                        'duration' => $this->calculateDurationFromText($narratorText, 'wide'),
+                        'voiceId' => $segment['voiceId'] ?? null,
                     ];
-
-                    // Assign narrator voice
-                    $narratorShot['narratorVoiceId'] = $this->voiceRegistry
-                        ? $this->voiceRegistry->getNarratorVoice()
-                        : $this->getNarratorVoice();
-
-                    $shots[] = $narratorShot;
-
-                    Log::debug('Created narrator visual shot', [
+                    Log::debug('Stored narrator segment as overlay metadata (no visual shot)', [
                         'sceneIndex' => $sceneIndex,
                         'segmentIndex' => $segmentIndex,
-                        'textLength' => strlen($narratorText),
-                        'duration' => $narratorShot['duration'],
+                        'textLength' => strlen(trim($segment['text'])),
                     ]);
                 } else {
                     Log::debug('Skipping non-visual segment in shot creation', [
@@ -27615,8 +27598,8 @@ PROMPT;
                         'type' => $segType,
                         'reason' => 'Internal thought handled as voiceover overlay',
                     ]);
-                    $skippedCount++;
                 }
+                $skippedCount++;
                 continue;
             }
 
@@ -27687,30 +27670,60 @@ PROMPT;
             $shots[] = $shot;
         }
 
+        // All-narrator scene fallback: create ONE visual shot from scene description
+        if (empty($shots) && !empty($narratorOverlaySegments)) {
+            $scene = $this->script['scenes'][$sceneIndex] ?? [];
+            $visualDescription = $scene['visualDescription'] ?? $scene['visual'] ?? $scene['narration'] ?? '';
+            $shotType = $this->inferShotTypeFromVisualDescription($visualDescription);
+            $shots[] = [
+                'id' => uniqid('shot_'),
+                'speechSegments' => [],
+                'needsLipSync' => false,
+                'useMultitalk' => false,
+                'narratorShot' => true,
+                'speechType' => 'narrator',
+                'selectedVideoModel' => 'seedance',
+                'type' => $shotType,
+                'purpose' => 'establishing',
+                'description' => $visualDescription,
+                'segmentIndex' => 0,
+                'duration' => $this->calculateDurationFromText(
+                    implode(' ', array_column($narratorOverlaySegments, 'text')),
+                    $shotType
+                ),
+                'narratorVoiceId' => $this->voiceRegistry
+                    ? $this->voiceRegistry->getNarratorVoice()
+                    : $this->getNarratorVoice(),
+            ];
+            Log::info('All-narrator scene: created single visual shot from scene description', [
+                'sceneIndex' => $sceneIndex,
+                'shotType' => $shotType,
+                'narratorSegments' => count($narratorOverlaySegments),
+            ]);
+        }
+
+        // Store narrator overlay at scene level for future Assembly TTS
+        if (!empty($narratorOverlaySegments)) {
+            if (!isset($this->multiShotMode['decomposedScenes'][$sceneIndex])) {
+                $this->multiShotMode['decomposedScenes'][$sceneIndex] = [];
+            }
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['narratorOverlay'] = $narratorOverlaySegments;
+            Log::info('Stored narrator overlay at scene level', [
+                'sceneIndex' => $sceneIndex,
+                'segmentCount' => count($narratorOverlaySegments),
+            ]);
+        }
+
         Log::info('Created shots from speech segments (1:1 mapping)', [
             'sceneIndex' => $sceneIndex,
             'totalSegments' => count($speechSegments),
             'lipSyncSegments' => count($shots),
             'skippedNarratorInternal' => $skippedCount,
             'skippedEmptyText' => $emptyTextCount,
+            'narratorOverlaySegments' => count($narratorOverlaySegments),
             'shotsCreated' => count($shots),
             'ratio' => '1:1',
         ]);
-
-        // Validation: Ensure no narrator/internal accidentally became primary shot segment
-        foreach ($shots as $shot) {
-            $primarySegment = $shot['speechSegments'][0] ?? null;
-            if ($primarySegment) {
-                $type = isset($primarySegment['type']) ? strtolower($primarySegment['type']) : null;
-                if ($type !== null && in_array($type, ['narrator', 'internal'])) {
-                    Log::error('INVALID: Visual shot created from non-visual segment', [
-                        'sceneIndex' => $sceneIndex,
-                        'shotId' => $shot['id'] ?? 'unknown',
-                        'segmentType' => $type,
-                    ]);
-                }
-            }
-        }
 
         return $shots;
     }
@@ -27744,6 +27757,35 @@ PROMPT;
             if ($avail >= $duration) return $avail;
         }
         return 12;
+    }
+
+    /**
+     * Extract only character dialogue and monologue lines, stripping [NARRATOR] and [INTERNAL:] lines.
+     * Used to prevent narrator prose from contaminating Seedance video prompts.
+     */
+    protected function extractCharacterLinesOnly(string $narration): string
+    {
+        if (empty($narration)) return '';
+        $lines = explode("\n", $narration);
+        $characterLines = array_filter($lines, function ($line) {
+            $trimmed = trim($line);
+            return !empty($trimmed)
+                && !preg_match('/^\[NARRATOR\]/i', $trimmed)
+                && !preg_match('/^\[INTERNAL:/i', $trimmed);
+        });
+        return implode("\n", $characterLines);
+    }
+
+    /**
+     * Infer shot type from visual description for all-narrator fallback scenes.
+     */
+    protected function inferShotTypeFromVisualDescription(string $description): string
+    {
+        $desc = strtolower($description);
+        if (preg_match('/\b(close-?up|closeup|face|eyes|detail)\b/', $desc)) return 'close-up';
+        if (preg_match('/\b(wide|panoram|landscape|skyline|aerial|establishing)\b/', $desc)) return 'wide';
+        if (preg_match('/\b(two.?shot|over.?shoulder)\b/', $desc)) return 'two-shot';
+        return 'medium';
     }
 
     /**
@@ -27838,147 +27880,9 @@ PROMPT;
      */
     protected function overlayNarratorSegments(int $sceneIndex, array $shots, array $speechSegments): array
     {
-        if (empty($shots) || empty($speechSegments)) {
-            return $shots;
-        }
-
-        // If narrator segments already have dedicated visual shots (speech-driven path),
-        // skip the overlay entirely to avoid duplicate narrator content
-        $existingNarratorShots = array_filter($shots, fn($s) => !empty($s['narratorShot']));
-        if (!empty($existingNarratorShots)) {
-            Log::info('Narrator segments already have dedicated shots, skipping overlay', [
-                'sceneIndex' => $sceneIndex,
-                'narratorShotCount' => count($existingNarratorShots),
-            ]);
-            return $shots;
-        }
-
-        // Extract narrator segments - use explicit type check, not empty default
-        $narratorSegments = array_values(array_filter($speechSegments, function($seg) {
-            $type = $seg['type'] ?? null;
-            return $type !== null && strtolower($type) === SpeechSegment::TYPE_NARRATOR;
-        }));
-
-        if (empty($narratorSegments)) {
-            Log::debug('No narrator segments to overlay', ['sceneIndex' => $sceneIndex]);
-            return $shots;
-        }
-
-        // Distribute narrator segments across ALL shots
-        // CRITICAL: Every shot should have narrator voiceover, not just the first one
-        $shotCount = count($shots);
-        $narratorCount = count($narratorSegments);
-
-        // Combine all narrator text for distribution using sentence-boundary splitting
-        $allNarratorText = implode(' ', array_column($narratorSegments, 'text'));
-        $chunks = $this->splitTextBySentenceBoundary($allNarratorText, $shotCount);
-        $totalWords = str_word_count($allNarratorText);
-
-        Log::info('Distributing narrator text across all shots (sentence-boundary)', [
-            'sceneIndex' => $sceneIndex,
-            'totalWords' => $totalWords,
-            'shotCount' => $shotCount,
-            'chunks' => count($chunks),
-        ]);
-
-        foreach ($shots as $shotIdx => $shot) {
-            $shotNarratorText = $chunks[$shotIdx] ?? '';
-
-            // Create a narrator segment for this shot
-            $shotNarrators = [];
-            if (!empty($shotNarratorText)) {
-                $shotNarrators[] = [
-                    'id' => 'seg-narrator-shot-' . $shotIdx . '-' . uniqid(),
-                    'type' => SpeechSegment::TYPE_NARRATOR,
-                    'text' => $shotNarratorText,
-                    'speaker' => null,
-                    'needsLipSync' => false,
-                    'order' => $shotIdx,
-                ];
-            }
-
-            // Add as overlay metadata AND to speechSegments for UI detection
-            // IMPORTANT: Add to ALL shots, even if text portion is small
-            if (!empty($shotNarrators) || !empty($allNarratorText)) {
-                // If this shot got no words (edge case), give it a placeholder
-                if (empty($shotNarrators) && $shotIdx < $shotCount) {
-                    // Distribute remaining narrator context
-                    $shotNarrators[] = [
-                        'id' => 'seg-narrator-shot-' . $shotIdx . '-' . uniqid(),
-                        'type' => SpeechSegment::TYPE_NARRATOR,
-                        'text' => '[Narrator continues]',
-                        'speaker' => null,
-                        'needsLipSync' => false,
-                        'order' => $shotIdx,
-                    ];
-                }
-                $shots[$shotIdx]['narratorOverlay'] = $shotNarrators;
-                $shots[$shotIdx]['hasNarratorVoiceover'] = true;
-
-                // Combine narrator text for voiceover generation (separate from dialogue)
-                $narratorText = implode(' ', array_column($shotNarrators, 'text'));
-                $shots[$shotIdx]['narratorText'] = $narratorText;
-                $shots[$shotIdx]['narratorVoiceId'] = $this->voiceRegistry
-                    ? $this->voiceRegistry->getNarratorVoice()
-                    : $this->getNarratorVoice(); // VOC-01/VOC-05: narrator voice via registry
-                $shots[$shotIdx]['narration'] = $narratorText;
-
-                // CRITICAL: Add narrator segments to speechSegments for UI badge detection
-                $existingSegments = $shots[$shotIdx]['speechSegments'] ?? [];
-
-                // Check if shot already has dialogue/monologue segments (lip-sync types)
-                $hasDialogueSegments = !empty(array_filter($existingSegments, function($s) {
-                    $type = $s['type'] ?? null;
-                    return $type !== null && in_array(strtolower($type), ['dialogue', 'monologue']);
-                }));
-
-                // Also check if dialogue/monologue text fields were set by decomposer
-                $hasDialogueTextField = !empty($shots[$shotIdx]['dialogue']) || !empty($shots[$shotIdx]['monologue']);
-                $hasAnyDialogue = $hasDialogueSegments || $hasDialogueTextField;
-
-                // If shot has NO dialogue/monologue at all, narrator is PRIMARY
-                if (!$hasAnyDialogue) {
-                    // Narrator-only shot: use TTS voiceover, no lip-sync
-                    $shots[$shotIdx]['speechSegments'] = array_merge($existingSegments, $shotNarrators);
-                    $shots[$shotIdx]['needsLipSync'] = false;
-                    $shots[$shotIdx]['selectedVideoModel'] = 'seedance';
-                    $shots[$shotIdx]['useMultitalk'] = false;
-                    $shots[$shotIdx]['speechType'] = 'narrator';
-                } else {
-                    // Mixed shot: has both dialogue/monologue AND narrator overlay
-                    // Keep lip-sync for dialogue, narrator is background voiceover
-                    $shots[$shotIdx]['speechSegments'] = array_merge($existingSegments, $shotNarrators);
-                }
-
-                Log::debug('Added narrator overlay to shot', [
-                    'sceneIndex' => $sceneIndex,
-                    'shotIndex' => $shotIdx,
-                    'narratorCount' => count($shotNarrators),
-                    'hasDialogueSegments' => $hasDialogueSegments,
-                    'needsLipSync' => $shots[$shotIdx]['needsLipSync'] ?? false,
-                ]);
-            }
-        }
-
-        // Recalculate duration for shots with narrator text based on word count + shot type
-        foreach ($shots as $shotIdx => $shot) {
-            if (!empty($shot['narratorText']) && $shot['narratorText'] !== '[Narrator continues]') {
-                $shotType = $shot['type'] ?? $shot['shotType'] ?? 'medium';
-                $textDuration = $this->calculateDurationFromText($shot['narratorText'], $shotType);
-                $shots[$shotIdx]['duration'] = max($shot['duration'] ?? 5, $textDuration);
-                $shots[$shotIdx]['selectedDuration'] = $shots[$shotIdx]['duration'];
-            }
-        }
-
-        Log::info('Distributed narrator text across ALL shots', [
-            'sceneIndex' => $sceneIndex,
-            'originalSegments' => $narratorCount,
-            'totalWords' => $totalWords,
-            'shotCount' => $shotCount,
-            'shotsWithNarrator' => count(array_filter($shots, fn($s) => !empty($s['narratorOverlay']))),
-            'strategy' => 'sentence-boundary-split',
-        ]);
-
+        // Narrator segments are now stored at scene level (narratorOverlay) in createShotsFromSpeechSegments().
+        // They are NOT injected into individual shots — this preserves narrator text for future TTS
+        // generation in the Assembly step without polluting shot data used for video generation.
         return $shots;
     }
 
@@ -28695,12 +28599,12 @@ PROMPT;
             return $shotIntelService->needsLipSync($scene);
         } catch (\Throwable $e) {
             // Fallback to basic check if service unavailable
-            $speechType = $scene['voiceover']['speechType'] ?? $scene['speechType'] ?? 'narrator';
+            $speechType = $scene['voiceover']['speechType'] ?? $scene['speechType'] ?? 'dialogue';
             if ($speechType === 'mixed') {
                 // Mixed without service - check segments directly
                 $segments = $scene['voiceover']['speechSegments'] ?? $scene['speechSegments'] ?? [];
                 foreach ($segments as $segment) {
-                    $segType = $segment['type'] ?? 'narrator';
+                    $segType = $segment['type'] ?? 'dialogue';
                     if (in_array($segType, ['monologue', 'dialogue'], true)) {
                         return true;
                     }
@@ -28762,7 +28666,7 @@ PROMPT;
                     return true;
                 }
                 // Also check segment type
-                $segmentType = $segment['type'] ?? 'narrator';
+                $segmentType = $segment['type'] ?? 'dialogue';
                 if (in_array($segmentType, ['monologue', 'dialogue'], true)) {
                     return true;
                 }
@@ -28776,7 +28680,7 @@ PROMPT;
         }
 
         // Fallback to speechType check
-        $speechType = $shot['speechType'] ?? $shot['voiceover']['speechType'] ?? 'narrator';
+        $speechType = $shot['speechType'] ?? $shot['voiceover']['speechType'] ?? 'dialogue';
         return in_array($speechType, ['monologue', 'dialogue'], true);
     }
 

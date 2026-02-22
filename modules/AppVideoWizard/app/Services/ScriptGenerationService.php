@@ -571,28 +571,31 @@ CONTENT DEPTH: {$contentDepth}
 
 === VOICEOVER SPEECH TYPES (CRITICAL FOR LIP-SYNC) ===
 speechType determines whether character's lips move on screen:
-- "narrator": External narrator describes scene (NO lip movement)
+- "dialogue": Characters talk to each other (lips MOVE - set speakingCharacter) — DEFAULT
+- "monologue": Character speaks OUT LOUD to self/camera (lips MOVE - set speakingCharacter)
 - "internal": Character's inner thoughts heard as voiceover (NO lip movement)
-- "monologue": Character speaks OUT LOUD to self (lips MOVE - set speakingCharacter)
-- "dialogue": Characters talk to each other (lips MOVE - set speakingCharacter)
+- "narrator": External narrator describes scene (NO lip movement) — USE SPARINGLY
 
-DEFAULT: Use "narrator" unless the script clearly shows a character speaking aloud.
+DEFAULT: Use "dialogue" for scenes with 2+ characters. Use "monologue" for single-character scenes.
+Only use "narrator" for brief scene-setting (1-2 lines max per scene). Characters MUST speak on screen.
 
 === SPEECH SEGMENT MARKERS (USE IN NARRATION FIELD) ===
-Each scene's narration can mix narrator text with character dialogue using these markers:
-[NARRATOR] Text here         → External narrator voiceover (no lip-sync)
-[INTERNAL: CHARACTER] Text   → Character's inner thoughts (no lip-sync)
+CHARACTER_NAME: Text         → Character dialogue (lip-sync required) — PRIMARY FORMAT
 [MONOLOGUE: CHARACTER] Text  → Character speaking alone/to camera (lip-sync)
-CHARACTER_NAME: Text         → Character dialogue (lip-sync required)
+[INTERNAL: CHARACTER] Text   → Character's inner thoughts (no lip-sync)
+[NARRATOR] Text here         → Brief scene-setting ONLY (max 1-2 lines per scene)
 
-EXAMPLE of mixed narration:
-[NARRATOR] The interrogation room falls silent.
-DETECTIVE: Where were you last night?
-SUSPECT: I was at home. Alone.
-[NARRATOR] The detective slides a photograph across the table.
+⚠️ CRITICAL RULES:
+- Characters MUST speak on screen. Do NOT hide dialogue behind narrator prose.
+- At MINIMUM 70% of every scene's narration must be CHARACTER: dialogue or [MONOLOGUE:] lines.
+- [NARRATOR] is for brief visual transitions ONLY, e.g. "[NARRATOR] The rain intensifies."
+- NEVER use narrator to describe what characters say or feel — let them SAY and SHOW it.
+- Single-character scenes: use [MONOLOGUE: CHARACTER] for the character's spoken words.
 
-⚠️ CRITICAL: If a scene involves 2+ characters interacting (conversation, confrontation, argument),
-the narration MUST include CHARACTER_NAME: dialogue lines. Do NOT reduce dialogue to narrator prose.
+EXAMPLE:
+[NARRATOR] Rain hammers the London backstreet.
+SARAH KANE: That signal... it's the same cipher from Prague.
+[MONOLOGUE: SARAH KANE] I swore I'd never go back. But this changes everything.
 
 === JSON FORMAT ===
 Respond with ONLY valid JSON (no markdown, no explanation):
@@ -601,13 +604,13 @@ Respond with ONLY valid JSON (no markdown, no explanation):
     {
       "id": "scene-{$startScene}",
       "title": "Descriptive scene title (2-5 words)",
-      "narration": "Mixed narration using [NARRATOR] and CHARACTER: markers (~{$wordsPerScene} words)",
+      "narration": "Character-driven: use CHARACTER: dialogue and [MONOLOGUE:] as primary. [NARRATOR] max 1-2 lines for scene-setting only (~{$wordsPerScene} words)",
       "visualDescription": "Detailed visual description for AI image generation (50-100 words)",
       "mood": "Scene emotional tone (one word: inspiring, dramatic, peaceful, exciting, etc.)",
       "transition": "cut",
       "voiceover": {
-        "speechType": "dialogue or narrator (use dialogue if scene has character speech)",
-        "speakingCharacter": "Name of primary speaking character, or null for narrator"
+        "speechType": "dialogue",
+        "speakingCharacter": "Name of primary speaking character"
       }
     }
   ]
@@ -1194,57 +1197,58 @@ PROMPT;
             $prompt .= "\n";
         }
 
-        // === LAYER 14: SPEECH SEGMENTS (Dynamic Multi-Voice) ===
-        $prompt .= "=== SPEECH SEGMENTS (HOLLYWOOD-STYLE MIXED NARRATION) ===\n";
-        $prompt .= "Each scene can mix NARRATOR, DIALOGUE, INTERNAL THOUGHTS, and MONOLOGUE.\n";
+        // === LAYER 14: SPEECH SEGMENTS (CHARACTER-DRIVEN NARRATION) ===
+        $prompt .= "=== SPEECH SEGMENTS (CHARACTER-DRIVEN NARRATION) ===\n";
+        $prompt .= "Characters MUST speak on screen. Narration is character-first.\n";
         $prompt .= "Use these segment markers in the narration field:\n\n";
-        $prompt .= "SEGMENT FORMATS:\n";
-        $prompt .= "[NARRATOR] Text here         → External narrator voiceover (no lip-sync)\n";
-        $prompt .= "[INTERNAL: CHARACTER] Text   → Character's inner thoughts as V.O. (no lip-sync)\n";
+        $prompt .= "SEGMENT FORMATS (in order of priority):\n";
+        $prompt .= "CHARACTER: Text              → Character dialogue (lip-sync required) — PRIMARY FORMAT\n";
         $prompt .= "[MONOLOGUE: CHARACTER] Text  → Character speaking alone/to camera (lip-sync)\n";
-        $prompt .= "CHARACTER: Text              → Character dialogue (lip-sync required)\n\n";
-        $prompt .= "EXAMPLE MIXED NARRATION:\n";
-        $prompt .= "[NARRATOR] The city never sleeps. Neither does Jack.\n";
+        $prompt .= "[INTERNAL: CHARACTER] Text   → Character's inner thoughts as V.O. (no lip-sync)\n";
+        $prompt .= "[NARRATOR] Text here         → Brief scene-setting ONLY (max 1-2 lines per scene)\n\n";
+        $prompt .= "EXAMPLE CHARACTER-DRIVEN NARRATION:\n";
+        $prompt .= "[NARRATOR] Rain hammers the London backstreet.\n";
+        $prompt .= "SARAH KANE: That signal... it's the same cipher from Prague.\n";
+        $prompt .= "[MONOLOGUE: SARAH KANE] I swore I'd never go back. But this changes everything.\n";
         $prompt .= "JACK: They're everywhere...\n";
-        $prompt .= "[INTERNAL: JACK] I should never have come here.\n";
-        $prompt .= "THUG: End of the line.\n\n";
+        $prompt .= "[INTERNAL: JACK] I should never have come here.\n\n";
         $prompt .= "RULES:\n";
-        $prompt .= "- Use [NARRATOR] for scene-setting, exposition, describing action\n";
-        $prompt .= "- Use CHARACTER: for spoken dialogue between characters\n";
+        $prompt .= "- Use CHARACTER: for spoken dialogue between characters — THIS IS THE PRIMARY FORMAT\n";
+        $prompt .= "- Use [MONOLOGUE: CHARACTER] for single-character spoken words\n";
         $prompt .= "- Use [INTERNAL: CHARACTER] for thoughts/reactions (heard but lips don't move)\n";
+        $prompt .= "- Use [NARRATOR] SPARINGLY for brief visual transitions only (1-2 lines max per scene)\n";
         $prompt .= "- Character names MUST match those in visualDescription\n";
-        $prompt .= "- For simple narrator-only scenes, you can omit tags (defaults to narrator)\n\n";
+        $prompt .= "- Single-character scenes MUST use [MONOLOGUE: CHARACTER] for spoken words, NOT [NARRATOR]\n\n";
 
         // === CRITICAL REINFORCEMENT: SEGMENT MARKERS ===
         $prompt .= "⚠️ CRITICAL - EVERY LINE of narration MUST start with a segment marker prefix.\n";
         $prompt .= "CORRECT FORMAT:\n";
-        $prompt .= "[NARRATOR] The city was silent.\n";
         $prompt .= "JACK: I need to find her.\n";
+        $prompt .= "[NARRATOR] The city was silent.\n";
         $prompt .= "[INTERNAL: JACK] Something wasn't right.\n\n";
         $prompt .= "❌ WRONG - DO NOT write plain prose without markers:\n";
         $prompt .= "The city was silent. Jack walked through the alley.\n";
         $prompt .= "He needed to find her before it was too late.\n\n";
-        $prompt .= "If a scene has ANY character dialogue, you MUST use CHARACTER: prefix for their lines.\n";
-        $prompt .= "If a scene has narration, you MUST use [NARRATOR] prefix for those lines.\n\n";
+        $prompt .= "If a scene has ANY character, you MUST use CHARACTER: or [MONOLOGUE:] prefix for their spoken lines.\n";
+        $prompt .= "If a scene has brief scene-setting, you MUST use [NARRATOR] prefix for those lines.\n\n";
 
-        // === LAYER 14B: DIALOGUE ENFORCEMENT FOR MULTI-CHARACTER SCENES ===
-        $prompt .= "=== DIALOGUE ENFORCEMENT (CRITICAL FOR MULTI-CHARACTER SCENES) ===\n";
-        $prompt .= "⚠️ MANDATORY RULE: If a scene has 2 or more characters PRESENT and INTERACTING:\n";
-        $prompt .= "- The narration MUST include actual spoken dialogue using CHARACTER_NAME: format\n";
-        $prompt .= "- At MINIMUM 40% of the scene's narration should be CHARACTER dialogue lines\n";
+        // === LAYER 14B: CHARACTER DIALOGUE ENFORCEMENT ===
+        $prompt .= "=== CHARACTER DIALOGUE ENFORCEMENT (CRITICAL) ===\n";
+        $prompt .= "⚠️ MANDATORY RULE: At MINIMUM 70% of every scene's narration must be CHARACTER: dialogue or [MONOLOGUE:] lines.\n";
         $prompt .= "- Do NOT describe what characters say in third person (❌ 'Elena tells Victor his alibi fails')\n";
-        $prompt .= "- Instead, WRITE their actual dialogue (✅ 'ELENA REYES: Your alibi doesn't hold up, Victor.')\n\n";
+        $prompt .= "- Instead, WRITE their actual dialogue (✅ 'ELENA REYES: Your alibi doesn't hold up, Victor.')\n";
+        $prompt .= "- Single-character scenes: use [MONOLOGUE: CHARACTER] for the character's spoken words\n";
+        $prompt .= "- [NARRATOR] is for brief visual transitions ONLY, e.g. '[NARRATOR] The rain intensifies.'\n";
+        $prompt .= "- NEVER use narrator to describe what characters say or feel — let them SAY and SHOW it.\n\n";
         $prompt .= "EXAMPLE - INTERROGATION SCENE WITH 2 CHARACTERS:\n";
         $prompt .= "❌ WRONG (all narrator prose):\n";
         $prompt .= "Elena confronts Victor about the murder weapon. Victor denies involvement. The tension rises.\n\n";
-        $prompt .= "✅ CORRECT (mixed narrator + dialogue):\n";
+        $prompt .= "✅ CORRECT (character-driven):\n";
         $prompt .= "[NARRATOR] Elena slides a photograph across the scarred metal table.\n";
         $prompt .= "ELENA REYES: Where were you on the night of June 12th?\n";
         $prompt .= "VICTOR KANE: I was home. Alone.\n";
-        $prompt .= "[NARRATOR] Elena's eyes narrow as she detects the lie.\n";
         $prompt .= "ELENA REYES: That's interesting, because we have footage of you at the warehouse.\n\n";
-        $prompt .= "RULE: Scenes with confrontation, conversation, argument, interrogation, negotiation, or any\n";
-        $prompt .= "direct character interaction MUST use CHARACTER_NAME: dialogue lines. Never reduce dialogue to narrator description.\n\n";
+        $prompt .= "RULE: Characters MUST speak on screen. Never reduce dialogue to narrator description.\n\n";
 
         // === LAYER 15: OUTPUT FORMAT ===
         $prompt .= "=== OUTPUT FORMAT ===\n";
@@ -1257,7 +1261,7 @@ PROMPT;
     {
       "id": "scene-1",
       "title": "Descriptive scene title",
-      "narration": "Mixed speech segments using [NARRATOR], CHARACTER:, [INTERNAL: CHAR] markers (~{$wordsPerScene} words)",
+      "narration": "Character-driven: use CHARACTER: dialogue and [MONOLOGUE:] as primary. [NARRATOR] max 1-2 lines for scene-setting only (~{$wordsPerScene} words)",
       "visualDescription": "Cinematic visual: [SHOT TYPE] [SUBJECT/ACTION]. [LIGHTING]. [COLOR MOOD]. [COMPOSITION]. [ATMOSPHERE]",
       "mood": "Scene emotional tone (matches emotional journey beat)",
       "musicMood": "Soundtrack mood (epic, emotional, tense, upbeat, ambient, corporate, dramatic, playful, horror, electronic)",
@@ -2681,9 +2685,9 @@ JSON;
 
         // Validate speechType - now includes 'mixed' for dynamic segments
         $validSpeechTypes = ['narrator', 'internal', 'monologue', 'dialogue', 'mixed'];
-        $speechType = $voiceover['speechType'] ?? 'narrator';
+        $speechType = $voiceover['speechType'] ?? 'dialogue';
         if (!in_array($speechType, $validSpeechTypes)) {
-            $speechType = 'narrator';
+            $speechType = 'dialogue';
         }
 
         return [
@@ -2750,7 +2754,7 @@ JSON;
                     $parsed = $parser->migrateFromLegacy([
                         'voiceover' => $voiceover,
                         'narration' => $narrationText,
-                        'speechType' => $voiceover['speechType'] ?? 'narrator',
+                        'speechType' => $voiceover['speechType'] ?? 'dialogue',
                         'characterBible' => $scene['characterBible'] ?? [],
                     ]);
                 }
@@ -2766,7 +2770,7 @@ JSON;
             // Fallback: create single narrator segment
             return [
                 $this->sanitizeSingleSegment([
-                    'type' => $voiceover['speechType'] ?? 'narrator',
+                    'type' => $voiceover['speechType'] ?? 'dialogue',
                     'text' => $text,
                     'speaker' => $voiceover['speakingCharacter'] ?? null,
                 ], 0),
@@ -2780,9 +2784,9 @@ JSON;
     protected function sanitizeSingleSegment(array $segment, int $index): array
     {
         $validTypes = ['narrator', 'dialogue', 'internal', 'monologue'];
-        $type = $segment['type'] ?? 'narrator';
+        $type = $segment['type'] ?? 'dialogue';
         if (!in_array($type, $validTypes)) {
-            $type = 'narrator';
+            $type = 'dialogue';
         }
 
         // Calculate needsLipSync based on type

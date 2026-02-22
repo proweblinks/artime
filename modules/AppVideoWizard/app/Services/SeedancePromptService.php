@@ -136,16 +136,7 @@ class SeedancePromptService
             }
         }
 
-        // Priority 3: Extract from scene narration
-        $narration = $context['narration'] ?? '';
-        if (!empty($narration) && strlen($narration) > 10) {
-            $extracted = $this->extractActionFromDescription($narration);
-            if ($extracted) {
-                return $extracted;
-            }
-        }
-
-        // Priority 4: Fallback library by shot type
+        // Priority 3: Fallback library by shot type
         $shotType = $shot['type'] ?? $shot['shotType'] ?? 'medium';
         return $this->getFallbackAction($shotType);
     }
@@ -256,7 +247,7 @@ class SeedancePromptService
         // Check if audio direction is enabled
         $enabled = VwSetting::getValue('seedance_audio_direction_enabled', true);
         if (!$enabled) {
-            return 'No speech, no dialogue, no voiceover, no dubbing, no singing, no spoken words. Sound effects and ambient audio only.';
+            return 'Ambient sound only.';
         }
 
         // Extract environmental cues from visual description
@@ -268,7 +259,7 @@ class SeedancePromptService
         }
 
         // Generic fallback
-        return 'Sound effects and ambient audio only. No speech.';
+        return 'Ambient sound only.';
     }
 
     /**

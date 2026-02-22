@@ -46,13 +46,12 @@ class WaveSpeedService
         }
 
         // Anti-speech suffix: prevents Seedance from generating unwanted spoken dialogue.
-        // Disabled when the shot has dialogue/lip-sync so characters can speak naturally.
-        // Smart check: skip if prompt already has audio direction from SeedancePromptService.
-        $antiSpeech = $options['anti_speech'] ?? true;
+        // Now opt-IN (default false). The caller explicitly sets anti_speech=true when needed.
+        $antiSpeech = $options['anti_speech'] ?? false;
         if ($antiSpeech) {
-            $hasAudioDirection = preg_match('/\b(no speech|ambient audio only|no music\. only)\b/i', $prompt);
+            $hasAudioDirection = preg_match('/\b(no speech|ambient sound only|no music\. only)\b/i', $prompt);
             if (!$hasAudioDirection) {
-                $antiSpeechSuffix = ' No speech, no dialogue, no voiceover, no dubbing, no singing, no spoken words. Sound effects and ambient audio only.';
+                $antiSpeechSuffix = ' Ambient sound only.';
                 $prompt = rtrim($prompt) . $antiSpeechSuffix;
             }
         }
