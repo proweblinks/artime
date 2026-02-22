@@ -938,7 +938,26 @@ RULES;
         }
 
         $text = !empty($visual) ? $visual : $sceneTitle;
-        return $this->truncateAtWordBoundary($text, 80);
+
+        // Incorporate location context (weather, timeOfDay, location name) for environmental grounding
+        $locationContext = $context['locationContext'] ?? [];
+        if (!empty($locationContext)) {
+            $envParts = [];
+            if (!empty($locationContext['name']) && !str_contains(strtolower($text), strtolower($locationContext['name']))) {
+                $envParts[] = $locationContext['name'];
+            }
+            if (!empty($locationContext['timeOfDay']) && $locationContext['timeOfDay'] !== 'day') {
+                $envParts[] = $locationContext['timeOfDay'];
+            }
+            if (!empty($locationContext['weather']) && $locationContext['weather'] !== 'clear') {
+                $envParts[] = $locationContext['weather'];
+            }
+            if (!empty($envParts)) {
+                $text .= '. ' . implode(', ', $envParts);
+            }
+        }
+
+        return $this->truncateAtWordBoundary($text, 120);
     }
 
     /**
@@ -1015,22 +1034,48 @@ RULES;
             $parts[] = strtolower($m[1]);
         }
 
-        // Hair color
+        // Hair - include color + style for visual anchor
         $hairColor = $character['hair']['color'] ?? '';
+        $hairStyle = $character['hair']['style'] ?? '';
         if (!empty($hairColor)) {
-            $parts[] = strtolower($hairColor) . ' hair';
+            $hairDesc = strtolower($hairColor);
+            if (!empty($hairStyle) && strlen($hairStyle) < 20) {
+                $hairDesc .= ' ' . strtolower($hairStyle);
+            }
+            $parts[] = $hairDesc . ' hair';
         }
 
-        // Key wardrobe item (first comma-separated item)
+        // Key wardrobe item with colors for visual consistency
         $outfit = $character['wardrobe']['outfit'] ?? $character['wardrobe']['top'] ?? '';
         if (!empty($outfit)) {
             $firstItem = trim(explode(',', $outfit)[0]);
             if (strlen($firstItem) < 30) {
-                $parts[] = strtolower($firstItem);
+                $wardrobeDesc = strtolower($firstItem);
+                $wardrobeColors = $character['wardrobe']['colors'] ?? '';
+                if (!empty($wardrobeColors) && strlen($wardrobeColors) < 20) {
+                    $wardrobeDesc = strtolower($wardrobeColors) . ' ' . $wardrobeDesc;
+                }
+                $parts[] = $wardrobeDesc;
             }
         }
 
-        return implode(', ', array_slice($parts, 0, 3));
+        // Makeup if notable (not "none" or "natural")
+        $makeupStyle = $character['makeup']['style'] ?? '';
+        if (!empty($makeupStyle) && !in_array(strtolower($makeupStyle), ['none', 'natural', 'minimal', ''])) {
+            $parts[] = strtolower($makeupStyle) . ' makeup';
+        }
+
+        // Key accessory (first item only)
+        $accessories = $character['accessories'] ?? [];
+        if (!empty($accessories) && is_array($accessories)) {
+            $firstAcc = is_string($accessories[0] ?? null) ? trim($accessories[0]) : '';
+            if (!empty($firstAcc) && strlen($firstAcc) < 25) {
+                $parts[] = strtolower($firstAcc);
+            }
+        }
+
+        // Return up to 5 items for richer character identity in video
+        return implode(', ', array_slice($parts, 0, 5));
     }
 
     /**

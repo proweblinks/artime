@@ -3932,6 +3932,23 @@ class VideoWizard extends Component
                     'narratorText' => $shot['narratorText'] ?? $shot['narration'] ?? '',
                 ];
 
+                // Build location context for this scene
+                $seedanceLocationContext = [];
+                if ($this->sceneMemory['locationBible']['enabled'] ?? false) {
+                    $locBibleLocations = $this->sceneMemory['locationBible']['locations'] ?? [];
+                    $sceneLocation = $this->getLocationForSceneIndex($locBibleLocations, $sceneIndex);
+                    if ($sceneLocation) {
+                        $seedanceLocationContext = [
+                            'name' => $sceneLocation['name'] ?? '',
+                            'description' => $sceneLocation['description'] ?? '',
+                            'timeOfDay' => $sceneLocation['timeOfDay'] ?? '',
+                            'weather' => $sceneLocation['weather'] ?? '',
+                            'mood' => $sceneLocation['mood'] ?? '',
+                            'lightingStyle' => $sceneLocation['lightingStyle'] ?? '',
+                        ];
+                    }
+                }
+
                 $context = [
                     'mood' => $shot['musicMood'] ?? $scene['mood'] ?? $scene['emotionalBeat'] ?? 'cinematic',
                     'genre' => $genrePreset['slug'] ?? 'cinematic',
@@ -3939,6 +3956,7 @@ class VideoWizard extends Component
                     'atmosphere' => $genrePreset['atmosphere'] ?? '',
                     'colorGrade' => $genrePreset['colorGrade'] ?? '',
                     'characterBible' => $this->sceneMemory['characterBible'] ?? [],
+                    'locationContext' => $seedanceLocationContext,
                     'visualDescription' => $scene['visualDescription'] ?? '',
                     'sceneTitle' => $scene['title'] ?? '',
                 ];
@@ -12243,6 +12261,29 @@ PROMPT;
                         $name = $character['name'] ?? 'Character';
                         $charDesc = "{$name}: {$character['description']}";
 
+                        // Include Character Bible DNA fields for visual consistency
+                        $dnaParts = [];
+                        if (!empty($character['hair']['color']) || !empty($character['hair']['style'])) {
+                            $hair = array_filter([$character['hair']['color'] ?? '', $character['hair']['length'] ?? '', $character['hair']['style'] ?? '']);
+                            if ($hair) $dnaParts[] = implode(' ', $hair) . ' hair';
+                        }
+                        if (!empty($character['wardrobe']['outfit'])) {
+                            $dnaParts[] = 'wearing ' . $character['wardrobe']['outfit'];
+                            if (!empty($character['wardrobe']['colors'])) {
+                                $dnaParts[] = 'in ' . $character['wardrobe']['colors'];
+                            }
+                        }
+                        if (!empty($character['makeup']['style']) && $character['makeup']['style'] !== 'none') {
+                            $dnaParts[] = $character['makeup']['style'] . ' makeup';
+                        }
+                        if (!empty($character['accessories'])) {
+                            $accList = is_array($character['accessories']) ? implode(', ', array_slice($character['accessories'], 0, 3)) : $character['accessories'];
+                            if ($accList) $dnaParts[] = $accList;
+                        }
+                        if (!empty($dnaParts)) {
+                            $charDesc .= '. Appearance: ' . implode(', ', $dnaParts);
+                        }
+
                         // Include traits if available for personality/expression guidance
                         $traits = $character['traits'] ?? [];
                         if (!empty($traits)) {
@@ -12284,6 +12325,14 @@ PROMPT;
 
                 if (!empty($sceneLocation['weather']) && $sceneLocation['weather'] !== 'clear') {
                     $locationParts[] = $sceneLocation['weather'] . ' weather';
+                }
+
+                // Include lighting style and mood for visual consistency
+                if (!empty($sceneLocation['lightingStyle'])) {
+                    $locationParts[] = $sceneLocation['lightingStyle'] . ' lighting';
+                }
+                if (!empty($sceneLocation['mood'])) {
+                    $locationParts[] = $sceneLocation['mood'] . ' atmosphere';
                 }
 
                 // Include location state for this scene if available
@@ -15873,6 +15922,24 @@ PROMPT;
 
             $this->saveProject();
 
+            // Auto-sync Story Bible data to Scene Memory Bibles
+            // This populates Character/Location/Style Bibles from Story Bible data
+            try {
+                if (!empty($this->storyBible['characters'])) {
+                    $this->syncStoryBibleToCharacterBible();
+                }
+                if (!empty($this->storyBible['locations'])) {
+                    $this->syncStoryBibleToLocationBible();
+                }
+                if (!empty($this->storyBible['visualStyle'])) {
+                    $this->syncStoryBibleToStyleBible();
+                }
+            } catch (\Exception $syncEx) {
+                Log::warning('StoryBible: Auto-sync to Scene Memory failed (Bible still generated)', [
+                    'error' => $syncEx->getMessage(),
+                ]);
+            }
+
             // Dispatch success event
             $this->dispatch('vw-debug', [
                 'action' => 'generate-story-bible-success',
@@ -15891,6 +15958,7 @@ PROMPT;
                 'durationMs' => $durationMs,
                 'characterCount' => count($this->storyBible['characters'] ?? []),
                 'locationCount' => count($this->storyBible['locations'] ?? []),
+                'synced' => true,
             ]);
 
         } catch (\Exception $e) {
@@ -17088,15 +17156,26 @@ PROMPT;
             $this->sceneMemory['styleBible']['styleReferences'] = $storyBibleStyle['references'];
         }
 
-        // Map mode to style
-        $modeToStyle = [
-            'cinematic-realistic' => 'Photorealistic cinematic',
-            'documentary' => 'Documentary style',
-            'animated-3d' => '3D animated',
-            'animated-2d' => '2D animated',
-            'stock-footage' => 'Stock footage style',
-        ];
-        $this->sceneMemory['styleBible']['style'] = $modeToStyle[$storyBibleStyle['mode']] ?? $storyBibleStyle['mode'];
+        // Map Story Bible atmosphere to Style Bible
+        if (!empty($storyBibleStyle['atmosphere'])) {
+            $this->sceneMemory['styleBible']['atmosphere'] = is_string($storyBibleStyle['atmosphere'])
+                ? $storyBibleStyle['atmosphere']
+                : ($storyBibleStyle['atmosphere']['description'] ?? '');
+        }
+
+        // Map mode to style, but preserve Story Bible's explicit masterStyleGuide if present
+        if (!empty($storyBibleStyle['masterStyleGuide'])) {
+            $this->sceneMemory['styleBible']['style'] = $storyBibleStyle['masterStyleGuide'];
+        } else {
+            $modeToStyle = [
+                'cinematic-realistic' => 'Photorealistic cinematic',
+                'documentary' => 'Documentary style',
+                'animated-3d' => '3D animated',
+                'animated-2d' => '2D animated',
+                'stock-footage' => 'Stock footage style',
+            ];
+            $this->sceneMemory['styleBible']['style'] = $modeToStyle[$storyBibleStyle['mode']] ?? $storyBibleStyle['mode'];
+        }
 
         // Mark as synced
         $this->sceneMemory['styleBible']['syncedFromStoryBible'] = true;
@@ -17105,6 +17184,7 @@ PROMPT;
             'mode' => $storyBibleStyle['mode'],
             'hasColorPalette' => !empty($storyBibleStyle['colorPalette']),
             'hasLighting' => !empty($storyBibleStyle['lighting']),
+            'hasAtmosphere' => !empty($storyBibleStyle['atmosphere']),
         ]);
 
         $this->saveProject();
@@ -22531,6 +22611,29 @@ PROMPT;
                         $name = $character['name'] ?? 'Character';
                         $charDesc = "{$name}: {$character['description']}";
 
+                        // Include Character Bible DNA fields for visual consistency
+                        $dnaParts = [];
+                        if (!empty($character['hair']['color']) || !empty($character['hair']['style'])) {
+                            $hair = array_filter([$character['hair']['color'] ?? '', $character['hair']['length'] ?? '', $character['hair']['style'] ?? '']);
+                            if ($hair) $dnaParts[] = implode(' ', $hair) . ' hair';
+                        }
+                        if (!empty($character['wardrobe']['outfit'])) {
+                            $dnaParts[] = 'wearing ' . $character['wardrobe']['outfit'];
+                            if (!empty($character['wardrobe']['colors'])) {
+                                $dnaParts[] = 'in ' . $character['wardrobe']['colors'];
+                            }
+                        }
+                        if (!empty($character['makeup']['style']) && $character['makeup']['style'] !== 'none') {
+                            $dnaParts[] = $character['makeup']['style'] . ' makeup';
+                        }
+                        if (!empty($character['accessories'])) {
+                            $accList = is_array($character['accessories']) ? implode(', ', array_slice($character['accessories'], 0, 3)) : $character['accessories'];
+                            if ($accList) $dnaParts[] = $accList;
+                        }
+                        if (!empty($dnaParts)) {
+                            $charDesc .= '. Appearance: ' . implode(', ', $dnaParts);
+                        }
+
                         // Include traits if available for personality/expression guidance
                         $traits = $character['traits'] ?? [];
                         if (!empty($traits)) {
@@ -22570,6 +22673,14 @@ PROMPT;
 
                 if (!empty($sceneLocation['weather']) && $sceneLocation['weather'] !== 'clear') {
                     $locationParts[] = $sceneLocation['weather'] . ' weather';
+                }
+
+                // Include lighting style and mood for visual consistency
+                if (!empty($sceneLocation['lightingStyle'])) {
+                    $locationParts[] = $sceneLocation['lightingStyle'] . ' lighting';
+                }
+                if (!empty($sceneLocation['mood'])) {
+                    $locationParts[] = $sceneLocation['mood'] . ' atmosphere';
                 }
 
                 // Include location state for this scene if available
@@ -24168,6 +24279,16 @@ PROMPT;
             }
         }
 
+        // Atmosphere from Style Bible or genre preset (only if not already in user specs)
+        if (!str_contains($userPositiveLower, 'atmosphere') && !str_contains($userPositiveLower, 'fog') && !str_contains($userPositiveLower, 'rain')) {
+            if ($this->sceneMemory['styleBible']['enabled'] && !empty($this->sceneMemory['styleBible']['atmosphere'])) {
+                $specs[] = $this->sceneMemory['styleBible']['atmosphere'];
+            } elseif (!empty($genrePreset['atmosphere'])) {
+                $atmosphereElements = explode(',', $genrePreset['atmosphere']);
+                $specs[] = trim($atmosphereElements[0]);
+            }
+        }
+
         // Cinematic quality markers (moderate DOF keeps background visible)
         // Only add if user hasn't specified depth of field
         if (!str_contains($userPositiveLower, 'depth of field')) {
@@ -24959,6 +25080,23 @@ PROMPT;
 
             $genrePreset = $this->getGenrePreset();
 
+            // Build location context for this scene
+            $seedanceLocationCtx = [];
+            if ($this->sceneMemory['locationBible']['enabled'] ?? false) {
+                $locBibleLocs = $this->sceneMemory['locationBible']['locations'] ?? [];
+                $scLoc = $this->getLocationForSceneIndex($locBibleLocs, $sceneIndex);
+                if ($scLoc) {
+                    $seedanceLocationCtx = [
+                        'name' => $scLoc['name'] ?? '',
+                        'description' => $scLoc['description'] ?? '',
+                        'timeOfDay' => $scLoc['timeOfDay'] ?? '',
+                        'weather' => $scLoc['weather'] ?? '',
+                        'mood' => $scLoc['mood'] ?? '',
+                        'lightingStyle' => $scLoc['lightingStyle'] ?? '',
+                    ];
+                }
+            }
+
             $context = [
                 'mood' => $scene['mood'] ?? $scene['emotionalBeat'] ?? 'cinematic',
                 'genre' => $genrePreset['slug'] ?? 'cinematic',
@@ -24966,6 +25104,7 @@ PROMPT;
                 'atmosphere' => $genrePreset['atmosphere'] ?? '',
                 'colorGrade' => $genrePreset['colorGrade'] ?? '',
                 'characterBible' => $this->sceneMemory['characterBible'] ?? [],
+                'locationContext' => $seedanceLocationCtx,
                 'visualDescription' => $shotContext['visualDescription'] ?? $visualDescription,
                 'sceneTitle' => $shotContext['sceneTitle'] ?? '',
             ];
