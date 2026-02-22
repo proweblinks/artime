@@ -24483,12 +24483,19 @@ PROMPT;
             }
         }
 
-        // Fallback: take the first sentence and truncate as a scene description
+        // Fallback: take the first sentence and truncate at word boundary
         $firstSentence = strtok($text, '.!?');
         if ($firstSentence && strlen($firstSentence) > 10) {
-            $truncated = mb_strlen($firstSentence) > 60
-                ? mb_substr($firstSentence, 0, 57) . '...'
-                : $firstSentence;
+            if (mb_strlen($firstSentence) > 60) {
+                $truncated = mb_substr($firstSentence, 0, 60);
+                // Cut at last space to avoid mid-word truncation
+                $lastSpace = mb_strrpos($truncated, ' ');
+                if ($lastSpace > 20) {
+                    $truncated = mb_substr($truncated, 0, $lastSpace);
+                }
+            } else {
+                $truncated = $firstSentence;
+            }
             return trim($truncated);
         }
 
