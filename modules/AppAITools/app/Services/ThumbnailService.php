@@ -17,9 +17,9 @@ class ThumbnailService
      */
     public function storeReferenceImage(int $teamId, string $base64, string $ext = 'png'): string
     {
-        $dir = "public/ai-tools/thumbnail-refs/{$teamId}";
+        $dir = "ai-tools/thumbnail-refs/{$teamId}";
         $filename = 'ref-' . Str::random(16) . '.' . $ext;
-        Storage::put("{$dir}/{$filename}", base64_decode($base64));
+        Storage::disk('public')->put("{$dir}/{$filename}", base64_decode($base64));
         return "{$dir}/{$filename}";
     }
 
@@ -28,10 +28,13 @@ class ThumbnailService
      */
     public function loadReferenceImage(string $storageKey): ?string
     {
-        if (!$storageKey || !Storage::exists($storageKey)) {
+        // Normalize legacy paths that had 'public/' prefix
+        $storageKey = preg_replace('#^public/#', '', $storageKey);
+
+        if (!$storageKey || !Storage::disk('public')->exists($storageKey)) {
             return null;
         }
-        return base64_encode(Storage::get($storageKey));
+        return base64_encode(Storage::disk('public')->get($storageKey));
     }
 
     /**
@@ -83,7 +86,7 @@ class ThumbnailService
             $imagePrompt = $promptBuilder->build($params);
 
             $images = [];
-            $storagePath = "public/ai-tools/thumbnails/{$teamId}";
+            $storagePath = "ai-tools/thumbnails/{$teamId}";
             $totalTokens = 0;
             $isGeminiModel = ($imageModelConfig['provider'] ?? 'default') === 'gemini' && !empty($imageModelConfig['model']);
 
@@ -244,9 +247,9 @@ class ThumbnailService
                 if (!empty($result['success']) && !empty($result['imageData'])) {
                     // generateImageFromImage format
                     $filename = "thumb_{$historyId}_{$v}_" . time() . '.png';
-                    Storage::put("{$storagePath}/{$filename}", base64_decode($result['imageData']));
-                    $path = str_replace('public/', 'storage/', $storagePath) . "/{$filename}";
-                    $images[] = ['index' => $v, 'path' => $path, 'url' => asset($path)];
+                    Storage::disk('public')->put("{$storagePath}/{$filename}", base64_decode($result['imageData']));
+                    $path = "{$storagePath}/{$filename}";
+                    $images[] = ['index' => $v, 'path' => $path, 'url' => url('/public/storage/' . $path)];
                 } elseif (!empty($result['data'])) {
                     // generateImage format (returns data array like AI::process)
                     foreach ($result['data'] as $imageData) {
@@ -315,13 +318,13 @@ class ThumbnailService
 
                 if (!empty($result['success']) && !empty($result['imageData'])) {
                     $filename = "thumb_{$historyId}_{$v}_" . time() . '.png';
-                    Storage::put("{$storagePath}/{$filename}", base64_decode($result['imageData']));
-                    $path = str_replace('public/', 'storage/', $storagePath) . "/{$filename}";
+                    Storage::disk('public')->put("{$storagePath}/{$filename}", base64_decode($result['imageData']));
+                    $path = "{$storagePath}/{$filename}";
 
                     $images[] = [
                         'index' => $v,
                         'path' => $path,
-                        'url' => asset($path),
+                        'url' => url('/public/storage/' . $path),
                     ];
                 } else {
                     Log::warning('ThumbnailService reference mode: generation failed', [
@@ -361,18 +364,18 @@ class ThumbnailService
                 $contents = file_get_contents($imageData['url']);
                 if ($contents) {
                     $filename = "thumb_{$historyId}_{$index}_" . time() . '.png';
-                    Storage::put("{$storagePath}/{$filename}", $contents);
-                    $imageInfo['path'] = str_replace('public/', 'storage/', $storagePath) . "/{$filename}";
-                    $imageInfo['url'] = asset($imageInfo['path']);
+                    Storage::disk('public')->put("{$storagePath}/{$filename}", $contents);
+                    $imageInfo['path'] = "{$storagePath}/{$filename}";
+                    $imageInfo['url'] = url('/public/storage/' . $imageInfo['path']);
                 }
             } catch (\Exception $e) {
                 Log::info('ThumbnailService: Could not save locally', ['error' => $e->getMessage()]);
             }
         } elseif (isset($imageData['b64_json'])) {
             $filename = "thumb_{$historyId}_{$index}_" . time() . '.png';
-            Storage::put("{$storagePath}/{$filename}", base64_decode($imageData['b64_json']));
-            $imageInfo['path'] = str_replace('public/', 'storage/', $storagePath) . "/{$filename}";
-            $imageInfo['url'] = asset($imageInfo['path']);
+            Storage::disk('public')->put("{$storagePath}/{$filename}", base64_decode($imageData['b64_json']));
+            $imageInfo['path'] = "{$storagePath}/{$filename}";
+            $imageInfo['url'] = url('/public/storage/' . $imageInfo['path']);
         } else {
             return null;
         }
@@ -385,14 +388,14 @@ class ThumbnailService
      */
     public function upscaleImage(string $imagePath, ?int $historyId = null): array
     {
-        // Convert web path to storage path
-        $diskPath = str_replace('storage/', 'public/', $imagePath);
+        // Normalize path: strip legacy prefixes to get clean relative path
+        $diskPath = preg_replace('#^(storage/|public/)#', '', $imagePath);
 
-        if (!Storage::exists($diskPath)) {
+        if (!Storage::disk('public')->exists($diskPath)) {
             throw new \Exception(__('Original image not found.'));
         }
 
-        $imageBase64 = base64_encode(Storage::get($diskPath));
+        $imageBase64 = base64_encode(Storage::disk('public')->get($diskPath));
         $gemini = app(GeminiService::class);
 
         // Use NanoBanana Pro (Gemini 3 Pro) for best upscale quality
@@ -417,13 +420,11 @@ class ThumbnailService
         $hdFilename = $pathInfo['filename'] . '_hd.' . ($pathInfo['extension'] ?? 'png');
         $hdDiskPath = $pathInfo['dirname'] . '/' . $hdFilename;
 
-        Storage::put($hdDiskPath, base64_decode($result['imageData']));
-
-        $hdWebPath = str_replace('public/', 'storage/', $hdDiskPath);
+        Storage::disk('public')->put($hdDiskPath, base64_decode($result['imageData']));
 
         return [
-            'path' => $hdWebPath,
-            'url' => asset($hdWebPath),
+            'path' => $hdDiskPath,
+            'url' => url('/public/storage/' . $hdDiskPath),
         ];
     }
 
@@ -432,13 +433,14 @@ class ThumbnailService
      */
     public function inpaintEdit(string $imagePath, string $maskBase64, string $editPrompt): array
     {
-        $diskPath = str_replace('storage/', 'public/', $imagePath);
+        // Normalize path: strip legacy prefixes to get clean relative path
+        $diskPath = preg_replace('#^(storage/|public/)#', '', $imagePath);
 
-        if (!Storage::exists($diskPath)) {
+        if (!Storage::disk('public')->exists($diskPath)) {
             throw new \Exception(__('Original image not found.'));
         }
 
-        $imageBase64 = base64_encode(Storage::get($diskPath));
+        $imageBase64 = base64_encode(Storage::disk('public')->get($diskPath));
         $gemini = app(GeminiService::class);
 
         $result = $gemini->editImageWithMask(
@@ -455,18 +457,18 @@ class ThumbnailService
             throw new \Exception($result['error'] ?? __('Inpaint edit failed. Please try again.'));
         }
 
-        // Save edited version (replace original)
+        // Save edited version
         $teamId = session('current_team_id', 0);
-        $storagePath = "public/ai-tools/thumbnails/{$teamId}";
+        $storagePath = "ai-tools/thumbnails/{$teamId}";
         $filename = "thumb_edited_" . time() . '_' . Str::random(6) . '.png';
 
-        Storage::put("{$storagePath}/{$filename}", base64_decode($result['imageData']));
+        Storage::disk('public')->put("{$storagePath}/{$filename}", base64_decode($result['imageData']));
 
-        $webPath = str_replace('public/', 'storage/', $storagePath) . "/{$filename}";
+        $path = "{$storagePath}/{$filename}";
 
         return [
-            'path' => $webPath,
-            'url' => asset($webPath),
+            'path' => $path,
+            'url' => url('/public/storage/' . $path),
         ];
     }
 

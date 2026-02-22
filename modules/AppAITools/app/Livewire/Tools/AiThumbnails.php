@@ -418,7 +418,20 @@ class AiThumbnails extends Component
             ->first();
 
         if ($history && $history->result_data) {
-            $this->result = $history->result_data;
+            $result = $history->result_data;
+
+            // Normalize image URLs for cPanel compatibility
+            if (!empty($result['images'])) {
+                foreach ($result['images'] as &$image) {
+                    if (!empty($image['path'])) {
+                        $cleanPath = preg_replace('#^(storage/|public/)#', '', $image['path']);
+                        $image['url'] = url('/public/storage/' . $cleanPath);
+                    }
+                }
+                unset($image);
+            }
+
+            $this->result = $result;
         }
     }
 

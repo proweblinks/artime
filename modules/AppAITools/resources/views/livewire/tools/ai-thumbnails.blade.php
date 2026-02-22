@@ -1020,9 +1020,9 @@ x-init="
                     <td>
                         @if($item['status'] === 'done' && !empty($item['result']['images'][0]))
                         <div class="aith-bulk-generated">
-                            <img src="{{ $item['result']['images'][0]['url'] ?? asset($item['result']['images'][0]['path'] ?? '') }}" class="aith-bulk-gen-thumb" alt="">
+                            <img src="{{ $item['result']['images'][0]['url'] ?? url('/public/storage/' . preg_replace('#^(storage/|public/)#', '', $item['result']['images'][0]['path'] ?? '')) }}" class="aith-bulk-gen-thumb" alt="">
                             <div class="aith-bulk-gen-actions">
-                                <a href="{{ $item['result']['images'][0]['url'] ?? asset($item['result']['images'][0]['path'] ?? '') }}" download class="aith-img-btn">
+                                <a href="{{ $item['result']['images'][0]['url'] ?? url('/public/storage/' . preg_replace('#^(storage/|public/)#', '', $item['result']['images'][0]['path'] ?? '')) }}" download class="aith-img-btn">
                                     <i class="fa-light fa-download"></i>
                                 </a>
                                 <button class="aith-img-btn aith-img-btn-hd" wire:click="upscaleImage(0)" title="{{ __('HD Upscale') }}">
@@ -1456,7 +1456,7 @@ x-init="
                 <div class="aith-yt-preview-section">
                     <div class="aith-yt-preview-label">{{ __('Search Results') }}</div>
                     <div class="aith-yt-search-card">
-                        <img src="{{ $result['images'][0]['url'] ?? asset($result['images'][0]['path'] ?? '') }}" class="aith-yt-search-thumb" alt="">
+                        <img src="{{ $result['images'][0]['url'] ?? url('/public/storage/' . preg_replace('#^(storage/|public/)#', '', $result['images'][0]['path'] ?? '')) }}" class="aith-yt-search-thumb" alt="">
                         <div class="aith-yt-search-meta">
                             <h4>{{ $title ?: 'Your Video Title' }}</h4>
                             <p>{{ __('Your Channel') }} &middot; {{ number_format(rand(1000, 500000)) }} {{ __('views') }} &middot; {{ rand(1,12) }} {{ __('hours ago') }}</p>
@@ -1468,7 +1468,7 @@ x-init="
                 <div class="aith-yt-preview-section">
                     <div class="aith-yt-preview-label">{{ __('Suggested Sidebar') }}</div>
                     <div class="aith-yt-sidebar-card">
-                        <img src="{{ $result['images'][0]['url'] ?? asset($result['images'][0]['path'] ?? '') }}" class="aith-yt-sidebar-thumb" alt="">
+                        <img src="{{ $result['images'][0]['url'] ?? url('/public/storage/' . preg_replace('#^(storage/|public/)#', '', $result['images'][0]['path'] ?? '')) }}" class="aith-yt-sidebar-thumb" alt="">
                         <div class="aith-yt-sidebar-meta">
                             <h4>{{ $title ?: 'Your Video Title' }}</h4>
                             <p>{{ __('Your Channel') }}</p>
@@ -1481,7 +1481,7 @@ x-init="
                 <div class="aith-yt-preview-section">
                     <div class="aith-yt-preview-label">{{ __('Mobile Feed') }}</div>
                     <div class="aith-yt-mobile-card">
-                        <img src="{{ $result['images'][0]['url'] ?? asset($result['images'][0]['path'] ?? '') }}" class="aith-yt-mobile-thumb" alt="">
+                        <img src="{{ $result['images'][0]['url'] ?? url('/public/storage/' . preg_replace('#^(storage/|public/)#', '', $result['images'][0]['path'] ?? '')) }}" class="aith-yt-mobile-thumb" alt="">
                         <div class="aith-yt-mobile-meta">
                             <h4>{{ $title ?: 'Your Video Title' }}</h4>
                             <p>{{ __('Your Channel') }} &middot; {{ number_format(rand(1000, 500000)) }} {{ __('views') }}</p>
@@ -1511,7 +1511,7 @@ x-init="
                         this.canvas.height = img.naturalHeight;
                         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
                     };
-                    img.src = '{{ $editImg['url'] ?? asset($editImg['path'] ?? '') }}';
+                    img.src = '{{ $editImg['url'] ?? url('/public/storage/' . preg_replace('#^(storage/|public/)#', '', $editImg['path'] ?? '')) }}';
                 },
                 getPos(e) {
                     const rect = this.canvas.getBoundingClientRect();
@@ -1560,7 +1560,7 @@ x-init="
 
             <div class="aith-inpaint-wrap">
                 <div style="position:relative;">
-                    <img src="{{ $editImg['url'] ?? asset($editImg['path'] ?? '') }}" style="width:100%; display:block; border-radius:12px 12px 0 0;" alt="">
+                    <img src="{{ $editImg['url'] ?? url('/public/storage/' . preg_replace('#^(storage/|public/)#', '', $editImg['path'] ?? '')) }}" style="width:100%; display:block; border-radius:12px 12px 0 0;" alt="">
                     <canvas x-ref="maskCanvas" class="aith-inpaint-canvas"
                         style="position:absolute; top:0; left:0; width:100%; height:100%;"
                         @mousedown="startDraw($event)" @mousemove="draw($event)"
@@ -1602,15 +1602,17 @@ x-init="
         {{-- Image Grid --}}
         <div class="aith-img-grid aith-img-grid-{{ count($result['images']) }}">
             @foreach($result['images'] as $i => $image)
+            @php $imgUrl = $image['url'] ?? url('/public/storage/' . preg_replace('#^(storage/|public/)#', '', $image['path'] ?? '')); @endphp
             <div class="aith-img-card">
-                <img src="{{ $image['url'] ?? asset($image['path'] ?? '') }}" alt="Thumbnail {{ $i + 1 }}"
-                    @click="zoomedImage = '{{ $image['url'] ?? asset($image['path'] ?? '') }}'">
+                <img src="{{ $imgUrl }}" alt="Thumbnail {{ $i + 1 }}"
+                    @click="zoomedImage = '{{ $imgUrl }}'">
                 <div class="aith-img-actions">
-                    <a href="{{ $image['url'] ?? asset($image['path'] ?? '') }}" download="thumbnail_{{ $i + 1 }}.png" class="aith-img-btn">
+                    <a href="{{ $imgUrl }}" download="thumbnail_{{ $i + 1 }}.png" class="aith-img-btn">
                         <i class="fa-light fa-download"></i> {{ __('Download') }}
                     </a>
                     @if(!empty($image['hd_path']))
-                    <a href="{{ $image['hd_url'] ?? asset($image['hd_path']) }}" download="thumbnail_{{ $i + 1 }}_hd.png" class="aith-img-btn aith-img-btn-hd">
+                    @php $hdUrl = $image['hd_url'] ?? url('/public/storage/' . preg_replace('#^(storage/|public/)#', '', $image['hd_path'])); @endphp
+                    <a href="{{ $hdUrl }}" download="thumbnail_{{ $i + 1 }}_hd.png" class="aith-img-btn aith-img-btn-hd">
                         <i class="fa-light fa-arrow-up-right-dots"></i> {{ __('Download HD') }}
                     </a>
                     @else
@@ -1643,7 +1645,8 @@ x-init="
                 </div>
                 <div style="text-align:center;">
                     <div style="font-size:0.6875rem; font-weight:600; color:#7c3aed; text-transform:uppercase; margin-bottom:0.5rem;">{{ __('Upgraded') }}</div>
-                    <img src="{{ $result['images'][0]['url'] ?? asset($result['images'][0]['path'] ?? '') }}" style="width:100%; border-radius:10px; border:1px solid #e2e8f0;" alt="Upgraded">
+                    @php $upgradeUrl = $result['images'][0]['url'] ?? url('/public/storage/' . preg_replace('#^(storage/|public/)#', '', $result['images'][0]['path'] ?? '')); @endphp
+                    <img src="{{ $upgradeUrl }}" style="width:100%; border-radius:10px; border:1px solid #e2e8f0;" alt="Upgraded">
                 </div>
             </div>
         </div>
@@ -1664,7 +1667,7 @@ x-init="
         <div class="aith-result-item" style="cursor:pointer;" wire:click="loadHistoryItem('{{ $item['id'] }}')">
             <div style="display:flex; align-items:center; gap:0.75rem;">
                 @if(!empty($item['assets'][0]['path']))
-                <img src="{{ asset($item['assets'][0]['path']) }}" style="width:60px; border-radius:6px;" alt="">
+                <img src="{{ url('/public/storage/' . preg_replace('#^(storage/|public/)#', '', $item['assets'][0]['path'])) }}" style="width:60px; border-radius:6px;" alt="">
                 @endif
                 <div>
                     <div class="aith-result-text">{{ $item['title'] ?? 'Untitled' }}</div>
