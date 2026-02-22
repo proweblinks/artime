@@ -577,6 +577,127 @@
         color: var(--vw-danger);
         box-shadow: var(--vw-clay);
     }
+
+    /* Genre Selection System */
+    .vw-concept-step .vw-genre-section {
+        background: var(--vw-bg-surface);
+        border: none;
+        border-radius: 0.75rem;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1rem;
+        box-shadow: var(--vw-clay);
+    }
+
+    .vw-concept-step .vw-genre-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .vw-concept-step .vw-genre-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--vw-text);
+        letter-spacing: 0.02em;
+    }
+
+    .vw-concept-step .vw-genre-subtitle {
+        font-size: 0.7rem;
+        color: var(--vw-text-muted);
+        margin-left: auto;
+    }
+
+    .vw-concept-step .vw-genre-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .vw-concept-step .vw-genre-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.4rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1.5px solid transparent;
+        background: rgba(var(--vw-primary-rgb, 99, 102, 241), 0.06);
+        color: var(--vw-text);
+        user-select: none;
+    }
+
+    .vw-concept-step .vw-genre-chip:hover {
+        background: rgba(var(--vw-primary-rgb, 99, 102, 241), 0.12);
+        transform: translateY(-1px);
+    }
+
+    .vw-concept-step .vw-genre-chip.primary-selected {
+        background: rgba(var(--vw-primary-rgb, 99, 102, 241), 0.15);
+        border-color: rgb(var(--vw-primary-rgb, 99, 102, 241));
+        color: rgb(var(--vw-primary-rgb, 99, 102, 241));
+        font-weight: 600;
+        box-shadow: 0 0 0 2px rgba(var(--vw-primary-rgb, 99, 102, 241), 0.1);
+    }
+
+    .vw-concept-step .vw-genre-chip.subgenre-selected {
+        background: rgba(var(--vw-primary-rgb, 99, 102, 241), 0.08);
+        border-color: rgba(var(--vw-primary-rgb, 99, 102, 241), 0.5);
+        color: rgb(var(--vw-primary-rgb, 99, 102, 241));
+    }
+
+    .vw-concept-step .vw-genre-chip.disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .vw-concept-step .vw-genre-chip .vw-genre-icon {
+        font-size: 0.9rem;
+        line-height: 1;
+    }
+
+    .vw-concept-step .vw-genre-divider {
+        width: 100%;
+        height: 1px;
+        background: rgba(var(--vw-primary-rgb, 99, 102, 241), 0.08);
+        margin: 0.75rem 0;
+    }
+
+    .vw-concept-step .vw-genre-blend-preview {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        background: rgba(var(--vw-primary-rgb, 99, 102, 241), 0.04);
+        margin-top: 0.75rem;
+        font-size: 0.75rem;
+        color: var(--vw-text-muted);
+        animation: vw-fade-in 0.3s ease-out;
+    }
+
+    .vw-concept-step .vw-genre-blend-preview i {
+        color: rgb(var(--vw-primary-rgb, 99, 102, 241));
+        font-size: 0.8rem;
+    }
+
+    .vw-concept-step .vw-genre-blend-text {
+        font-weight: 500;
+        color: var(--vw-text);
+    }
+
+    .vw-concept-step .vw-modifier-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--vw-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.35rem;
+    }
 </style>
 
 <div class="vw-concept-step">
@@ -660,6 +781,74 @@
                 </div>
             </div>
         </div>
+
+        {{-- Genre Selection --}}
+        @if(!empty($genrePresets))
+        <div class="vw-genre-section"
+             x-data="{
+                 get primary() { return $wire.$get('content.genres.primary') },
+                 get subgenres() { return $wire.$get('content.genres.subgenres') || [] },
+                 get maxSubgenres() { return this.subgenres.length >= 3 },
+                 isSubgenreSelected(slug) { return this.subgenres.includes(slug) },
+             }">
+            <div class="vw-genre-header">
+                <span class="vw-genre-title"><i class="fa-solid fa-clapperboard"></i> {{ __('Genre') }}</span>
+                <span class="vw-genre-subtitle">{{ __('Sets tone, camera, lighting & mood') }}</span>
+            </div>
+
+            {{-- Primary Genre Grid --}}
+            <div class="vw-genre-grid">
+                @foreach($genrePresets as $preset)
+                    <div class="vw-genre-chip {{ ($content['genres']['primary'] ?? null) === $preset['slug'] ? 'primary-selected' : '' }}"
+                         wire:click="selectPrimaryGenre('{{ $preset['slug'] }}')"
+                         title="{{ $preset['description'] ?? $preset['style'] ?? '' }}">
+                        @if(!empty($preset['icon']))
+                            <span class="vw-genre-icon">{{ $preset['icon'] }}</span>
+                        @endif
+                        <span>{{ $preset['name'] }}</span>
+                    </div>
+                @endforeach
+            </div>
+
+            {{-- Sub-genre Modifiers (visible after primary selected) --}}
+            @if(!empty($content['genres']['primary']) && !empty($genreModifiers))
+                <div class="vw-genre-divider"></div>
+                <div class="vw-modifier-label">{{ __('Add flavor') }} <span style="font-weight:400;text-transform:none;">({{ __('up to 3') }})</span></div>
+                <div class="vw-genre-grid">
+                    @foreach($genreModifiers as $modifier)
+                        @php
+                            $isSelected = in_array($modifier['slug'], $content['genres']['subgenres'] ?? []);
+                            $isDisabled = !$isSelected && count($content['genres']['subgenres'] ?? []) >= 3;
+                        @endphp
+                        <div class="vw-genre-chip {{ $isSelected ? 'subgenre-selected' : '' }} {{ $isDisabled ? 'disabled' : '' }}"
+                             wire:click="toggleSubgenre('{{ $modifier['slug'] }}')"
+                             @if($isDisabled) title="{{ __('Maximum 3 sub-genres') }}" @endif>
+                            @if(!empty($modifier['icon']))
+                                <span class="vw-genre-icon">{{ $modifier['icon'] }}</span>
+                            @endif
+                            <span>{{ $modifier['name'] }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+
+            {{-- Blend Preview --}}
+            @if(!empty($content['genres']['primary']) && !empty($content['genres']['subgenres']))
+                @php
+                    $primaryName = collect($genrePresets)->firstWhere('slug', $content['genres']['primary'])['name'] ?? ucwords(str_replace('-', ' ', $content['genres']['primary']));
+                    $subNames = collect($genreModifiers)
+                        ->whereIn('slug', $content['genres']['subgenres'])
+                        ->pluck('name')
+                        ->toArray();
+                @endphp
+                <div class="vw-genre-blend-preview">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span class="vw-genre-blend-text">{{ $primaryName }}</span>
+                    <span>{{ __('with') }} {{ implode(' + ', $subNames) }} {{ __('influences') }}</span>
+                </div>
+            @endif
+        </div>
+        @endif
 
         {{-- Main Input --}}
         <div class="vw-field-group">

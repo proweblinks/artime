@@ -103,6 +103,11 @@ class ScriptGenerationService
         $suggestedLocationCount = $options['suggestedLocationCount'] ?? null;
         $productionSubtype = $options['productionSubtype'] ?? null;
 
+        // Multi-genre system
+        $genres = $options['genres'] ?? ['primary' => null, 'subgenres' => []];
+        $genrePreset = $options['genrePreset'] ?? null;
+        $genreTemplate = $options['genreTemplate'] ?? null;
+
         // Story Bible constraint (Phase 1: Bible-First Architecture)
         // If the project has a Story Bible, use it to constrain script generation
         $storyBibleConstraint = $project->hasStoryBible() ? $project->getStoryBibleConstraint() : '';
@@ -148,6 +153,10 @@ class ScriptGenerationService
             'suggestedCharacterCount' => $suggestedCharacterCount,
             'suggestedLocationCount' => $suggestedLocationCount,
             'productionSubtype' => $productionSubtype,
+            // Multi-genre system
+            'genres' => $genres,
+            'genrePreset' => $genrePreset,
+            'genreTemplate' => $genreTemplate,
         ];
 
         $prompt = $this->buildScriptPrompt($promptParams);
@@ -930,6 +939,11 @@ PROMPT;
         $suggestedLocationCount = $params['suggestedLocationCount'] ?? null;
         $productionSubtype = $params['productionSubtype'] ?? null;
 
+        // Multi-genre system
+        $genres = $params['genres'] ?? ['primary' => null, 'subgenres' => []];
+        $genrePreset = $params['genrePreset'] ?? null;
+        $genreTemplate = $params['genreTemplate'] ?? null;
+
         $minutes = round($duration / 60, 1);
         $avgSceneDuration = (int) ceil($duration / $sceneCount);
 
@@ -960,6 +974,10 @@ PROMPT;
             'suggestedCharacterCount' => $suggestedCharacterCount,
             'suggestedLocationCount' => $suggestedLocationCount,
             'productionSubtype' => $productionSubtype,
+            // Multi-genre system
+            'genres' => $genres,
+            'genrePreset' => $genrePreset,
+            'genreTemplate' => $genreTemplate,
         ]);
 
         return $prompt;
@@ -1226,6 +1244,14 @@ PROMPT;
         // === LAYER 9: TRANSITION GUIDANCE ===
         $prompt .= $this->buildTransitionGuidance($narrativePreset, $emotionalJourney);
         $prompt .= "\n";
+
+        // === LAYER 9.5: GENRE BLEND GUIDANCE ===
+        $genres = $params['genres'] ?? ['primary' => null, 'subgenres' => []];
+        $genrePreset = $params['genrePreset'] ?? null;
+        if (!empty($genres['primary']) && $genrePreset) {
+            $prompt .= $this->buildGenreBlendGuidance($genres, $genrePreset);
+            $prompt .= "\n";
+        }
 
         // === LAYER 10: VISUAL STYLE (TIER 3) ===
         $visualStyle = $params['visualStyle'] ?? null;
@@ -1638,6 +1664,66 @@ JSON;
     }
 
     // ======================= TIER 3 METHODS =======================
+
+    /**
+     * Build genre blend guidance for multi-genre cinematography.
+     * Outputs genre description, camera/color/lighting/atmosphere specs, and writing instructions.
+     */
+    protected function buildGenreBlendGuidance(array $genres, array $genrePreset): string
+    {
+        $guidance = "=== GENRE CINEMATOGRAPHY GUIDE ===\n";
+
+        // Genre description (e.g., "Cinematic Thriller with Romance and Mystery influences")
+        if (!empty($genrePreset['genreDescription'])) {
+            $guidance .= "Genre Blend: {$genrePreset['genreDescription']}\n\n";
+        } else {
+            $primaryName = ucwords(str_replace('-', ' ', $genres['primary'] ?? 'Standard'));
+            $guidance .= "Genre: {$primaryName}\n\n";
+        }
+
+        // Camera language
+        if (!empty($genrePreset['camera'])) {
+            $guidance .= "CAMERA LANGUAGE: {$genrePreset['camera']}\n";
+        }
+
+        // Color grading
+        if (!empty($genrePreset['colorGrade'])) {
+            $guidance .= "COLOR PALETTE: {$genrePreset['colorGrade']}\n";
+        }
+
+        // Lighting
+        if (!empty($genrePreset['lighting'])) {
+            $guidance .= "LIGHTING: {$genrePreset['lighting']}\n";
+        }
+
+        // Atmosphere
+        if (!empty($genrePreset['atmosphere'])) {
+            $guidance .= "ATMOSPHERE: {$genrePreset['atmosphere']}\n";
+        }
+
+        // Style
+        if (!empty($genrePreset['style'])) {
+            $guidance .= "STYLE: {$genrePreset['style']}\n";
+        }
+
+        $guidance .= "\n";
+
+        // Multi-genre writing instructions
+        $subgenres = $genres['subgenres'] ?? [];
+        if (!empty($subgenres)) {
+            $guidance .= "MULTI-GENRE BLENDING INSTRUCTIONS:\n";
+            $guidance .= "This production blends multiple genres. Apply these rules:\n";
+            $guidance .= "1. The PRIMARY genre defines the dominant visual language and story structure\n";
+            $guidance .= "2. Sub-genres add flavor and variation — they influence specific moments, not the overall structure\n";
+            $guidance .= "3. Weave sub-genre elements naturally into transitions, emotional peaks, and atmospheric shifts\n";
+            $guidance .= "4. Every visualDescription MUST reference the blended camera/color/lighting specs above\n";
+            $guidance .= "5. Music mood should reflect the genre blend — primary sets the base, sub-genres color the accents\n\n";
+        } else {
+            $guidance .= "Apply the genre cinematography consistently across ALL scenes and visualDescriptions.\n\n";
+        }
+
+        return $guidance;
+    }
 
     /**
      * Build visual style guidance for consistent image generation.

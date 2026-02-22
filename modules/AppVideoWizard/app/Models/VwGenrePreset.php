@@ -12,7 +12,9 @@ class VwGenrePreset extends Model
     protected $fillable = [
         'slug',
         'name',
+        'icon',
         'category',
+        'genre_type',
         'description',
         'camera_language',
         'color_grade',
@@ -20,6 +22,7 @@ class VwGenrePreset extends Model
         'atmosphere',
         'style',
         'lens_preferences',
+        'blending_traits',
         'prompt_prefix',
         'prompt_suffix',
         'is_active',
@@ -29,6 +32,7 @@ class VwGenrePreset extends Model
 
     protected $casts = [
         'lens_preferences' => 'array',
+        'blending_traits' => 'array',
         'is_active' => 'boolean',
         'is_default' => 'boolean',
         'sort_order' => 'integer',
@@ -130,6 +134,8 @@ class VwGenrePreset extends Model
     public static function clearCache(): void
     {
         Cache::forget(self::CACHE_KEY);
+        Cache::forget(self::CACHE_KEY . '_primary');
+        Cache::forget(self::CACHE_KEY . '_modifier');
     }
 
     /**
@@ -146,6 +152,68 @@ class VwGenrePreset extends Model
     public function scopeCategory($query, string $category)
     {
         return $query->where('category', $category);
+    }
+
+    /**
+     * Scope to filter primary genres.
+     */
+    public function scopePrimary($query)
+    {
+        return $query->where('genre_type', 'primary');
+    }
+
+    /**
+     * Scope to filter modifier genres.
+     */
+    public function scopeModifier($query)
+    {
+        return $query->where('genre_type', 'modifier');
+    }
+
+    /**
+     * Get all active primary presets formatted for UI.
+     */
+    public static function getPrimaryPresets(): array
+    {
+        return Cache::remember(self::CACHE_KEY . '_primary', self::CACHE_TTL, function () {
+            return self::where('is_active', true)
+                ->where('genre_type', 'primary')
+                ->orderBy('sort_order')
+                ->get()
+                ->map(function ($preset) {
+                    return [
+                        'slug' => $preset->slug,
+                        'name' => $preset->name,
+                        'icon' => $preset->icon,
+                        'category' => $preset->category,
+                        'style' => $preset->style,
+                        'description' => $preset->description,
+                    ];
+                })
+                ->toArray();
+        });
+    }
+
+    /**
+     * Get all active modifier presets formatted for UI.
+     */
+    public static function getModifierPresets(): array
+    {
+        return Cache::remember(self::CACHE_KEY . '_modifier', self::CACHE_TTL, function () {
+            return self::where('is_active', true)
+                ->where('genre_type', 'modifier')
+                ->orderBy('sort_order')
+                ->get()
+                ->map(function ($preset) {
+                    return [
+                        'slug' => $preset->slug,
+                        'name' => $preset->name,
+                        'icon' => $preset->icon,
+                        'blending_traits' => $preset->blending_traits ?? [],
+                    ];
+                })
+                ->toArray();
+        });
     }
 
     /**

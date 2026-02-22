@@ -485,6 +485,111 @@ class CinematographyService
     }
 
     /**
+     * Get all active primary genre presets for UI display.
+     */
+    public function getPrimaryPresets(): array
+    {
+        $cacheKey = self::CACHE_PREFIX . 'primary_presets';
+
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () {
+            $presets = VwGenrePreset::where('is_active', true)
+                ->where('genre_type', 'primary')
+                ->orderBy('sort_order')
+                ->get();
+
+            return $presets->map(function ($preset) {
+                return [
+                    'slug' => $preset->slug,
+                    'name' => $preset->name,
+                    'icon' => $preset->icon,
+                    'category' => $preset->category,
+                    'style' => $preset->style ?? '',
+                    'description' => $preset->description ?? '',
+                ];
+            })->all();
+        });
+    }
+
+    /**
+     * Get all active modifier genre presets for UI display.
+     */
+    public function getModifierPresets(): array
+    {
+        $cacheKey = self::CACHE_PREFIX . 'modifier_presets';
+
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () {
+            $presets = VwGenrePreset::where('is_active', true)
+                ->where('genre_type', 'modifier')
+                ->orderBy('sort_order')
+                ->get();
+
+            return $presets->map(function ($preset) {
+                return [
+                    'slug' => $preset->slug,
+                    'name' => $preset->name,
+                    'icon' => $preset->icon,
+                    'blending_traits' => $preset->blending_traits ?? [],
+                ];
+            })->all();
+        });
+    }
+
+    /**
+     * Get a blended genre preset combining primary + modifier sub-genres.
+     * Primary provides the full cinematography base; modifiers layer traits on top.
+     */
+    public function getBlendedGenrePreset(string $primarySlug, array $subgenreSlugs = []): array
+    {
+        // Start with the primary preset as base
+        $base = $this->getGenrePreset($primarySlug);
+
+        if (empty($subgenreSlugs)) {
+            return $base;
+        }
+
+        // Load modifier presets from DB
+        $modifiers = VwGenrePreset::whereIn('slug', $subgenreSlugs)
+            ->where('is_active', true)
+            ->where('genre_type', 'modifier')
+            ->get();
+
+        if ($modifiers->isEmpty()) {
+            return $base;
+        }
+
+        $modifierNames = [];
+
+        foreach ($modifiers as $modifier) {
+            $traits = $modifier->blending_traits ?? [];
+            $modifierNames[] = $modifier->name;
+
+            if (!empty($traits['camera'])) {
+                $base['camera'] = ($base['camera'] ?? '') . '; incorporating: ' . $traits['camera'];
+            }
+            if (!empty($traits['colorGrade'])) {
+                $base['colorGrade'] = ($base['colorGrade'] ?? '') . '; with ' . $traits['colorGrade'];
+            }
+            if (!empty($traits['lighting'])) {
+                $base['lighting'] = ($base['lighting'] ?? '') . '; with ' . $traits['lighting'];
+            }
+            if (!empty($traits['atmosphere'])) {
+                $base['atmosphere'] = ($base['atmosphere'] ?? '') . '; ' . $traits['atmosphere'];
+            }
+        }
+
+        // Append modifier names to style
+        $modifierList = implode(' and ', $modifierNames);
+        $base['style'] = ($base['style'] ?? '') . ' with ' . $modifierList . ' undertones';
+
+        // Build genre description for prompt context
+        $primaryPreset = VwGenrePreset::where('slug', $primarySlug)->first();
+        $primaryName = $primaryPreset ? $primaryPreset->name : ucwords(str_replace('-', ' ', $primarySlug));
+        $base['genreDescription'] = $primaryName . ' with ' . implode(' and ', $modifierNames) . ' influences';
+
+        return $base;
+    }
+
+    /**
      * Build a professional cinematography prompt.
      * Combines genre preset, shot type, and camera specs.
      */
@@ -556,6 +661,8 @@ class CinematographyService
         $patterns = [
             'all_presets',
             'presets_by_category',
+            'primary_presets',
+            'modifier_presets',
             'all_shot_types',
             'default_story_structure',
             'all_story_structures',

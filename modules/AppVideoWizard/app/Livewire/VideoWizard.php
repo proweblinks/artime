@@ -142,7 +142,8 @@ class VideoWizard extends Component
     public array $content = [
         'pacing' => 'balanced',         // 'fast' | 'balanced' | 'contemplative'
         'productionMode' => 'standard', // 'standard' | 'documentary' | 'thriller' | 'cinematic'
-        'genre' => null,                // Genre for style consistency
+        'genre' => null,                // Genre for style consistency (backward compat)
+        'genres' => ['primary' => null, 'subgenres' => []], // Multi-genre: primary + up to 3 sub-genres
         // MASTER VISUAL MODE - Enforced across ALL AI generation (locations, characters, images)
         // This is the TOP-LEVEL style authority - prevents style conflicts
         'visualMode' => 'cinematic-realistic', // 'cinematic-realistic' | 'stylized-animation' | 'mixed-hybrid'
@@ -156,6 +157,10 @@ class VideoWizard extends Component
             'resolution' => '768p',
         ],
     ];
+
+    // Genre presets for UI display (populated in mount)
+    public array $genrePresets = [];
+    public array $genreModifiers = [];
 
     /**
      * AI Engines - Direct engine selection for all text generation.
@@ -2073,6 +2078,16 @@ class VideoWizard extends Component
 
         // Load user/team prompt templates
         $this->loadUserTemplates();
+
+        // Load genre presets for UI
+        try {
+            $cinematography = app(CinematographyService::class);
+            $this->genrePresets = $cinematography->getPrimaryPresets();
+            $this->genreModifiers = $cinematography->getModifierPresets();
+        } catch (\Exception $e) {
+            $this->genrePresets = [];
+            $this->genreModifiers = [];
+        }
     }
 
     /**
@@ -2129,6 +2144,7 @@ class VideoWizard extends Component
             'pacing' => 'balanced',
             'productionMode' => 'standard',
             'genre' => null,
+            'genres' => ['primary' => null, 'subgenres' => []],
             'visualMode' => 'cinematic-realistic',
             'aiEngine' => 'grok',
             'language' => 'en',
@@ -6264,6 +6280,10 @@ PROMPT;
                 'suggestedLocationCount' => $suggestedLocationCount,
                 'productionType' => $this->productionType,
                 'productionSubtype' => $this->productionSubtype,
+                // Multi-genre system
+                'genres' => $this->content['genres'] ?? ['primary' => null, 'subgenres' => []],
+                'genrePreset' => $this->getGenrePreset(),
+                'genreTemplate' => $this->mapGenresToTemplate(),
             ]);
 
             $durationMs = (int)((microtime(true) - $startTime) * 1000);
@@ -25635,18 +25655,32 @@ PROMPT;
 
     /**
      * Get current genre preset configuration.
-     * Uses CinematographyService for database-backed presets with fallback to constants.
+     * Supports multi-genre blending (primary + sub-genres) with fallback to legacy single genre.
      */
     public function getGenrePreset(): array
     {
+        // Check for multi-genre selection first
+        $genres = $this->content['genres'] ?? ['primary' => null, 'subgenres' => []];
+
+        if (!empty($genres['primary'])) {
+            try {
+                $service = app(CinematographyService::class);
+                return $service->getBlendedGenrePreset(
+                    $genres['primary'],
+                    $genres['subgenres'] ?? []
+                );
+            } catch (\Exception $e) {
+                // Fall through to legacy path
+            }
+        }
+
+        // Legacy single-genre fallback
         $genre = $this->content['genre'] ?? $this->content['productionMode'] ?? 'standard';
 
-        // Try database-backed service first
         try {
             $service = app(CinematographyService::class);
             return $service->getGenrePreset($genre);
         } catch (\Exception $e) {
-            // Fallback to constants
             return self::GENRE_PRESETS[$genre] ?? self::GENRE_PRESETS['standard'];
         }
     }
@@ -25696,6 +25730,142 @@ PROMPT;
 
             $this->saveProject();
         }
+    }
+
+    /**
+     * Select a primary genre from the genre grid.
+     * Clears the primary from sub-genres if it was there.
+     */
+    public function selectPrimaryGenre(string $slug): void
+    {
+        $genres = $this->content['genres'] ?? ['primary' => null, 'subgenres' => []];
+
+        // If clicking the same primary, deselect it
+        if ($genres['primary'] === $slug) {
+            $genres['primary'] = null;
+            $genres['subgenres'] = [];
+            $this->content['genres'] = $genres;
+            $this->content['genre'] = null;
+            $this->saveProject();
+            return;
+        }
+
+        $genres['primary'] = $slug;
+
+        // Remove from sub-genres if it was there
+        $genres['subgenres'] = array_values(array_filter(
+            $genres['subgenres'] ?? [],
+            fn($s) => $s !== $slug
+        ));
+
+        $this->content['genres'] = $genres;
+        $this->content['genre'] = $slug; // Backward compat
+
+        // Apply blended preset to Style Bible
+        $this->applyGenrePresetToStyleBible();
+        $this->saveProject();
+    }
+
+    /**
+     * Toggle a sub-genre modifier on/off. Max 3 sub-genres.
+     */
+    public function toggleSubgenre(string $slug): void
+    {
+        $genres = $this->content['genres'] ?? ['primary' => null, 'subgenres' => []];
+
+        // Can't add sub-genre without primary
+        if (empty($genres['primary'])) {
+            return;
+        }
+
+        // Can't use primary as sub-genre
+        if ($slug === $genres['primary']) {
+            return;
+        }
+
+        $subgenres = $genres['subgenres'] ?? [];
+
+        if (in_array($slug, $subgenres)) {
+            // Remove it
+            $subgenres = array_values(array_filter($subgenres, fn($s) => $s !== $slug));
+        } else {
+            // Max 3 sub-genres
+            if (count($subgenres) >= 3) {
+                return;
+            }
+            $subgenres[] = $slug;
+        }
+
+        $genres['subgenres'] = $subgenres;
+        $this->content['genres'] = $genres;
+
+        // Apply blended preset to Style Bible
+        $this->applyGenrePresetToStyleBible();
+        $this->saveProject();
+    }
+
+    /**
+     * Apply the current blended genre preset to the Style Bible.
+     */
+    protected function applyGenrePresetToStyleBible(): void
+    {
+        $preset = $this->getGenrePreset();
+
+        if (!empty($preset['style'])) {
+            $this->sceneMemory['styleBible']['style'] = $preset['style'];
+        }
+        if (!empty($preset['camera'])) {
+            $this->sceneMemory['styleBible']['camera'] = $preset['camera'];
+        }
+        if (!empty($preset['colorGrade'])) {
+            $this->sceneMemory['styleBible']['colorGrade'] = $preset['colorGrade'];
+        }
+        if (!empty($preset['atmosphere'])) {
+            $this->sceneMemory['styleBible']['atmosphere'] = $preset['atmosphere'];
+        }
+        if (!empty($preset['lighting'])) {
+            $this->sceneMemory['styleBible']['lighting'] = $preset['lighting'];
+        }
+
+        $this->sceneMemory['styleBible']['enabled'] = true;
+    }
+
+    /**
+     * Map primary genre slug to config genre_templates key.
+     */
+    protected function mapGenresToTemplate(): ?string
+    {
+        $primarySlug = $this->content['genres']['primary'] ?? $this->content['genre'] ?? null;
+        if (!$primarySlug) {
+            return null;
+        }
+
+        // Map primary genre slugs to genre_templates config keys
+        $map = [
+            'documentary-narrative' => 'documentary',
+            'documentary-interview' => 'documentary',
+            'cinematic-thriller' => 'cinematic-thriller',
+            'cinematic-action' => 'cinematic-action',
+            'cinematic-drama' => 'cinematic-drama',
+            'cinematic-epic' => 'cinematic-epic',
+            'horror-psychological' => 'horror',
+            'horror-supernatural' => 'horror',
+            'comedy-bright' => 'comedy',
+            'comedy-dark' => 'dark-comedy',
+            'social-viral' => 'tiktok-viral',
+            'commercial-premium' => 'commercial',
+            'educational-explainer' => 'youtube-explainer',
+            'experimental-artistic' => 'experimental',
+        ];
+
+        $templateKey = $map[$primarySlug] ?? null;
+
+        // Verify template exists in config
+        if ($templateKey && config("appvideowizard.genre_templates.{$templateKey}")) {
+            return $templateKey;
+        }
+
+        return null;
     }
 
     /**
