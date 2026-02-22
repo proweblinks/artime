@@ -7871,6 +7871,7 @@ PROMPT;
         // This prevents stale references after scene deletion
         $this->synchronizeBibleSceneIndices($sceneIndex, 'delete');
 
+        $this->scriptGeneration['generatedSceneCount'] = count($this->script['scenes']);
         $this->recalculateScriptTotals();
         $this->recalculateVoiceStatus();
         $this->saveProject();
@@ -7901,6 +7902,7 @@ PROMPT;
         ], $sceneCount);
 
         $this->script['scenes'][] = $newScene;
+        $this->scriptGeneration['generatedSceneCount'] = count($this->script['scenes']);
         $this->recalculateScriptTotals();
         $this->recalculateVoiceStatus();
         $this->saveProject();
@@ -12396,10 +12398,15 @@ PROMPT;
             $parts[] = 'VISUAL: ' . implode(', ', $visualParts);
         }
 
-        // Scene visual description
+        // Scene visual description (guard against array values)
         $visualDescription = $scene['visualDescription'] ?? $scene['visual'] ?? $scene['narration'] ?? '';
         if (!empty($visualDescription)) {
-            $parts[] = 'SCENE: ' . $visualDescription;
+            if (is_array($visualDescription)) {
+                $visualDescription = implode(', ', array_filter(array_map(fn($v) => is_string($v) ? $v : null, array_values($visualDescription))));
+            }
+            if (is_string($visualDescription) && !empty($visualDescription)) {
+                $parts[] = 'SCENE: ' . $visualDescription;
+            }
         }
 
         // =========================================================================
@@ -12407,7 +12414,12 @@ PROMPT;
         // =========================================================================
         if ($this->storyboard['technicalSpecs']['enabled'] ?? true) {
             $techSpecs = $this->storyboard['technicalSpecs']['positive'] ?? 'high quality, detailed, professional, 8K resolution';
-            $parts[] = $techSpecs;
+            if (is_array($techSpecs)) {
+                $techSpecs = implode(', ', array_filter(array_map(fn($v) => is_string($v) ? $v : null, array_values($techSpecs))));
+            }
+            if (is_string($techSpecs) && !empty($techSpecs)) {
+                $parts[] = $techSpecs;
+            }
         }
 
         return implode('. ', array_filter($parts));
@@ -23010,7 +23022,10 @@ PROMPT;
         $techSpecsEnabled = $this->storyboard['technicalSpecs']['enabled'] ?? true;
         if ($techSpecsEnabled) {
             $userPositive = $this->storyboard['technicalSpecs']['positive'] ?? '';
-            if (!empty($userPositive)) {
+            if (is_array($userPositive)) {
+                $userPositive = implode(', ', array_filter(array_map(fn($v) => is_string($v) ? $v : null, array_values($userPositive))));
+            }
+            if (!empty($userPositive) && is_string($userPositive)) {
                 $parts[] = $userPositive;
             } else {
                 // Default to cinematic if no user specs
@@ -23502,12 +23517,20 @@ PROMPT;
             $shot['shotType'] = $shot['type'];
         }
 
-        // 2. Change camera movement if same
-        $previousCamera = $previousShot['cameraMovement'] ?? 'static';
-        $currentCamera = $shot['cameraMovement'] ?? 'static';
+        // 2. Change camera movement if same (handle both array and string formats)
+        $prevCamRaw = $previousShot['cameraMovement'] ?? 'static';
+        $currCamRaw = $shot['cameraMovement'] ?? 'static';
+        $previousCamera = is_array($prevCamRaw) ? ($prevCamRaw['type'] ?? 'static') : $prevCamRaw;
+        $currentCamera = is_array($currCamRaw) ? ($currCamRaw['type'] ?? 'static') : $currCamRaw;
 
         if ($previousCamera === $currentCamera) {
-            $shot['cameraMovement'] = $this->getAlternativeCameraMovement($currentCamera);
+            $alternativeType = $this->getAlternativeCameraMovement($currentCamera);
+            if (is_array($currCamRaw)) {
+                $currCamRaw['type'] = $alternativeType;
+                $shot['cameraMovement'] = $currCamRaw;
+            } else {
+                $shot['cameraMovement'] = $alternativeType;
+            }
         }
 
         // 3. Enhance description to be more distinct
@@ -24523,7 +24546,10 @@ PROMPT;
         $techSpecsEnabled = $this->storyboard['technicalSpecs']['enabled'] ?? true;
         if ($techSpecsEnabled) {
             $userPositive = $this->storyboard['technicalSpecs']['positive'] ?? '';
-            if (!empty($userPositive)) {
+            if (is_array($userPositive)) {
+                $userPositive = implode(', ', array_filter(array_map(fn($v) => is_string($v) ? $v : null, array_values($userPositive))));
+            }
+            if (!empty($userPositive) && is_string($userPositive)) {
                 $specs[] = $userPositive;
             }
         }
@@ -24536,7 +24562,8 @@ PROMPT;
 
         // Lighting from genre preset (only if not already in user specs)
         $genrePreset = $this->getGenrePreset();
-        $userPositiveLower = strtolower($this->storyboard['technicalSpecs']['positive'] ?? '');
+        $rawPositive = $this->storyboard['technicalSpecs']['positive'] ?? '';
+        $userPositiveLower = is_string($rawPositive) ? strtolower($rawPositive) : '';
         if (!str_contains($userPositiveLower, 'lighting')) {
             if (!empty($genrePreset['lighting'])) {
                 $lightingElements = explode(',', $genrePreset['lighting']);
@@ -24549,9 +24576,9 @@ PROMPT;
         // Color grade from Style Bible or genre preset (only if not already in user specs)
         if (!str_contains($userPositiveLower, 'color') && !str_contains($userPositiveLower, 'grade')) {
             if ($this->sceneMemory['styleBible']['enabled'] && !empty($this->sceneMemory['styleBible']['colorGrade'])) {
-                $specs[] = $this->sceneMemory['styleBible']['colorGrade'];
+                $colorGradeVal = $this->sceneMemory['styleBible']['colorGrade'];
+                $specs[] = is_array($colorGradeVal) ? implode(', ', array_filter(array_map(fn($v) => is_string($v) ? $v : null, array_values($colorGradeVal)))) : (string) $colorGradeVal;
             } elseif (!empty($genrePreset['colorGrade'])) {
-                // Extract first element of color grade (keep it concise for image prompt)
                 $colorElements = explode(',', $genrePreset['colorGrade']);
                 $specs[] = trim($colorElements[0]);
             }
@@ -24560,7 +24587,8 @@ PROMPT;
         // Style from Style Bible or genre (only if not already in user specs)
         if (!str_contains($userPositiveLower, 'style') && !str_contains($userPositiveLower, 'artistic')) {
             if ($this->sceneMemory['styleBible']['enabled'] && !empty($this->sceneMemory['styleBible']['style'])) {
-                $specs[] = $this->sceneMemory['styleBible']['style'];
+                $styleVal = $this->sceneMemory['styleBible']['style'];
+                $specs[] = is_array($styleVal) ? implode(', ', array_filter(array_map(fn($v) => is_string($v) ? $v : null, array_values($styleVal)))) : (string) $styleVal;
             } elseif (!empty($genrePreset['style'])) {
                 $specs[] = $genrePreset['style'];
             }
@@ -24569,7 +24597,8 @@ PROMPT;
         // Atmosphere from Style Bible or genre preset (only if not already in user specs)
         if (!str_contains($userPositiveLower, 'atmosphere') && !str_contains($userPositiveLower, 'fog') && !str_contains($userPositiveLower, 'rain')) {
             if ($this->sceneMemory['styleBible']['enabled'] && !empty($this->sceneMemory['styleBible']['atmosphere'])) {
-                $specs[] = $this->sceneMemory['styleBible']['atmosphere'];
+                $atmosphereVal = $this->sceneMemory['styleBible']['atmosphere'];
+                $specs[] = is_array($atmosphereVal) ? implode(', ', array_filter(array_map(fn($v) => is_string($v) ? $v : null, array_values($atmosphereVal)))) : (string) $atmosphereVal;
             } elseif (!empty($genrePreset['atmosphere'])) {
                 $atmosphereElements = explode(',', $genrePreset['atmosphere']);
                 $specs[] = trim($atmosphereElements[0]);
@@ -24893,7 +24922,13 @@ PROMPT;
         // User's negative prompts first (if enabled and present)
         $techSpecsEnabled = $this->storyboard['technicalSpecs']['enabled'] ?? true;
         if ($techSpecsEnabled && !empty($this->storyboard['technicalSpecs']['negative'])) {
-            $parts[] = $this->storyboard['technicalSpecs']['negative'];
+            $negVal = $this->storyboard['technicalSpecs']['negative'];
+            if (is_array($negVal)) {
+                $negVal = implode(', ', array_filter(array_map(fn($v) => is_string($v) ? $v : null, array_values($negVal))));
+            }
+            if (is_string($negVal) && !empty($negVal)) {
+                $parts[] = $negVal;
+            }
         }
 
         // Always add anti-portrait prompts for cinematic generation
@@ -30812,7 +30847,11 @@ PROMPT;
                             // CRITICAL: User's Technical Specs positive prompts (photorealistic, etc.)
                             $techSpecsEnabled = $this->storyboard['technicalSpecs']['enabled'] ?? true;
                             if ($techSpecsEnabled && !empty($this->storyboard['technicalSpecs']['positive'])) {
-                                $shotPrompt .= "QUALITY: {$this->storyboard['technicalSpecs']['positive']} ";
+                                $posVal = $this->storyboard['technicalSpecs']['positive'];
+                                $posStr = is_array($posVal) ? implode(', ', array_filter(array_map(fn($v) => is_string($v) ? $v : null, array_values($posVal)))) : (string) $posVal;
+                                if (!empty($posStr)) {
+                                    $shotPrompt .= "QUALITY: {$posStr} ";
+                                }
                             }
 
                             // CRITICAL: Anti-posed-photo instructions
@@ -31149,7 +31188,11 @@ PROMPT;
                 // CRITICAL: User's Technical Specs positive prompts (photorealistic, etc.)
                 $techSpecsEnabled = $this->storyboard['technicalSpecs']['enabled'] ?? true;
                 if ($techSpecsEnabled && !empty($this->storyboard['technicalSpecs']['positive'])) {
-                    $shotPrompt .= "QUALITY: {$this->storyboard['technicalSpecs']['positive']} ";
+                    $posVal = $this->storyboard['technicalSpecs']['positive'];
+                    $posStr = is_array($posVal) ? implode(', ', array_filter(array_map(fn($v) => is_string($v) ? $v : null, array_values($posVal)))) : (string) $posVal;
+                    if (!empty($posStr)) {
+                        $shotPrompt .= "QUALITY: {$posStr} ";
+                    }
                 }
 
                 // Anti-posed-photo instructions
