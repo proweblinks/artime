@@ -30310,6 +30310,15 @@ PROMPT;
                     // Use enhanced prompt with shot context (pass shot array directly)
                     $enhancedPrompt = $this->buildEnhancedShotImagePrompt($shot, $sceneIndex);
 
+                    // DEBUG: Trace the enhanced prompt for location context verification
+                    \Log::debug('ShotImage: Enhanced prompt built', [
+                        'sceneIndex' => $sceneIndex,
+                        'shotIndex' => $shotIndex,
+                        'promptLength' => strlen($enhancedPrompt),
+                        'hasLocationContext' => str_contains($enhancedPrompt, 'LOCATION:'),
+                        'promptPreview' => substr($enhancedPrompt, 0, 500),
+                    ]);
+
                     // Store image prompt for debug UI
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imagePrompt'] = $enhancedPrompt;
 
