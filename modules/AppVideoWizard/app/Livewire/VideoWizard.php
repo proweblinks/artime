@@ -6448,6 +6448,17 @@ PROMPT;
 
             $this->dispatch('script-generated');
 
+            // Re-sync Location Bible now that script scenes exist
+            // (Initial sync during Story Bible generation had no scenes to match)
+            if (!empty($this->storyBible['locations']) && !empty($this->script['scenes'])) {
+                try {
+                    $this->syncStoryBibleToLocationBible();
+                    Log::debug('LocationBible: Post-script re-sync completed');
+                } catch (\Exception $e) {
+                    Log::warning('LocationBible: Post-script re-sync failed', ['error' => $e->getMessage()]);
+                }
+            }
+
             Log::info('VideoWizard: Script generation completed', [
                 'project_id' => $this->projectId,
                 'duration_ms' => $durationMs,
@@ -6845,6 +6856,16 @@ PROMPT;
 
                     $this->dispatch('progressive-generation-complete');
                     $this->dispatch('script-generated');
+
+                    // Re-sync Location Bible now that script scenes exist
+                    if (!empty($this->storyBible['locations']) && !empty($this->script['scenes'])) {
+                        try {
+                            $this->syncStoryBibleToLocationBible();
+                            Log::debug('LocationBible: Post-script re-sync completed (batch)');
+                        } catch (\Exception $e) {
+                            Log::warning('LocationBible: Post-script re-sync failed', ['error' => $e->getMessage()]);
+                        }
+                    }
 
                     // FIX: Use force save on generation complete to ensure scenes are persisted
                     $this->forceSaveProject();
