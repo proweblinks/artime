@@ -252,7 +252,12 @@ Extract ALL characters that appear visually OR are introduced/referenced in the 
       "role": "Main/Supporting/Background",
       "appearsInScenes": [1, 2, 5],
       "traits": ["confident", "mysterious"],
-      "defaultExpression": "confident and alert"
+      "defaultExpression": "confident and alert",
+      "gender": "female",
+      "hair": {"color": "dark brown", "style": "curly", "length": "long", "texture": "thick"},
+      "wardrobe": {"outfit": "tailored navy blazer over white silk blouse", "colors": "navy, white", "style": "professional", "footwear": "black heels"},
+      "makeup": {"style": "minimal", "details": "natural look with subtle lip color"},
+      "accessories": ["silver watch", "small hoop earrings"]
     }
   ],
   "hasHumanCharacters": true,
@@ -267,6 +272,7 @@ Extract ALL characters that appear visually OR are introduced/referenced in the 
 5. Description must include: age, gender, ethnicity/skin tone, build, hair, eyes, clothing
 6. For groups or crowds, only extract NAMED individuals with plot significance
 7. **SCENE 1 RULE**: Main characters should ALWAYS include Scene 1 in their appearsInScenes if they are the protagonist or are introduced/mentioned in the opening. Scene 1 establishes the story - include it for main characters.
+8. **DNA FIELDS REQUIRED**: Each character MUST include structured `gender`, `hair`, `wardrobe`, `makeup`, and `accessories` fields as shown in the JSON format above. Extract these from the visual descriptions in the script.
 
 === WHO TO INCLUDE ===
 - Protagonists and main characters (always include, and ALWAYS include Scene 1 for protagonists)
@@ -347,6 +353,7 @@ USER;
                 'id' => 'char_' . time() . '_' . $idx,
                 'name' => $char['name'] ?? 'Character ' . ($idx + 1),
                 'description' => $char['description'] ?? '',
+                'gender' => $char['gender'] ?? null,
                 'role' => $char['role'] ?? 'Supporting',
                 'appearsInScenes' => $this->normalizeSceneIndices($char['appearsInScenes'] ?? []),
                 'traits' => $char['traits'] ?? [],

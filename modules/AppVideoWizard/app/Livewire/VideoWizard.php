@@ -6249,6 +6249,25 @@ PROMPT;
                 'component_targetDuration' => $this->targetDuration,
                 'project_target_duration' => $project->target_duration,
             ]);
+
+            // === AUTO-GENERATE STORY BIBLE if not already generated ===
+            // Story Bible provides pre-defined characters, locations, and story structure
+            // that anchor the script generation to the user's concept
+            $storyBibleEnabled = $this->storyBible['enabled'] ?? false;
+            $storyBibleStatus = $this->storyBible['status'] ?? null;
+            if (!$storyBibleEnabled || $storyBibleStatus !== 'ready') {
+                try {
+                    Log::info('VideoWizard: Auto-generating Story Bible before script');
+                    $this->generateStoryBibleInternal($project);
+                    // Reload project to pick up Story Bible constraint
+                    $project->refresh();
+                } catch (\Exception $sbEx) {
+                    Log::warning('VideoWizard: Auto Story Bible generation failed (continuing without)', [
+                        'error' => $sbEx->getMessage(),
+                    ]);
+                }
+            }
+
             $scriptService = app(ScriptGenerationService::class);
 
             // Calculate suggested character and location counts based on duration and production type
@@ -6312,6 +6331,11 @@ PROMPT;
 
             // Sanitize generated script data to prevent type errors in views
             $this->sanitizeScriptData();
+
+            // =====================================================================
+            // CONCEPT FIDELITY CHECK: Validate script references the user's concept
+            // =====================================================================
+            $this->validateScriptAgainstConcept();
 
             // Auto-detect Character Intelligence from generated script
             $this->autoDetectCharacterIntelligence();
@@ -7951,9 +7975,84 @@ PROMPT;
     }
 
     /**
+     * Validate that the generated script references the user's concept.
+     * Logs a warning if the script appears to have drifted from the intended topic.
+     */
+    protected function validateScriptAgainstConcept(): void
+    {
+        $concept = $this->concept['refinedConcept'] ?? $this->concept['rawInput'] ?? '';
+        if (empty($concept) || empty($this->script['scenes'])) {
+            return;
+        }
+
+        // Extract significant words from concept (4+ chars, not common words)
+        $stopWords = ['this', 'that', 'with', 'from', 'they', 'them', 'their', 'have', 'been',
+            'were', 'will', 'would', 'could', 'should', 'about', 'which', 'there', 'after',
+            'before', 'into', 'through', 'during', 'each', 'when', 'where', 'what', 'while',
+            'some', 'than', 'then', 'more', 'most', 'also', 'just', 'only', 'very', 'make',
+            'made', 'know', 'over', 'such', 'like', 'other', 'being', 'between'];
+
+        $conceptWords = preg_split('/[\s,.\-!?;:\'\"]+/', strtolower($concept));
+        $significantWords = array_filter($conceptWords, function ($w) use ($stopWords) {
+            return strlen($w) >= 4 && !in_array($w, $stopWords);
+        });
+        $significantWords = array_unique(array_values($significantWords));
+
+        if (empty($significantWords)) {
+            return;
+        }
+
+        // Build combined script text for matching
+        $scriptText = strtolower($this->script['title'] ?? '');
+        foreach ($this->script['scenes'] as $scene) {
+            $scriptText .= ' ' . strtolower($scene['narration'] ?? '');
+            $scriptText .= ' ' . strtolower($scene['visualDescription'] ?? '');
+            $scriptText .= ' ' . strtolower($scene['title'] ?? '');
+        }
+
+        // Count how many significant concept words appear in the script
+        $matchCount = 0;
+        $matchedWords = [];
+        foreach ($significantWords as $word) {
+            if (strpos($scriptText, $word) !== false) {
+                $matchCount++;
+                $matchedWords[] = $word;
+            }
+        }
+
+        $matchRatio = count($significantWords) > 0 ? $matchCount / count($significantWords) : 0;
+
+        // Log the fidelity check result
+        Log::info('VideoWizard: Concept fidelity check', [
+            'projectId' => $this->projectId,
+            'conceptWords' => count($significantWords),
+            'matchedWords' => $matchCount,
+            'matchRatio' => round($matchRatio, 2),
+            'matched' => $matchedWords,
+            'missed' => array_diff($significantWords, $matchedWords),
+        ]);
+
+        // Flag if less than 20% of concept words appear in script
+        if ($matchRatio < 0.20 && count($significantWords) >= 3) {
+            Log::warning('VideoWizard: LOW CONCEPT FIDELITY - Script may not match concept', [
+                'projectId' => $this->projectId,
+                'concept' => substr($concept, 0, 200),
+                'matchRatio' => round($matchRatio, 2),
+                'scriptTitle' => $this->script['title'] ?? '',
+            ]);
+
+            // Store warning for UI display
+            $this->script['_conceptFidelity'] = [
+                'ratio' => round($matchRatio, 2),
+                'warning' => true,
+                'message' => 'The generated script may not closely match your concept. Consider regenerating.',
+            ];
+        }
+    }
+
+    /**
      * Sanitize script data to ensure all fields are properly typed.
      * This prevents htmlspecialchars errors when rendering in Blade views.
-     * Should be called after loading script data from database or generating new script.
      */
     protected function sanitizeScriptData(): void
     {
@@ -8878,6 +8977,7 @@ PROMPT;
 
     /**
      * Add a new character from detected speaker info.
+     * Enriches the entry by extracting context from script scenes (description, gender, scenes).
      *
      * @param array|string $speakerInfo Speaker info from detection
      */
@@ -8887,6 +8987,61 @@ PROMPT;
         $gender = is_array($speakerInfo) ? ($speakerInfo['gender'] ?? null) : null;
         $role = is_array($speakerInfo) ? ($speakerInfo['role'] ?? null) : null;
 
+        // === ENRICHMENT: Extract context from script scenes ===
+        $scenes = $this->script['scenes'] ?? [];
+        $detectedScenes = [];
+        $description = '';
+
+        foreach ($scenes as $idx => $scene) {
+            // Auto-assign scenes where this character speaks (from speechSegments)
+            $speechSegments = $scene['speechSegments'] ?? [];
+            foreach ($speechSegments as $segment) {
+                $segSpeaker = $segment['speaker'] ?? null;
+                if ($segSpeaker && strcasecmp(trim($segSpeaker), trim($name)) === 0) {
+                    $detectedScenes[] = $idx;
+                    break;
+                }
+            }
+
+            // Also check narration text for character name mention
+            $narration = $scene['narration'] ?? '';
+            if (!in_array($idx, $detectedScenes) && stripos($narration, $name) !== false) {
+                $detectedScenes[] = $idx;
+            }
+
+            // Try to extract description from visualDescription where character is mentioned
+            if (empty($description)) {
+                $visual = $scene['visualDescription'] ?? '';
+                if (stripos($visual, $name) !== false) {
+                    // Extract the sentence containing the character name
+                    $sentences = preg_split('/(?<=[.!?])\s+/', $visual);
+                    foreach ($sentences as $sentence) {
+                        if (stripos($sentence, $name) !== false) {
+                            $description = trim($sentence);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        $detectedScenes = array_unique($detectedScenes);
+        sort($detectedScenes);
+
+        // Infer gender from script context if not provided
+        if (empty($gender) && !empty($scenes)) {
+            $allText = '';
+            foreach ($scenes as $scene) {
+                $allText .= ' ' . ($scene['narration'] ?? '') . ' ' . ($scene['visualDescription'] ?? '');
+            }
+            // Look for gendered pronouns near the character name
+            $namePattern = preg_quote($name, '/');
+            if (preg_match("/{$namePattern}.{0,100}\b(he|him|his)\b/is", $allText)) {
+                $gender = 'male';
+            } elseif (preg_match("/{$namePattern}.{0,100}\b(she|her|hers)\b/is", $allText)) {
+                $gender = 'female';
+            }
+        }
+
         // Determine voice based on gender/role
         $voiceId = $this->determineVoiceForSpeaker($name, $gender, $role);
 
@@ -8894,13 +9049,12 @@ PROMPT;
         $character = [
             'id' => 'char_detected_' . time() . '_' . Str::random(4),
             'name' => $name,
-            'description' => '',
+            'description' => $description,
             'gender' => $gender,
             'ethnicity' => '',
             'age' => '',
             'traits' => [],
-            'appliedScenes' => [],
-            'scenes' => [],
+            'scenes' => $detectedScenes,
             'referenceImage' => null,
             'referenceImageBase64' => null,
             'referenceImageStatus' => 'pending',
@@ -13463,10 +13617,27 @@ PROMPT;
         $this->isBatchUpdating = true;
 
         try {
-            // Skip if already has characters or locations (don't override user edits)
-            $hasExistingCharacters = !empty($this->sceneMemory['characterBible']['characters']);
+            // Migrate legacy appliedScenes -> scenes for any existing characters
+            foreach ($this->sceneMemory['characterBible']['characters'] ?? [] as $idx => &$char) {
+                if (isset($char['appliedScenes'])) {
+                    if (empty($char['scenes']) && !empty($char['appliedScenes'])) {
+                        $char['scenes'] = $char['appliedScenes'];
+                    }
+                    unset($char['appliedScenes']);
+                    $this->sceneMemory['characterBible']['characters'][$idx] = $char;
+                }
+            }
+            unset($char);
+
+            $existingCharacters = $this->sceneMemory['characterBible']['characters'] ?? [];
             $hasExistingLocations = !empty($this->sceneMemory['locationBible']['locations']);
             $hasExistingStyle = !empty($this->sceneMemory['styleBible']['style']);
+
+            // Distinguish between skeleton entries (from speaker detection, no descriptions)
+            // and fully enriched entries (from AI extraction or manual edits)
+            $hasEnrichedCharacters = collect($existingCharacters)->contains(function ($c) {
+                return !empty($c['description']) || !empty($c['aiGenerated']);
+            });
 
             // 1. Auto-populate Style Bible based on production type (if not already set)
             // Each detection runs in its own try-catch to ensure independence
@@ -13481,8 +13652,10 @@ PROMPT;
                 }
             }
 
-            // 2. Auto-detect characters from script (if none exist)
-            if (!$hasExistingCharacters) {
+            // 2. Auto-detect characters from script
+            // Run AI extraction if no characters exist OR if only skeleton entries from speaker detection
+            // The merge logic in autoDetectCharactersFromScript() will enrich existing skeletons
+            if (!$hasEnrichedCharacters) {
                 try {
                     $this->transitionMessage = __('Detecting characters from script...');
                     $this->autoDetectCharactersFromScript();
@@ -14050,7 +14223,7 @@ PROMPT;
                         $exists = false;
                     }
 
-                    // If synonymous character found, merge scenes instead of creating duplicate
+                    // If synonymous character found, merge and enrich instead of creating duplicate
                     if ($exists && $existingIndex !== null) {
                         try {
                             $existingChar = &$this->sceneMemory['characterBible']['characters'][$existingIndex];
@@ -14064,9 +14237,49 @@ PROMPT;
                             sort($existingChar['scenes']);
                             // Remove legacy field if present
                             unset($existingChar['appliedScenes']);
-                            Log::info('CharacterExtraction: Merged synonymous character', [
+
+                            // Enrich skeleton entries: fill empty fields from AI extraction
+                            if (empty($existingChar['description']) && !empty($character['description'])) {
+                                $existingChar['description'] = $character['description'];
+                            }
+                            if (empty($existingChar['gender']) && !empty($character['gender'])) {
+                                $existingChar['gender'] = $character['gender'];
+                            }
+                            if (empty($existingChar['role']) && !empty($character['role'])) {
+                                $existingChar['role'] = $character['role'];
+                            }
+                            if (empty($existingChar['traits']) && !empty($character['traits'])) {
+                                $existingChar['traits'] = $character['traits'];
+                            }
+                            if (empty($existingChar['defaultExpression']) && !empty($character['defaultExpression'])) {
+                                $existingChar['defaultExpression'] = $character['defaultExpression'];
+                            }
+                            // Enrich DNA fields if empty
+                            foreach (['hair', 'wardrobe', 'makeup'] as $dnaField) {
+                                $existingDna = $existingChar[$dnaField] ?? [];
+                                $newDna = $character[$dnaField] ?? [];
+                                $isEmpty = empty($existingDna) || (is_array($existingDna) && !array_filter($existingDna));
+                                if ($isEmpty && !empty($newDna) && is_array($newDna) && array_filter($newDna)) {
+                                    $existingChar[$dnaField] = $newDna;
+                                }
+                            }
+                            if (empty($existingChar['accessories']) && !empty($character['accessories'])) {
+                                $existingChar['accessories'] = $character['accessories'];
+                            }
+                            // Update voice gender if we now know it
+                            if (!empty($character['gender']) && empty($existingChar['voice']['gender'] ?? null)) {
+                                $existingChar['voice']['gender'] = $character['gender'];
+                                $existingChar['voice']['id'] = $this->determineVoiceForSpeaker(
+                                    $existingChar['name'], $character['gender'], $existingChar['speakingRole'] ?? null
+                                );
+                            }
+                            // Mark as AI-enriched
+                            $existingChar['aiGenerated'] = true;
+
+                            Log::info('CharacterExtraction: Merged and enriched synonymous character', [
                                 'existing' => $existingChar['name'],
                                 'merged' => $character['name'],
+                                'enrichedDescription' => !empty($character['description']),
                             ]);
                             continue;
                         } catch (\Exception $e) {
@@ -14099,6 +14312,7 @@ PROMPT;
                         'id' => $character['id'] ?? uniqid('char_'),
                         'name' => $character['name'],
                         'description' => $character['description'] ?? '',
+                        'gender' => $character['gender'] ?? null,
                         'role' => $role,
                         'scenes' => $expandedScenes,
                         'originalAiScenes' => $aiScenes, // Keep original for reference
@@ -15707,6 +15921,42 @@ PROMPT;
         } finally {
             $this->isGeneratingStoryBible = false;
         }
+    }
+
+    /**
+     * Internal Story Bible generation (no UI state management).
+     * Used for auto-triggering before script generation.
+     */
+    protected function generateStoryBibleInternal(WizardProject $project): void
+    {
+        if (empty($this->concept['rawInput']) && empty($this->concept['refinedConcept'])) {
+            return;
+        }
+
+        $storyBibleService = app(StoryBibleService::class);
+
+        $generatedBible = $storyBibleService->generateStoryBible($project, [
+            'teamId' => session('current_team_id', 0),
+            'visualMode' => $this->content['visualMode'] ?? 'cinematic-realistic',
+            'structureTemplate' => $this->storyBible['structureTemplate'] ?? 'three-act',
+            'aiEngine' => $this->content['aiEngine'] ?? 'grok',
+            'additionalInstructions' => $this->additionalInstructions ?? '',
+        ]);
+
+        // Merge generated bible with existing structure
+        $this->storyBible = array_merge($this->storyBible, $generatedBible);
+        $this->storyBible['enabled'] = true;
+        $this->storyBible['status'] = 'ready';
+        $this->storyBible['generatedAt'] = now()->toIso8601String();
+        $this->storyBible['autoGenerated'] = true;
+
+        $this->saveProject();
+
+        Log::info('StoryBible: Auto-generated before script', [
+            'projectId' => $this->projectId,
+            'characterCount' => count($this->storyBible['characters'] ?? []),
+            'locationCount' => count($this->storyBible['locations'] ?? []),
+        ]);
     }
 
     /**

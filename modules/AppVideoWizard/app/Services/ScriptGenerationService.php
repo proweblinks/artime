@@ -1118,10 +1118,12 @@ PROMPT;
         if ($suggestedCharacterCount || $suggestedLocationCount) {
             $prompt .= "=== CAST & LOCATIONS REQUIREMENTS ===\n";
             $prompt .= "⚠️ MANDATORY CHARACTER/LOCATION REQUIREMENT for a {$minutes}-minute video:\n\n";
+            $prompt .= "⚠️ CONCEPT REMINDER: All characters and locations MUST serve the story about: {$topic}\n\n";
 
             if ($suggestedCharacterCount) {
                 $prompt .= "MINIMUM CHARACTERS: {$suggestedCharacterCount} (THIS IS MANDATORY)\n";
                 $prompt .= "You MUST include AT LEAST {$suggestedCharacterCount} distinct NAMED characters in your script.\n";
+                $prompt .= "All characters MUST be relevant to the concept: {$topic}\n";
                 $prompt .= "CRITICAL REQUIREMENT FOR VISUAL DESCRIPTIONS:\n";
                 $prompt .= "- Each character MUST be explicitly NAMED BY NAME in the visualDescription fields\n";
                 $prompt .= "- Format: 'Character Name, a [description]' (e.g., 'Marcus Chen, a weathered detective in his 50s')\n";
@@ -1164,6 +1166,7 @@ PROMPT;
 
         // === LAYER 4: STRUCTURE GUIDANCE ===
         $prompt .= "=== SCRIPT STRUCTURE ===\n";
+        $prompt .= "Every scene MUST directly advance the story about: {$topic}\n";
 
         // Build structure based on story arc or defaults
         if ($arcConfig && !empty($arcConfig['structure'])) {
@@ -1283,7 +1286,7 @@ PROMPT;
         $prompt .= "[MONOLOGUE: CHARACTER] Text  → Character speaking alone/to camera (lip-sync)\n";
         $prompt .= "[INTERNAL: CHARACTER] Text   → Character's inner thoughts as V.O. (no lip-sync)\n";
         $prompt .= "[NARRATOR] Text here         → Brief scene-setting ONLY (max 1-2 lines per scene)\n\n";
-        $prompt .= "EXAMPLE CHARACTER-DRIVEN NARRATION:\n";
+        $prompt .= "EXAMPLE CHARACTER-DRIVEN NARRATION (FORMAT DEMO ONLY — your script must be about the TOPIC above, not these example characters):\n";
         $prompt .= "[NARRATOR] Rain hammers the London backstreet.\n";
         $prompt .= "SARAH KANE: That signal... it's the same cipher from Prague.\n";
         $prompt .= "[MONOLOGUE: SARAH KANE] I swore I'd never go back. But this changes everything.\n";
@@ -1383,6 +1386,8 @@ PROMPT;
 JSON;
 
         $prompt .= "\n\n=== CRITICAL REQUIREMENTS - MUST FOLLOW ===\n";
+        $prompt .= "⚠️ STORY FIDELITY: Your ENTIRE script MUST be about: {$topic}\n";
+        $prompt .= "⚠️ Do NOT invent a different story or unrelated characters. Stay faithful to the concept above.\n";
         $prompt .= "⚠️ MANDATORY: You MUST generate EXACTLY {$sceneCount} scenes - not more, not less\n";
         $prompt .= "⚠️ The scenes array MUST contain exactly {$sceneCount} scene objects\n";
         $prompt .= "- Each scene narration MUST be approximately {$wordsPerScene} words\n";
