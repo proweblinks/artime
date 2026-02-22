@@ -183,7 +183,6 @@ class ImageGenerationService
         $modelConfig = self::IMAGE_MODELS[$modelId] ?? self::IMAGE_MODELS['nanobanana'];
 
         $visualDescription = $scene['visualDescription'] ?? $scene['visual'] ?? '';
-        $styleBible = $project->storyboard['styleBible'] ?? null;
         $visualStyle = $project->storyboard['visualStyle'] ?? null;
 
         // SceneMemory contains Bible data (Character, Location, Style references)
@@ -194,6 +193,9 @@ class ImageGenerationService
             ?? $contentConfig['sceneMemory']
             ?? $project->storyboard['sceneMemory']
             ?? null;
+
+        // Style Bible: prefer live data from sceneMemory, fall back to project storyboard
+        $styleBible = $sceneMemory['styleBible'] ?? $project->storyboard['styleBible'] ?? null;
 
         $sceneIndex = $options['sceneIndex'] ?? null;
         $teamId = $options['teamId'] ?? $project->team_id ?? session('current_team_id', 0);

@@ -3146,6 +3146,9 @@ class VideoWizard extends Component
                     $registry->fromArray($this->sceneMemory['sceneDNA']['voiceRegistry']);
                     Log::debug('VideoWizard: Voice registry restored from Scene DNA (VOC-07)');
                 }
+
+                // Sanitize scene memory: clean ghosts, dedup characters, fix style contradictions
+                $this->sanitizeSceneMemory();
             }
             if (isset($config['multiShotMode'])) {
                 $this->multiShotMode = array_merge($this->multiShotMode, $config['multiShotMode']);
@@ -14388,6 +14391,31 @@ PROMPT;
                         }
                     }
 
+                    // Validate: skip ghost characters (scene descriptions mistaken for characters)
+                    if ($this->isGhostCharacter($character)) {
+                        Log::info('CharacterExtraction: Skipped ghost character', [
+                            'name' => $character['name'],
+                            'reason' => 'description matches scene-description pattern',
+                        ]);
+                        continue;
+                    }
+
+                    // Deduplicate: check if detected name is a substring of an existing Bible character
+                    $dedupeIndex = $this->findSynonymousCharacter($character['name']);
+                    if ($dedupeIndex !== null) {
+                        // Merge into existing character instead of creating duplicate
+                        $existingChar = &$this->sceneMemory['characterBible']['characters'][$dedupeIndex];
+                        $newScenes = $character['appearsInScenes'] ?? [];
+                        $existingScenes = $existingChar['scenes'] ?? [];
+                        $existingChar['scenes'] = array_values(array_unique(array_merge($existingScenes, $newScenes)));
+                        sort($existingChar['scenes']);
+                        Log::info('CharacterExtraction: Deduplicated into existing character', [
+                            'detected' => $character['name'],
+                            'existing' => $existingChar['name'],
+                        ]);
+                        continue;
+                    }
+
                     // Add new character (always runs if not merged above)
                     $role = $character['role'] ?? 'Supporting';
                     $aiScenes = $character['appearsInScenes'] ?? [];
@@ -15106,6 +15134,47 @@ PROMPT;
             array_shift($words);
         }
         return implode(' ', $words);
+    }
+
+    /**
+     * Detect ghost characters — scene descriptions mistaken for characters.
+     * Returns true if the character should be rejected.
+     */
+    protected function isGhostCharacter(array $character): bool
+    {
+        $description = strtolower($character['description'] ?? '');
+        if (empty($description)) {
+            return false;
+        }
+
+        // Scene-description keywords that indicate this is NOT a person
+        $sceneKeywords = [
+            'wide shot', 'establishing shot', 'majestic shot', 'aerial shot', 'panoramic',
+            'silhouetted against', 'camera pans', 'camera tracks', 'camera moves',
+            'the station', 'space station', 'spacecraft', 'spaceship', 'building',
+            'the city', 'skyline', 'landscape', 'exterior of', 'interior of',
+        ];
+
+        $hits = 0;
+        foreach ($sceneKeywords as $keyword) {
+            if (str_contains($description, $keyword)) {
+                $hits++;
+            }
+        }
+
+        // If description has 2+ scene-description keywords, it's a ghost
+        if ($hits >= 2) {
+            return true;
+        }
+
+        // Also reject if name is a single common noun (not a proper name)
+        $name = strtolower(trim($character['name'] ?? ''));
+        $objectNames = ['ship', 'station', 'base', 'tower', 'city', 'planet', 'world', 'building'];
+        if (in_array($name, $objectNames)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -17071,6 +17140,15 @@ PROMPT;
                         }
                     }
 
+                    // PRIORITY 1.5: Exact location name in visualDescription (strong signal)
+                    // e.g., "in Engineering Bay" when location name is "Engineering Bay"
+                    if ($score < 90) {
+                        $visualDesc = strtolower($scenes[$sceneIdx]['visualDescription'] ?? '');
+                        if (!empty($visualDesc) && !empty($lowerName) && strpos($visualDesc, $lowerName) !== false) {
+                            $score = max($score, 90);
+                        }
+                    }
+
                     // PRIORITY 2: Full name in scene text
                     if ($score < 50) {
                         foreach ($locData['fullTerms'] as $term) {
@@ -17408,8 +17486,11 @@ PROMPT;
         }
 
         // Map Story Bible visual style fields to Style Bible fields
+        // RULE: Story Bible wins over Genre Preset when both provide the same data dimension
         if (!empty($storyBibleStyle['colorPalette'])) {
             $this->sceneMemory['styleBible']['colorPalette'] = $storyBibleStyle['colorPalette'];
+            // Also update flat colorGrade to match — prevents contradiction with Genre Preset
+            $this->sceneMemory['styleBible']['colorGrade'] = $storyBibleStyle['colorPalette'];
         }
 
         if (!empty($storyBibleStyle['lighting'])) {
@@ -17434,6 +17515,8 @@ PROMPT;
 
         if (!empty($storyBibleStyle['cameraLanguage'])) {
             $this->sceneMemory['styleBible']['cameraLanguage'] = $storyBibleStyle['cameraLanguage'];
+            // Also update flat camera field to match
+            $this->sceneMemory['styleBible']['camera'] = $storyBibleStyle['cameraLanguage'];
         }
 
         if (!empty($storyBibleStyle['references'])) {
@@ -17462,8 +17545,9 @@ PROMPT;
             $this->sceneMemory['styleBible']['style'] = $modeToStyle[$storyBibleStyle['mode']] ?? $storyBibleStyle['mode'];
         }
 
-        // Mark as synced
+        // Mark as synced — Story Bible is the authority source
         $this->sceneMemory['styleBible']['syncedFromStoryBible'] = true;
+        $this->sceneMemory['styleBible']['syncSource'] = 'storyBible';
 
         Log::info('StyleBible: Synced from Story Bible', [
             'mode' => $storyBibleStyle['mode'],
@@ -19932,8 +20016,23 @@ EOT;
         $sceneDNAData = [];
 
         foreach ($scenes as $sceneIndex => $scene) {
-            // Get characters for this scene
+            // Get characters for this scene (from Bible assignment)
             $sceneCharacters = $this->getCharactersForSceneDNA($characterBible, $sceneIndex);
+
+            // Also detect speaking characters from narration not already in the scene list
+            $narration = $scene['narration'] ?? '';
+            $additionalSpeakers = $this->detectSpeakingCharactersFromNarration($narration, $characterBible, $sceneCharacters);
+            if (!empty($additionalSpeakers)) {
+                $sceneCharacters = array_merge($sceneCharacters, $additionalSpeakers);
+            }
+
+            // Filter out narrator/non-visual characters from visual Scene DNA
+            $sceneCharacters = array_values(array_filter($sceneCharacters, function ($char) {
+                $name = strtolower(trim($char['name'] ?? ''));
+                $role = strtolower($char['role'] ?? '');
+                return !in_array($name, ['narrator', 'the narrator', 'storyteller', 'voice'])
+                    && $role !== 'narrator';
+            }));
 
             // Get location for this scene
             $sceneLocation = $this->getLocationForSceneDNA($locationBible, $sceneIndex);
@@ -19992,7 +20091,9 @@ EOT;
                 'style' => ($styleBible['enabled'] ?? false) ? [
                     'visualStyle' => $styleBible['style'] ?? '',
                     'colorPalette' => $styleBible['colorGrade'] ?? $styleBible['colorPalette'] ?? '',
-                    'lightingStyle' => $styleBible['lighting']['setup'] ?? $styleBible['lightingStyle'] ?? '',
+                    'lightingStyle' => is_string($styleBible['lighting'] ?? null)
+                        ? $styleBible['lighting']
+                        : ($styleBible['lighting']['setup'] ?? $styleBible['lightingStyle'] ?? ''),
                     'mood' => $styleBible['atmosphere'] ?? $styleBible['mood'] ?? '',
                     'era' => $styleBible['era'] ?? '',
                     'camera' => $styleBible['camera'] ?? '',
@@ -20071,6 +20172,12 @@ EOT;
         // Validate voice continuity after scene generation (VOC-08)
         $this->validateVoiceContinuityForUI();
 
+        // =====================================================================
+        // Re-sync character Bible scenes from narration presence
+        // If a character speaks in a scene but their scenes array doesn't include it, add it
+        // =====================================================================
+        $this->resyncCharacterScenesFromNarration();
+
         Log::debug('SceneDNA: Built unified scene data', [
             'totalScenes' => $totalScenes,
             'scenesWithCharacters' => count(array_filter($sceneDNAData, fn($s) => $s['characterCount'] > 0)),
@@ -20078,6 +20185,176 @@ EOT;
         ]);
 
         $this->saveProject();
+    }
+
+    /**
+     * Re-sync Character Bible scenes arrays based on narration presence.
+     * If a character speaks in a scene but their scenes array doesn't include it, add it.
+     */
+    protected function resyncCharacterScenesFromNarration(): void
+    {
+        $characters = &$this->sceneMemory['characterBible']['characters'];
+        if (empty($characters)) {
+            return;
+        }
+
+        $scenes = $this->script['scenes'] ?? [];
+        $honorifics = ['CAPTAIN', 'COMMANDER', 'DR', 'DR.', 'DOCTOR', 'PROFESSOR',
+            'SERGEANT', 'SGT', 'LIEUTENANT', 'LT', 'COLONEL', 'COL', 'GENERAL',
+            'AGENT', 'DETECTIVE', 'OFFICER', 'CHIEF', 'ELDER', 'MASTER', 'THE'];
+
+        $updated = 0;
+        foreach ($scenes as $sceneIndex => $scene) {
+            $narration = $scene['narration'] ?? '';
+            if (empty($narration)) {
+                continue;
+            }
+
+            // Extract speaker names from narration
+            $speakerNames = [];
+            if (preg_match_all('/\[([A-Z][A-Z\s.\']+)\]\s*:|^([A-Z][A-Z\s.\']{2,})\s*:/m', $narration, $matches)) {
+                foreach (array_merge($matches[1], $matches[2]) as $match) {
+                    if (!empty(trim($match))) {
+                        $speakerNames[] = strtoupper(trim($match));
+                    }
+                }
+            }
+
+            if (empty($speakerNames)) {
+                continue;
+            }
+
+            $speakerNames = array_unique($speakerNames);
+
+            // Check each character against speakers
+            foreach ($characters as &$character) {
+                $charName = strtoupper(trim($character['name'] ?? ''));
+                $charStripped = $charName;
+                foreach ($honorifics as $h) {
+                    $charStripped = trim(preg_replace('/^' . preg_quote($h, '/') . '\s+/i', '', $charStripped));
+                }
+
+                foreach ($speakerNames as $speaker) {
+                    if ($speaker === 'NARRATOR') continue;
+
+                    $speakerStripped = $speaker;
+                    foreach ($honorifics as $h) {
+                        $speakerStripped = trim(preg_replace('/^' . preg_quote($h, '/') . '\s+/i', '', $speakerStripped));
+                    }
+
+                    $matched = false;
+                    if ($charName === $speaker || $charStripped === $speakerStripped) {
+                        $matched = true;
+                    } elseif (strlen($speakerStripped) > 2 && strlen($charStripped) > 2) {
+                        if (str_contains($charStripped, $speakerStripped) || str_contains($speakerStripped, $charStripped)) {
+                            $matched = true;
+                        }
+                    }
+
+                    if ($matched) {
+                        $existingScenes = $character['scenes'] ?? [];
+                        if (!in_array($sceneIndex, $existingScenes)) {
+                            $character['scenes'][] = $sceneIndex;
+                            sort($character['scenes']);
+                            $updated++;
+                        }
+                        break;
+                    }
+                }
+            }
+            unset($character);
+        }
+
+        if ($updated > 0) {
+            Log::info('SceneDNA: Re-synced character scenes from narration', [
+                'updatedAssignments' => $updated,
+            ]);
+        }
+    }
+
+    /**
+     * Sanitize scene memory data on project load.
+     * Cleans ghost characters, deduplicates, fixes style contradictions, and propagates missing fields.
+     */
+    protected function sanitizeSceneMemory(): void
+    {
+        $cleaned = 0;
+
+        // 1. Ghost character cleanup — remove characters with scene-description descriptions
+        $characters = &$this->sceneMemory['characterBible']['characters'];
+        if (!empty($characters)) {
+            $originalCount = count($characters);
+            $characters = array_values(array_filter($characters, function ($char) {
+                return !$this->isGhostCharacter($char);
+            }));
+            $ghostsRemoved = $originalCount - count($characters);
+            $cleaned += $ghostsRemoved;
+
+            // 2. Character deduplication — merge characters whose names are substrings of each other
+            $deduped = [];
+            $mergedIndices = [];
+            foreach ($characters as $i => $charA) {
+                if (in_array($i, $mergedIndices)) continue;
+                $nameA = strtolower(trim($charA['name'] ?? ''));
+                $strippedA = $this->stripHonorifics($nameA, ['captain', 'commander', 'dr', 'dr.', 'doctor', 'lieutenant', 'lt', 'the']);
+
+                foreach ($characters as $j => $charB) {
+                    if ($j <= $i || in_array($j, $mergedIndices)) continue;
+                    $nameB = strtolower(trim($charB['name'] ?? ''));
+                    $strippedB = $this->stripHonorifics($nameB, ['captain', 'commander', 'dr', 'dr.', 'doctor', 'lieutenant', 'lt', 'the']);
+
+                    // Check if one name contains the other (e.g., "ORION" in "Orion AI")
+                    if (strlen($strippedA) > 2 && strlen($strippedB) > 2 &&
+                        (str_contains($strippedA, $strippedB) || str_contains($strippedB, $strippedA))) {
+                        // Merge B into A (keep the one with more data)
+                        $scenesA = $charA['scenes'] ?? [];
+                        $scenesB = $charB['scenes'] ?? [];
+                        $charA['scenes'] = array_values(array_unique(array_merge($scenesA, $scenesB)));
+                        sort($charA['scenes']);
+                        // Prefer longer description
+                        if (strlen($charB['description'] ?? '') > strlen($charA['description'] ?? '')) {
+                            $charA['description'] = $charB['description'];
+                        }
+                        // Prefer longer name (more specific)
+                        if (strlen($charB['name'] ?? '') > strlen($charA['name'] ?? '')) {
+                            $charA['name'] = $charB['name'];
+                        }
+                        $mergedIndices[] = $j;
+                        $cleaned++;
+                    }
+                }
+                $deduped[] = $charA;
+            }
+            if (!empty($mergedIndices)) {
+                $characters = array_values($deduped);
+            }
+        }
+
+        // 3. Style Bible consistency check
+        $styleBible = &$this->sceneMemory['styleBible'];
+        if (!empty($styleBible['enabled'])) {
+            // If colorPalette and colorGrade contradict, prefer Story Bible source
+            if (!empty($styleBible['colorPalette']) && !empty($styleBible['colorGrade'])) {
+                if (($styleBible['syncSource'] ?? '') === 'storyBible') {
+                    $styleBible['colorGrade'] = $styleBible['colorPalette'];
+                }
+            }
+
+            // lightingStyle propagation: if sceneDNA style lightingStyle is empty but styleBible lighting exists
+            if (!empty($styleBible['lighting']) && is_string($styleBible['lighting'])) {
+                $styleBible['lightingStyle'] = $styleBible['lighting'];
+            }
+        }
+
+        // 4. Re-sync character scenes from narration
+        $this->resyncCharacterScenesFromNarration();
+
+        if ($cleaned > 0) {
+            Log::info('SceneMemory: Sanitized on project load', [
+                'ghostsRemoved' => $ghostsRemoved ?? 0,
+                'charactersMerged' => count($mergedIndices ?? []),
+            ]);
+        }
     }
 
     /**
@@ -20154,6 +20431,103 @@ EOT;
         }
 
         return $sceneCharacters;
+    }
+
+    /**
+     * Detect speaking characters from narration text that aren't already in the scene list.
+     * Matches [CHARACTER_NAME]: and CHARACTER_NAME: patterns against the Character Bible.
+     */
+    protected function detectSpeakingCharactersFromNarration(string $narration, array $characterBible, array $existingSceneCharacters): array
+    {
+        if (empty($narration) || !($characterBible['enabled'] ?? false)) {
+            return [];
+        }
+
+        $allCharacters = $characterBible['characters'] ?? [];
+        if (empty($allCharacters)) {
+            return [];
+        }
+
+        // Extract speaker names from narration patterns: [NAME]: or NAME: at start of line
+        $speakerNames = [];
+        // Match [SPEAKER_NAME] or SPEAKER_NAME followed by colon
+        if (preg_match_all('/\[([A-Z][A-Z\s.\']+)\]\s*:|^([A-Z][A-Z\s.\']{2,})\s*:/m', $narration, $matches)) {
+            foreach ($matches[1] as $match) {
+                if (!empty(trim($match))) {
+                    $speakerNames[] = trim($match);
+                }
+            }
+            foreach ($matches[2] as $match) {
+                if (!empty(trim($match))) {
+                    $speakerNames[] = trim($match);
+                }
+            }
+        }
+
+        if (empty($speakerNames)) {
+            return [];
+        }
+
+        $speakerNames = array_unique($speakerNames);
+
+        // Build lookup of existing scene character names
+        $existingNames = [];
+        foreach ($existingSceneCharacters as $char) {
+            $existingNames[] = strtoupper(trim($char['name'] ?? ''));
+        }
+
+        // For each detected speaker, find matching Bible character not already in scene
+        $additionalCharacters = [];
+        $honorifics = ['CAPTAIN', 'COMMANDER', 'DR', 'DR.', 'DOCTOR', 'PROFESSOR',
+            'SERGEANT', 'SGT', 'LIEUTENANT', 'LT', 'COLONEL', 'COL', 'GENERAL',
+            'AGENT', 'DETECTIVE', 'OFFICER', 'CHIEF', 'ELDER', 'MASTER', 'THE'];
+
+        foreach ($speakerNames as $speaker) {
+            $upperSpeaker = strtoupper($speaker);
+
+            // Skip if speaker is NARRATOR or already in scene
+            if ($upperSpeaker === 'NARRATOR' || in_array($upperSpeaker, $existingNames)) {
+                continue;
+            }
+
+            // Strip honorifics for fuzzy matching
+            $speakerStripped = $upperSpeaker;
+            foreach ($honorifics as $h) {
+                $speakerStripped = trim(preg_replace('/^' . preg_quote($h, '/') . '\s+/i', '', $speakerStripped));
+            }
+
+            // Find matching character in Bible
+            foreach ($allCharacters as $character) {
+                $charName = strtoupper(trim($character['name'] ?? ''));
+                $charStripped = $charName;
+                foreach ($honorifics as $h) {
+                    $charStripped = trim(preg_replace('/^' . preg_quote($h, '/') . '\s+/i', '', $charStripped));
+                }
+
+                // Already in scene
+                if (in_array($charName, $existingNames)) {
+                    continue;
+                }
+
+                // Match: exact, contains, or stripped contains
+                $matched = false;
+                if ($charName === $upperSpeaker || $charStripped === $speakerStripped) {
+                    $matched = true;
+                } elseif (strlen($speakerStripped) > 2 && strlen($charStripped) > 2) {
+                    if (str_contains($charStripped, $speakerStripped) || str_contains($speakerStripped, $charStripped)) {
+                        $matched = true;
+                    }
+                }
+
+                if ($matched) {
+                    $additionalCharacters[] = $character;
+                    $existingNames[] = $charName; // Prevent duplicates
+                    break;
+                }
+            }
+        }
+
+        return $additionalCharacters;
     }
 
     /**
@@ -22898,6 +23272,14 @@ PROMPT;
             if (!empty($sceneCharacters)) {
                 $characterDescriptions = [];
                 foreach ($sceneCharacters as $character) {
+                    // Skip narrator/non-visual characters — they add noise to image prompts
+                    $charRole = strtolower($character['role'] ?? '');
+                    $charNameLower = strtolower(trim($character['name'] ?? ''));
+                    if (in_array($charNameLower, ['narrator', 'the narrator', 'storyteller', 'voice']) ||
+                        $charRole === 'narrator') {
+                        continue;
+                    }
+
                     if (!empty($character['description'])) {
                         $name = $character['name'] ?? 'Character';
                         $charDesc = "{$name}: {$character['description']}";
@@ -22941,6 +23323,7 @@ PROMPT;
         }
 
         // 1.6. LOCATION BIBLE (Location for this scene) - from buildScenePrompt Layer 3
+        $hasLocationData = false;
         if ($this->sceneMemory['locationBible']['enabled'] ?? false) {
             $locations = $this->sceneMemory['locationBible']['locations'] ?? [];
             $sceneLocation = $this->getLocationForSceneIndex($locations, $sceneIndex);
@@ -22982,7 +23365,22 @@ PROMPT;
 
                 if (!empty($locationParts)) {
                     $parts[] = 'LOCATION: ' . implode(', ', $locationParts);
+                    $hasLocationData = true;
                 }
+            }
+        }
+
+        // Fallback: use shot-level scene context if location Bible didn't provide data
+        if (empty($hasLocationData) && !empty($shot['sceneContext'])) {
+            $ctx = $shot['sceneContext'];
+            $ctxParts = array_filter([
+                $ctx['location'] ?? '',
+                !empty($ctx['timeOfDay']) ? "Time: {$ctx['timeOfDay']}" : '',
+                !empty($ctx['mood']) ? "Mood: {$ctx['mood']}" : '',
+                !empty($ctx['lightingStyle']) ? "Lighting: {$ctx['lightingStyle']}" : '',
+            ]);
+            if (!empty($ctxParts)) {
+                $parts[] = 'ENVIRONMENT: ' . implode('. ', $ctxParts);
             }
         }
 
@@ -26633,23 +27031,30 @@ PROMPT;
     {
         $preset = $this->getGenrePreset();
 
-        if (!empty($preset['style'])) {
+        // Story Bible takes precedence — only apply Genre Preset fields that haven't been set by Story Bible
+        $isStoryBibleSynced = $this->sceneMemory['styleBible']['syncedFromStoryBible'] ?? false;
+
+        if (!empty($preset['style']) && (!$isStoryBibleSynced || empty($this->sceneMemory['styleBible']['style']))) {
             $this->sceneMemory['styleBible']['style'] = $preset['style'];
         }
-        if (!empty($preset['camera'])) {
+        if (!empty($preset['camera']) && (!$isStoryBibleSynced || empty($this->sceneMemory['styleBible']['camera']))) {
             $this->sceneMemory['styleBible']['camera'] = $preset['camera'];
         }
-        if (!empty($preset['colorGrade'])) {
+        if (!empty($preset['colorGrade']) && (!$isStoryBibleSynced || empty($this->sceneMemory['styleBible']['colorGrade']))) {
             $this->sceneMemory['styleBible']['colorGrade'] = $preset['colorGrade'];
         }
-        if (!empty($preset['atmosphere'])) {
+        if (!empty($preset['atmosphere']) && (!$isStoryBibleSynced || empty($this->sceneMemory['styleBible']['atmosphere']))) {
             $this->sceneMemory['styleBible']['atmosphere'] = $preset['atmosphere'];
         }
-        if (!empty($preset['lighting'])) {
+        if (!empty($preset['lighting']) && (!$isStoryBibleSynced || empty($this->sceneMemory['styleBible']['lighting']))) {
             $this->sceneMemory['styleBible']['lighting'] = $preset['lighting'];
         }
 
         $this->sceneMemory['styleBible']['enabled'] = true;
+
+        if (!$isStoryBibleSynced) {
+            $this->sceneMemory['styleBible']['syncSource'] = 'genrePreset';
+        }
     }
 
     /**
