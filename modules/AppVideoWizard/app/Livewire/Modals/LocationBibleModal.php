@@ -251,10 +251,10 @@ class LocationBibleModal extends Component
         foreach ($this->locationBible['locations'][$locationIndex]['stateChanges'] as $idx => $change) {
             $changeSceneIdx = $change['sceneIndex'] ?? $change['scene'] ?? -1;
             if ($changeSceneIdx === $sceneIndex) {
-                $this->locationBible['locations'][$locationIndex]['stateChanges'][$idx] = [
-                    'sceneIndex' => $sceneIndex,
-                    'stateDescription' => $state,
-                ];
+                $this->locationBible['locations'][$locationIndex]['stateChanges'][$idx] = array_merge(
+                    $this->locationBible['locations'][$locationIndex]['stateChanges'][$idx],
+                    ['sceneIndex' => $sceneIndex, 'stateDescription' => $state]
+                );
                 $found = true;
                 break;
             }
@@ -265,6 +265,8 @@ class LocationBibleModal extends Component
             $this->locationBible['locations'][$locationIndex]['stateChanges'][] = [
                 'sceneIndex' => $sceneIndex,
                 'stateDescription' => $state,
+                'timeOfDay' => null,
+                'weather' => null,
             ];
 
             // Sort by scene index
@@ -315,12 +317,12 @@ class LocationBibleModal extends Component
                 ['state' => 'damaged, destruction visible'],
             ],
             'time-of-day' => [
-                ['state' => 'morning light, fresh atmosphere'],
-                ['state' => 'evening, golden hour lighting'],
+                ['state' => 'morning light, fresh atmosphere', 'timeOfDay' => 'dawn'],
+                ['state' => 'evening, golden hour lighting', 'timeOfDay' => 'golden-hour'],
             ],
             'weather-change' => [
-                ['state' => 'clear skies, bright'],
-                ['state' => 'stormy, dramatic clouds'],
+                ['state' => 'clear skies, bright', 'weather' => 'clear'],
+                ['state' => 'stormy, dramatic clouds', 'weather' => 'stormy'],
             ],
             'abandonment' => [
                 ['state' => 'inhabited, active, signs of life'],
@@ -341,9 +343,20 @@ class LocationBibleModal extends Component
         }
 
         // Apply first state to first scene, second state to last scene
+        // Include timeOfDay/weather overrides if preset provides them
         $this->locationBible['locations'][$locationIndex]['stateChanges'] = [
-            ['sceneIndex' => $firstScene, 'stateDescription' => $presets[$preset][0]['state']],
-            ['sceneIndex' => $lastScene, 'stateDescription' => $presets[$preset][1]['state']],
+            [
+                'sceneIndex' => $firstScene,
+                'stateDescription' => $presets[$preset][0]['state'],
+                'timeOfDay' => $presets[$preset][0]['timeOfDay'] ?? null,
+                'weather' => $presets[$preset][0]['weather'] ?? null,
+            ],
+            [
+                'sceneIndex' => $lastScene,
+                'stateDescription' => $presets[$preset][1]['state'],
+                'timeOfDay' => $presets[$preset][1]['timeOfDay'] ?? null,
+                'weather' => $presets[$preset][1]['weather'] ?? null,
+            ],
         ];
     }
 

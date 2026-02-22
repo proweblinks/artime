@@ -3937,6 +3937,7 @@ class VideoWizard extends Component
                     'genre' => $genrePreset['slug'] ?? 'cinematic',
                     'narration' => $this->extractCharacterLinesOnly($scene['narration'] ?? ''),
                     'atmosphere' => $genrePreset['atmosphere'] ?? '',
+                    'colorGrade' => $genrePreset['colorGrade'] ?? '',
                     'characterBible' => $this->sceneMemory['characterBible'] ?? [],
                     'visualDescription' => $scene['visualDescription'] ?? '',
                     'sceneTitle' => $scene['title'] ?? '',
@@ -6262,9 +6263,17 @@ PROMPT;
                     // Reload project to pick up Story Bible constraint
                     $project->refresh();
                 } catch (\Exception $sbEx) {
-                    Log::warning('VideoWizard: Auto Story Bible generation failed (continuing without)', [
+                    Log::error('VideoWizard: Auto Story Bible generation failed', [
                         'error' => $sbEx->getMessage(),
+                        'projectId' => $this->projectId,
                     ]);
+                    // Notify user so they know script will generate without Bible constraints
+                    $this->dispatch('vw-debug', [
+                        'action' => 'story-bible-generation-failed',
+                        'message' => 'Story Bible auto-generation failed: ' . $sbEx->getMessage(),
+                        'level' => 'warning',
+                    ]);
+                    $this->script['_storyBibleWarning'] = 'Story Bible could not be auto-generated. Script was generated without character/location constraints.';
                 }
             }
 
@@ -15953,10 +15962,30 @@ PROMPT;
 
         $this->saveProject();
 
+        // Auto-sync Story Bible data to Scene Memory Bibles
+        // Without this, Story Bible characters/locations/style sit isolated
+        // and never reach the systems that use them for image/script generation
+        try {
+            if (!empty($this->storyBible['characters'])) {
+                $this->syncStoryBibleToCharacterBible();
+            }
+            if (!empty($this->storyBible['locations'])) {
+                $this->syncStoryBibleToLocationBible();
+            }
+            if (!empty($this->storyBible['visualStyle'])) {
+                $this->syncStoryBibleToStyleBible();
+            }
+        } catch (\Exception $syncEx) {
+            Log::warning('StoryBible: Auto-sync to Scene Memory failed (Bible still generated)', [
+                'error' => $syncEx->getMessage(),
+            ]);
+        }
+
         Log::info('StoryBible: Auto-generated before script', [
             'projectId' => $this->projectId,
             'characterCount' => count($this->storyBible['characters'] ?? []),
             'locationCount' => count($this->storyBible['locations'] ?? []),
+            'synced' => true,
         ]);
     }
 
@@ -19545,8 +19574,14 @@ EOT;
 
             // Get location state if there are state changes
             $locationState = null;
+            $locationTimeOverride = null;
+            $locationWeatherOverride = null;
             if ($sceneLocation && !empty($sceneLocation['stateChanges'])) {
                 $locationState = $this->getLocationStateAtScene($sceneLocation, $sceneIndex);
+                // Also check for time/weather overrides from state changes
+                $stateOverrides = $this->getLocationStateOverridesAtScene($sceneLocation, $sceneIndex);
+                $locationTimeOverride = $stateOverrides['timeOfDay'] ?? null;
+                $locationWeatherOverride = $stateOverrides['weather'] ?? null;
             }
 
             // Build the Scene DNA entry
@@ -19571,14 +19606,14 @@ EOT;
                 'characterCount' => count($sceneCharacters),
                 'characterNames' => array_map(fn($c) => $c['name'] ?? 'Unknown', $sceneCharacters),
 
-                // Location in this scene
+                // Location in this scene (time/weather may be overridden by state changes)
                 'location' => $sceneLocation ? [
                     'id' => $sceneLocation['id'] ?? null,
                     'name' => $sceneLocation['name'] ?? 'Unknown Location',
                     'description' => $sceneLocation['description'] ?? '',
                     'type' => $sceneLocation['type'] ?? 'exterior',
-                    'timeOfDay' => $sceneLocation['timeOfDay'] ?? 'day',
-                    'weather' => $sceneLocation['weather'] ?? 'clear',
+                    'timeOfDay' => $locationTimeOverride ?? $sceneLocation['timeOfDay'] ?? 'day',
+                    'weather' => $locationWeatherOverride ?? $sceneLocation['weather'] ?? 'clear',
                     'atmosphere' => $sceneLocation['atmosphere'] ?? '',
                     'mood' => $sceneLocation['mood'] ?? '',
                     'lightingStyle' => $sceneLocation['lightingStyle'] ?? '',
@@ -19587,12 +19622,15 @@ EOT;
                 ] : null,
 
                 // Style (global, applies to all scenes)
+                // Maps actual styleBible field names to Scene DNA structure
                 'style' => ($styleBible['enabled'] ?? false) ? [
-                    'visualStyle' => $styleBible['visualStyle'] ?? '',
-                    'colorPalette' => $styleBible['colorPalette'] ?? '',
-                    'lightingStyle' => $styleBible['lightingStyle'] ?? '',
-                    'mood' => $styleBible['mood'] ?? '',
+                    'visualStyle' => $styleBible['style'] ?? '',
+                    'colorPalette' => $styleBible['colorGrade'] ?? $styleBible['colorPalette'] ?? '',
+                    'lightingStyle' => $styleBible['lighting']['setup'] ?? $styleBible['lightingStyle'] ?? '',
+                    'mood' => $styleBible['atmosphere'] ?? $styleBible['mood'] ?? '',
                     'era' => $styleBible['era'] ?? '',
+                    'camera' => $styleBible['camera'] ?? '',
+                    'visualDNA' => $styleBible['visualDNA'] ?? '',
                 ] : null,
 
                 // Scene-specific visual data
@@ -19641,6 +19679,10 @@ EOT;
                     'timeOfDay' => $dnaEntry['location']['timeOfDay'] ?? 'day',
                     'weather' => $dnaEntry['location']['weather'] ?? 'clear',
                     'atmosphere' => $dnaEntry['location']['atmosphere'] ?? '',
+                    'description' => $dnaEntry['location']['description'] ?? '',
+                    'mood' => $dnaEntry['location']['mood'] ?? '',
+                    'lightingStyle' => $dnaEntry['location']['lightingStyle'] ?? '',
+                    'currentState' => $dnaEntry['location']['currentState'] ?? null,
                     'hasReferenceImage' => $dnaEntry['location']['hasReferenceImage'] ?? false,
                 ];
             } else {
@@ -19809,6 +19851,39 @@ EOT;
         }
 
         return $currentState;
+    }
+
+    /**
+     * Get time/weather overrides from location state changes at a specific scene.
+     * Returns array with optional timeOfDay and weather keys.
+     */
+    protected function getLocationStateOverridesAtScene(array $location, int $sceneIndex): array
+    {
+        $stateChanges = $location['stateChanges'] ?? [];
+        if (empty($stateChanges)) {
+            return [];
+        }
+
+        usort($stateChanges, fn($a, $b) =>
+            ($a['sceneIndex'] ?? $a['scene'] ?? 0) <=> ($b['sceneIndex'] ?? $b['scene'] ?? 0)
+        );
+
+        $overrides = [];
+        foreach ($stateChanges as $change) {
+            $changeScene = $change['sceneIndex'] ?? $change['scene'] ?? -1;
+            if ($changeScene <= $sceneIndex) {
+                if (!empty($change['timeOfDay'])) {
+                    $overrides['timeOfDay'] = $change['timeOfDay'];
+                }
+                if (!empty($change['weather'])) {
+                    $overrides['weather'] = $change['weather'];
+                }
+            } else {
+                break;
+            }
+        }
+
+        return $overrides;
     }
 
     /**
@@ -20542,8 +20617,10 @@ PROMPT;
             'sceneIndex' => $sceneIndex,
             'totalScenes' => $totalScenes,
 
-            // Content metadata
-            'genre' => $this->content['genre'] ?? 'general',
+            // Content metadata - include both legacy and multi-genre data
+            'genre' => $this->content['genre'] ?? $this->content['genres']['primary'] ?? 'general',
+            'genres' => $this->content['genres'] ?? ['primary' => null, 'subgenres' => []],
+            'genrePreset' => $this->getGenrePreset(),
             'pacing' => $this->content['pacing'] ?? 'balanced',
             'mood' => $scene['mood'] ?? 'neutral',
 
@@ -24071,6 +24148,17 @@ PROMPT;
             }
         }
 
+        // Color grade from Style Bible or genre preset (only if not already in user specs)
+        if (!str_contains($userPositiveLower, 'color') && !str_contains($userPositiveLower, 'grade')) {
+            if ($this->sceneMemory['styleBible']['enabled'] && !empty($this->sceneMemory['styleBible']['colorGrade'])) {
+                $specs[] = $this->sceneMemory['styleBible']['colorGrade'];
+            } elseif (!empty($genrePreset['colorGrade'])) {
+                // Extract first element of color grade (keep it concise for image prompt)
+                $colorElements = explode(',', $genrePreset['colorGrade']);
+                $specs[] = trim($colorElements[0]);
+            }
+        }
+
         // Style from Style Bible or genre (only if not already in user specs)
         if (!str_contains($userPositiveLower, 'style') && !str_contains($userPositiveLower, 'artistic')) {
             if ($this->sceneMemory['styleBible']['enabled'] && !empty($this->sceneMemory['styleBible']['style'])) {
@@ -24876,6 +24964,7 @@ PROMPT;
                 'genre' => $genrePreset['slug'] ?? 'cinematic',
                 'narration' => $this->extractCharacterLinesOnly($scene['narration'] ?? ''),
                 'atmosphere' => $genrePreset['atmosphere'] ?? '',
+                'colorGrade' => $genrePreset['colorGrade'] ?? '',
                 'characterBible' => $this->sceneMemory['characterBible'] ?? [],
                 'visualDescription' => $shotContext['visualDescription'] ?? $visualDescription,
                 'sceneTitle' => $shotContext['sceneTitle'] ?? '',

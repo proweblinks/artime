@@ -500,7 +500,15 @@ RULES;
             $colorText = $colorStyle ? $colorStyle['promptSyntax'] : '';
         }
 
-        // Genre-specific atmosphere as color fallback
+        // Genre-specific color grading as color fallback (colorGrade is the rich data)
+        if (empty($colorText)) {
+            $genreColorGrade = $context['colorGrade'] ?? '';
+            if (!empty($genreColorGrade) && strlen($genreColorGrade) < 80) {
+                $colorText = $genreColorGrade;
+            }
+        }
+
+        // Genre-specific atmosphere as secondary color fallback
         if (empty($colorText)) {
             $genre = $context['genre'] ?? '';
             if (!empty($genre)) {

@@ -1737,11 +1737,26 @@ class StructuredPromptBuilderService
         $environment['time_of_day'] = $sceneLocation['timeOfDay'] ?? 'day';
         $environment['weather'] = $sceneLocation['weather'] ?? 'clear';
 
-        // Include location state if available
-        if (!empty($sceneLocation['sceneStates'][$sceneIndex])) {
-            $state = $sceneLocation['sceneStates'][$sceneIndex];
-            if (!empty($state['stateDescription'])) {
-                $environment['details'] .= '. ' . $state['stateDescription'];
+        // Include location state if available (stateChanges is the canonical field name)
+        $stateChanges = $sceneLocation['stateChanges'] ?? $sceneLocation['sceneStates'] ?? [];
+        if (!empty($stateChanges) && $sceneIndex !== null) {
+            // Find the most recent state at or before this scene index
+            $applicableState = null;
+            foreach ($stateChanges as $change) {
+                $changeScene = $change['sceneIndex'] ?? $change['scene'] ?? -1;
+                if ($changeScene <= $sceneIndex) {
+                    $applicableState = $change;
+                }
+            }
+            if ($applicableState && !empty($applicableState['stateDescription'])) {
+                $environment['details'] .= '. ' . $applicableState['stateDescription'];
+            }
+            // Apply time/weather overrides from state change if present
+            if ($applicableState && !empty($applicableState['timeOfDay'])) {
+                $environment['time_of_day'] = $applicableState['timeOfDay'];
+            }
+            if ($applicableState && !empty($applicableState['weather'])) {
+                $environment['weather'] = $applicableState['weather'];
             }
         }
 
