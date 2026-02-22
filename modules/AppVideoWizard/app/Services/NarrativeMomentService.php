@@ -291,6 +291,10 @@ class NarrativeMomentService
      */
     protected function aiDecomposeNarration(string $narration, int $targetShotCount, array $context = []): array
     {
+        // Strip speech markers before sending to AI
+        $narration = preg_replace('/\[(?:NARRATOR|INTERNAL_THOUGHT|[A-Z][A-Z_\s\']+)\]\s*/i', '', $narration);
+        $narration = trim(preg_replace('/\s{2,}/', ' ', $narration));
+
         $characterNames = $context['characters'] ?? [];
         $mood = $context['mood'] ?? 'neutral';
 
@@ -376,6 +380,10 @@ PROMPT;
      */
     protected function ruleBasedDecomposition(string $narration, array $context = []): array
     {
+        // Strip speech markers before splitting into segments
+        $narration = preg_replace('/\[(?:NARRATOR|INTERNAL_THOUGHT|[A-Z][A-Z_\s\']+)\]\s*/i', '', $narration);
+        $narration = trim(preg_replace('/\s{2,}/', ' ', $narration));
+
         $moments = [];
 
         // Extract character name from narration or context

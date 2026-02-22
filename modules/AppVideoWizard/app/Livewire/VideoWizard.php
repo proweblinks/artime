@@ -20696,7 +20696,7 @@ PROMPT;
 
         // Ensure emotional arc is available from NarrativeMomentService
         if (empty($context['emotionalArc'])) {
-            $narration = $scene['narration'] ?? $scene['visualDescription'] ?? '';
+            $narration = $this->stripSpeechMarkers($scene['narration'] ?? $scene['visualDescription'] ?? '');
             if (!empty($narration)) {
                 try {
                     $geminiService = app(\App\Services\GeminiService::class);
@@ -20779,7 +20779,7 @@ PROMPT;
                 'purpose' => $shotType['purpose'] ?? 'narrative',
                 'isChained' => $i > 0,
                 'description' => $shotType['description'] ?? '',
-                'narration' => $scene['narration'] ?? '',
+                'narration' => $this->stripSpeechMarkers($scene['narration'] ?? ''),
                 'emotionalBeat' => $scene['emotionalBeat'] ?? $scene['mood'] ?? '',
                 'sceneTitle' => $scene['title'] ?? '',
                 'dialogue' => $shotDialogue,
@@ -20860,7 +20860,7 @@ PROMPT;
 
         // Scene context for story-aware prompts in fallback path
         $sceneContext = [
-            'narration' => $scene['narration'] ?? '',
+            'narration' => $this->stripSpeechMarkers($scene['narration'] ?? ''),
             'mood' => $scene['mood'] ?? 'cinematic',
             'emotionalBeat' => $scene['emotionalBeat'] ?? '',
             'sceneTitle' => $scene['title'] ?? '',
@@ -22286,6 +22286,24 @@ PROMPT;
             $intensity = $emotionalArc[$i] ?? 0.5;
 
             if ($moment && !empty($moment['visualDescription'])) {
+                // Check if moment is actually useful (not just padding from weak AI/rule-based output)
+                $isWeakMoment = empty($moment['subject']) && empty($moment['action'])
+                    && ($moment['intensity'] ?? 0.5) == 0.5;
+
+                if ($isWeakMoment) {
+                    // Use narration-split approach instead of weak moment data
+                    $narrationChunks = $this->splitNarrationForShots(
+                        $this->stripSpeechMarkers($sceneContext['narration'] ?? ''),
+                        count($shots)
+                    );
+                    $chunkText = $narrationChunks[$i] ?? '';
+                    if (!empty($chunkText)) {
+                        $moment['visualDescription'] = $chunkText;
+                        $moment['action'] = $chunkText;
+                        $moment['subject'] = $characterName;
+                    }
+                }
+
                 // Select shot type based on emotional intensity (Hollywood rule)
                 $recommendedType = $this->selectShotTypeForIntensity($intensity, $i, count($shots));
 
@@ -24422,10 +24440,10 @@ PROMPT;
      */
     protected function extractActualStoryAction(string $visualDescription, array $shotContext = []): ?string
     {
-        $desc = $visualDescription;
+        $desc = $this->stripSpeechMarkers($visualDescription);
 
         // Also check for scene narration in context
-        $narration = $shotContext['narration'] ?? '';
+        $narration = $this->stripSpeechMarkers($shotContext['narration'] ?? '');
         if (!empty($narration)) {
             $desc = $narration . ' ' . $desc;
         }
@@ -24447,6 +24465,22 @@ PROMPT;
             '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(speaks?|says?|declares?|announces?|proclaims?)[^.]*?(?:\.|$)/i',
             '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(challenges?|confronts?|faces?|defies?)[^.]*?(?:\.|$)/i',
             '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(embraces?|hugs?|holds?|grasps?)[^.]*?(?:\.|$)/i',
+            // Intelligence/Discovery actions
+            '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(intercepts?|captures?|retrieves?|discovers?|uncovers?|decodes?|decrypts?|hacks?|infiltrates?|investigates?)[^.]*?(?:\.|$)/i',
+            // Escape/Evasion actions
+            '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(escapes?|evades?|dodges?|eludes?|slips?\s+away|breaks?\s+free)[^.]*?(?:\.|$)/i',
+            // Manipulation/Force actions
+            '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(pulls?|pushes?|drags?|carries?|grabs?|snatches?|reaches?)[^.]*?(?:\.|$)/i',
+            // Revelation actions
+            '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(reveals?|exposes?|unveils?|shows?|displays?|presents?)[^.]*?(?:\.|$)/i',
+            // Observation/Tracking actions
+            '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(watches?|observes?|scans?|surveys?|monitors?|tracks?|follows?)[^.]*?(?:\.|$)/i',
+            // Physical interaction actions
+            '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(opens?|closes?|locks?|unlocks?|seals?|breaks?|smashes?)[^.]*?(?:\.|$)/i',
+            // Vertical movement actions
+            '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(climbs?|descends?|jumps?|leaps?|dives?|swims?|crawls?)[^.]*?(?:\.|$)/i',
+            // Vehicle/Transport actions
+            '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(drives?|rides?|flies?|steers?|navigates?|pilots?)[^.]*?(?:\.|$)/i',
         ];
 
         foreach ($dramaticPatterns as $pattern) {
@@ -24472,7 +24506,10 @@ PROMPT;
 
         // Priority 3: Extract any sentence with strong action verbs
         $sentences = preg_split('/[.!?]+/', $desc);
-        $strongVerbs = ['roar', 'scream', 'charge', 'strike', 'raise', 'challenge', 'confront', 'thunder', 'bellow', 'pound', 'slam', 'rush', 'leap', 'grab', 'throw'];
+        $strongVerbs = ['roar', 'scream', 'charge', 'strike', 'raise', 'challenge', 'confront', 'thunder', 'bellow', 'pound', 'slam', 'rush', 'leap', 'grab', 'throw',
+            // Intelligence, movement, manipulation
+            'intercept', 'capture', 'retrieve', 'discover', 'escape', 'evade', 'pull', 'push', 'reveal', 'expose', 'watch', 'observe', 'scan', 'track', 'climb', 'jump', 'dive', 'drive', 'hack', 'infiltrate', 'decode', 'unlock', 'smash', 'break',
+        ];
 
         foreach ($sentences as $sentence) {
             $sentence = trim($sentence);
@@ -24484,6 +24521,45 @@ PROMPT;
         }
 
         return null;
+    }
+
+    /**
+     * Strip speech markers ([NARRATOR], [CHARACTER_NAME], [INTERNAL_THOUGHT]) from text.
+     * These markers are used for TTS routing but should never appear in video/image prompts.
+     */
+    protected function stripSpeechMarkers(string $text): string
+    {
+        // Remove [NARRATOR], [CHARACTER_NAME], [INTERNAL_THOUGHT] markers
+        $cleaned = preg_replace('/\[(?:NARRATOR|INTERNAL_THOUGHT|[A-Z][A-Z_\s\']+)\]\s*/i', '', $text);
+        // Remove leading/trailing whitespace and collapse double spaces
+        return trim(preg_replace('/\s{2,}/', ' ', $cleaned));
+    }
+
+    /**
+     * Split narration into chunks distributed across shots.
+     * Used as fallback when NarrativeMomentService returns weak moments.
+     */
+    protected function splitNarrationForShots(string $narration, int $shotCount): array
+    {
+        if (empty($narration) || $shotCount < 1) return [];
+
+        // Split by sentence boundaries
+        $sentences = preg_split('/(?<=[.!?])\s+/', trim($narration));
+        $sentences = array_filter(array_map('trim', $sentences));
+        $sentences = array_values($sentences);
+
+        if (empty($sentences)) return array_fill(0, $shotCount, $narration);
+
+        // Distribute sentences across shots as evenly as possible
+        $chunks = array_fill(0, $shotCount, '');
+        $sentencesPerShot = max(1, ceil(count($sentences) / $shotCount));
+
+        foreach ($sentences as $idx => $sentence) {
+            $shotIdx = min((int) floor($idx / $sentencesPerShot), $shotCount - 1);
+            $chunks[$shotIdx] = trim($chunks[$shotIdx] . ' ' . $sentence);
+        }
+
+        return $chunks;
     }
 
     /**
