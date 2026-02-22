@@ -17285,15 +17285,12 @@ PROMPT;
                 $existing = $existingDataMap[$lowerName] ?? null;
 
                 // PROTECTION: If user has manually modified scenes, NEVER overwrite them
-                // Check for userModifiedScenes flag OR if existing has non-empty scenes
                 $userModifiedScenes = $existing['userModifiedScenes'] ?? false;
-                $hasExistingScenes = !empty($existing['scenes']);
 
                 // Determine which scenes to use:
-                // 1. If userModifiedScenes flag is set, always use existing
-                // 2. If existing has scenes (even without flag), preserve them for backward compatibility
-                // 3. Otherwise use auto-detected scenes
-                $finalScenes = ($userModifiedScenes || $hasExistingScenes)
+                // 1. If userModifiedScenes flag is set, always use existing (user explicitly set this)
+                // 2. Otherwise use auto-detected scenes (re-scoring may have improved accuracy)
+                $finalScenes = $userModifiedScenes
                     ? ($existing['scenes'] ?? [])
                     : $detectedScenes;
 
