@@ -8926,7 +8926,7 @@ PROMPT;
         // Check if Kokoro TTS is the active provider
         $isKokoro = false;
         try {
-            $voiceoverService = app(\Modules\AppVideoWizard\app\Services\VoiceoverService::class);
+            $voiceoverService = app(VoiceoverService::class);
             $isKokoro = $voiceoverService->getProvider() === 'kokoro';
         } catch (\Throwable $e) {
             // Fallback to OpenAI voices
