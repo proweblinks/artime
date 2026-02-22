@@ -143,11 +143,15 @@ class StoryBibleService
             'additionalInstructions' => $options['additionalInstructions'] ?? '',
         ]);
 
+        // Read temperature from admin-configurable DB prompt settings
+        $dbSettings = $this->promptService->getPromptSettings('story_bible_generation');
+
         // Call AI (single pass - leveraging large context)
         // Increase max_tokens to ensure full JSON response isn't truncated
         $result = $this->callAIWithEngine($prompt, $aiEngine, $teamId, [
             'maxResult' => 1,
             'max_tokens' => 15000, // Ensure enough tokens for full Story Bible JSON
+            'temperature' => $dbSettings['temperature'] ?? 0.7,
         ]);
 
         $durationMs = (int)((microtime(true) - $startTime) * 1000);

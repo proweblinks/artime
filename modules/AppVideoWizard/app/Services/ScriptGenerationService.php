@@ -153,10 +153,14 @@ class ScriptGenerationService
         $prompt = $this->buildScriptPrompt($promptParams);
         $startTime = microtime(true);
 
+        // Read temperature from admin-configurable DB prompt settings
+        $dbSettings = $this->promptService->getPromptSettings('script_generation');
+
         // Use tier-based AI model selection
         $result = $this->callAIWithEngine($prompt, $aiEngine, $teamId, [
             'maxResult' => 1,
             'max_tokens' => 15000, // Ensure enough tokens for full script JSON
+            'temperature' => $dbSettings['temperature'] ?? 0.7,
         ]);
         $durationMs = (int)((microtime(true) - $startTime) * 1000);
 
@@ -319,11 +323,16 @@ class ScriptGenerationService
             'aiEngine' => $aiEngine,
         ]);
 
+        // Read temperature from admin-configurable DB prompt settings
+        $dbSettings = $this->promptService->getPromptSettings('script_generation');
+        $promptTemperature = $dbSettings['temperature'] ?? 0.7;
+
         // Step 1: Generate outline/structure
         $outlinePrompt = $this->buildOutlinePrompt($topic, $tone, $duration, $params, $concept, $additionalInstructions);
         $outlineResult = $this->callAIWithEngine($outlinePrompt, $aiEngine, $teamId, [
             'maxResult' => 1,
             'max_tokens' => 8000, // Ensure enough tokens for outline JSON
+            'temperature' => $promptTemperature,
         ]);
 
         if (!empty($outlineResult['error'])) {
@@ -414,10 +423,14 @@ class ScriptGenerationService
             $options
         );
 
+        // Read temperature from admin-configurable DB prompt settings
+        $dbSettings = $this->promptService->getPromptSettings('script_generation');
+
         // Call AI with tier-based model selection
         $result = $this->callAIWithEngine($prompt, $aiEngine, $teamId, [
             'maxResult' => 1,
             'max_tokens' => 10000, // Ensure enough tokens for batch scenes
+            'temperature' => $dbSettings['temperature'] ?? 0.7,
         ]);
 
         if (!empty($result['error'])) {
@@ -681,6 +694,21 @@ PROMPT;
         $minutes = round($duration / 60, 1);
         $sectionCount = max(3, min(8, (int) ceil($duration / 120))); // ~2 min per section
 
+        // Try DB prompt template first
+        $dbPrompt = $this->promptService->getCompiledPrompt('script_outline', [
+            'topic' => $topic,
+            'tone' => $tone,
+            'duration' => $duration,
+            'minutes' => $minutes,
+            'sectionCount' => $sectionCount,
+            'additionalInstructions' => $additionalInstructions,
+        ]);
+
+        if (!empty($dbPrompt)) {
+            return $dbPrompt;
+        }
+
+        // Fallback to hardcoded prompt
         $prompt = <<<PROMPT
 You are a professional video content strategist. Create a detailed outline for a {$minutes}-minute video.
 
@@ -771,7 +799,20 @@ PROMPT;
             ? implode("\n- ", $section['keyPoints'])
             : '';
 
-        $prompt = <<<PROMPT
+        // Try DB prompt template first, fall back to hardcoded
+        $prompt = $this->promptService->getCompiledPrompt('section_scenes', [
+            'topic' => $topic,
+            'sectionTitle' => $section['title'],
+            'sectionFocus' => $section['focus'],
+            'sectionDuration' => $sectionDuration,
+            'sceneCount' => $sceneCount,
+            'avgSceneDuration' => $avgSceneDuration,
+            'tone' => $tone,
+            'keyPointsText' => $keyPointsText,
+        ]);
+
+        if (empty($prompt)) {
+            $prompt = <<<PROMPT
 You are an expert video script writer. Create {$sceneCount} detailed scenes for a video section.
 
 OVERALL TOPIC: {$topic}
@@ -791,7 +832,7 @@ RESPOND WITH ONLY THIS JSON (no markdown, no explanation):
     {
       "id": "scene-1",
       "title": "Scene title (descriptive)",
-      "narration": "Exactly what the narrator says (25-50 words)",
+      "narration": "Character dialogue and action (25-50 words using CHARACTER: format)",
       "visualDescription": "Detailed visual description for AI image generation (describe setting, mood, colors, composition)",
       "duration": {$avgSceneDuration}
     }
@@ -799,15 +840,20 @@ RESPOND WITH ONLY THIS JSON (no markdown, no explanation):
 }
 
 REQUIREMENTS:
-- Each scene narration should be 25-50 words
+- Each scene should contain character dialogue (CHARACTER: text format) or monologue (25-50 words)
 - Visual descriptions must be detailed and specific for image generation
 - Include mood, lighting, colors, and composition details in visuals
-- Narration should flow naturally from scene to scene
+- Dialogue should flow naturally from scene to scene
 PROMPT;
+        }
+
+        // Read temperature from admin-configurable DB prompt settings
+        $dbSettings = $this->promptService->getPromptSettings('section_scenes');
 
         $result = $this->callAIWithEngine($prompt, $aiEngine, $teamId, [
             'maxResult' => 1,
-            'max_tokens' => 8000, // Ensure enough tokens for section scenes
+            'max_tokens' => $dbSettings['max_tokens'] ?? 8000,
+            'temperature' => $dbSettings['temperature'] ?? 0.7,
         ]);
 
         if (!empty($result['error'])) {
@@ -3051,21 +3097,21 @@ CURRENT SCENE TITLE: {$existingScene['title']}
 CURRENT DURATION: {$existingScene['duration']} seconds
 
 Generate a new version of this scene with:
-- Fresh narration that fits the same duration
+- Fresh character dialogue/monologue that fits the same duration
 - New visual description for AI image generation
 - Maintain connection to the overall topic
 
-VOICEOVER SPEECH TYPES (IMPORTANT):
-- "narrator": External narrator describing the scene (character's lips do NOT move)
+VOICEOVER SPEECH TYPES (CRITICAL FOR LIP-SYNC):
+- "dialogue": Characters speaking to each other (character's lips MUST move) — DEFAULT
+- "monologue": Character speaking ALOUD to themselves/camera (character's lips MUST move)
 - "internal": Character's inner thoughts heard as voiceover (character's lips do NOT move)
-- "monologue": Character speaking ALOUD to themselves (character's lips MUST move)
-- "dialogue": Characters speaking to each other (character's lips MUST move)
+- "narrator": Brief scene-setting only, max 1-2 lines (character's lips do NOT move) — USE SPARINGLY
 
 RESPOND WITH ONLY THIS JSON (no markdown):
 {
   "id": "{$existingScene['id']}",
   "title": "New scene title",
-  "narration": "New narrator text (match duration)",
+  "narration": "Character dialogue and speech (match duration, use CHARACTER: format)",
   "visualDescription": "Detailed visual for AI image generation",
   "visualPrompt": "Concise prompt for image AI (50-100 words)",
   "voiceover": {
@@ -3073,8 +3119,8 @@ RESPOND WITH ONLY THIS JSON (no markdown):
     "text": "",
     "voiceId": null,
     "status": "pending",
-    "speechType": "narrator",
-    "speakingCharacter": null
+    "speechType": "dialogue",
+    "speakingCharacter": "Primary speaking character name"
   },
   "duration": {$existingScene['duration']},
   "mood": "cinematic",
@@ -3148,22 +3194,22 @@ Generate a completely new version of this scene that:
 6. Keeps the same approximate duration
 
 VOICEOVER SPEECH TYPES (CRITICAL FOR LIP-SYNC):
-- "narrator": External narrator describing the scene (character's lips do NOT move)
+- "dialogue": Characters speaking to each other (character's lips MUST move) — DEFAULT
+- "monologue": Character speaking ALOUD to themselves/camera (character's lips MUST move)
 - "internal": Character's inner thoughts heard as voiceover (character's lips do NOT move)
-- "monologue": Character speaking ALOUD to themselves (character's lips MUST move)
-- "dialogue": Characters speaking to each other (character's lips MUST move)
+- "narrator": Brief scene-setting only, max 1-2 lines (character's lips do NOT move) — USE SPARINGLY
 
 Set speechType based on WHO is speaking:
-- If a narrator describes the scene → "narrator"
-- If we hear a character's thoughts → "internal"
+- If characters talk to each other → "dialogue" (include speakingCharacter) — DEFAULT
 - If a character speaks OUT LOUD alone → "monologue" (include speakingCharacter)
-- If characters talk to each other → "dialogue" (include speakingCharacter)
+- If we hear a character's thoughts → "internal"
+- Brief scene-setting transitions only → "narrator" (use sparingly)
 
 RESPOND WITH ONLY THIS JSON (no markdown, no explanation):
 {
   "id": "{$existingScene['id']}",
   "title": "New scene title",
-  "narration": "New narrator text matching the duration",
+  "narration": "Character dialogue and speech matching the duration (use CHARACTER: format)",
   "visualDescription": "Detailed visual description for AI image generation, using Story Bible character/location descriptions",
   "visualPrompt": "Concise image generation prompt (50-100 words)",
   "voiceover": {
@@ -3171,8 +3217,8 @@ RESPOND WITH ONLY THIS JSON (no markdown, no explanation):
     "text": "",
     "voiceId": null,
     "status": "pending",
-    "speechType": "narrator",
-    "speakingCharacter": null
+    "speechType": "dialogue",
+    "speakingCharacter": "Primary speaking character name"
   },
   "duration": {$existingScene['duration']},
   "mood": "cinematic",
@@ -3324,21 +3370,34 @@ PROMPT;
 
         // For dialogue or special cases, we might need to transform it
         if ($narrationStyle === 'dialogue') {
-            $prompt = <<<PROMPT
-Convert this narration into natural dialogue between characters.
+            // Try DB prompt template first
+            $prompt = $this->promptService->getCompiledPrompt('voiceover_dialogue', [
+                'narration' => $narration,
+                'tone' => $tone,
+            ]);
 
-NARRATION: {$narration}
+            if (empty($prompt)) {
+                $prompt = <<<PROMPT
+Refine and enhance this character dialogue for natural delivery and lip-sync video generation.
+
+DIALOGUE: {$narration}
 TONE: {$tone}
 
-Create dialogue that:
-1. Conveys the same information as the narration
-2. Sounds natural and conversational
-3. Uses character names (SPEAKER: dialogue format)
+Enhance the dialogue to:
+1. Sound natural and conversational when spoken aloud
+2. Use CHARACTER: format (e.g., SARAH: I can't believe this.)
+3. Include appropriate pauses and emotional beats
+4. Be optimized for lip-sync video generation
 
-RESPOND WITH ONLY THE DIALOGUE TEXT (no explanation):
+RESPOND WITH ONLY THE ENHANCED DIALOGUE TEXT (no explanation):
 PROMPT;
+            }
 
-            $result = $this->callAIWithEngine($prompt, $aiEngine, $teamId, ['maxResult' => 1]);
+            $dbSettings = $this->promptService->getPromptSettings('voiceover_dialogue');
+            $result = $this->callAIWithEngine($prompt, $aiEngine, $teamId, [
+                'maxResult' => 1,
+                'temperature' => $dbSettings['temperature'] ?? 0.7,
+            ]);
 
             if (!empty($result['error'])) {
                 return $narration; // Fallback to original
@@ -3365,7 +3424,14 @@ PROMPT;
 
         $scriptJson = json_encode($script, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
-        $prompt = <<<PROMPT
+        // Try DB prompt template first
+        $prompt = $this->promptService->getCompiledPrompt('script_improve', [
+            'scriptJson' => $scriptJson,
+            'instruction' => $instruction,
+        ]);
+
+        if (empty($prompt)) {
+            $prompt = <<<PROMPT
 You are an expert video script editor. Improve the following script based on the instruction.
 
 CURRENT SCRIPT:
@@ -3375,10 +3441,14 @@ INSTRUCTION: {$instruction}
 
 RESPOND WITH ONLY THE IMPROVED JSON (no markdown, no explanation):
 PROMPT;
+        }
+
+        $dbSettings = $this->promptService->getPromptSettings('script_improve');
 
         $result = $this->callAIWithEngine($prompt, $aiEngine, $teamId, [
             'maxResult' => 1,
             'max_tokens' => 15000, // Ensure enough tokens for improved script
+            'temperature' => $dbSettings['temperature'] ?? 0.7,
         ]);
 
         if (!empty($result['error'])) {

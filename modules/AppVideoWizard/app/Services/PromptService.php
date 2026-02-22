@@ -136,7 +136,7 @@ RESPOND WITH ONLY THIS JSON (no markdown code blocks, no explanation, just pure 
     {
       "id": "scene-1",
       "title": "Scene title",
-      "narration": "What narrator says ({{wordsPerScene}} words)",
+      "narration": "Character dialogue and speech segments ({{wordsPerScene}} words)",
       "visualDescription": "Detailed visual for AI image generation (describe setting, mood, colors, lighting, composition)",
       "duration": {{avgSceneDuration}},
       "kenBurns": {
@@ -237,7 +237,7 @@ RESPOND WITH ONLY THIS JSON (no markdown, no explanation):
     {
       "id": "scene-1",
       "title": "Scene title (descriptive)",
-      "narration": "Exactly what the narrator says (25-50 words)",
+      "narration": "Character dialogue and action (25-50 words using CHARACTER: format)",
       "visualDescription": "Detailed visual description for AI image generation (describe setting, mood, colors, composition)",
       "duration": {{avgSceneDuration}}
     }
@@ -245,10 +245,10 @@ RESPOND WITH ONLY THIS JSON (no markdown, no explanation):
 }
 
 REQUIREMENTS:
-- Each scene narration should be 25-50 words
+- Each scene should contain character dialogue (CHARACTER: text format) or monologue (25-50 words)
 - Visual descriptions must be detailed and specific for image generation
 - Include mood, lighting, colors, and composition details in visuals
-- Narration should flow naturally from scene to scene
+- Dialogue should flow naturally from scene to scene
 PROMPT
             ],
 
@@ -271,7 +271,7 @@ CURRENT SCENE TITLE: {{existingTitle}}
 CURRENT DURATION: {{existingDuration}} seconds
 
 Generate a new version of this scene with:
-- Fresh narration that fits the same duration
+- Fresh character dialogue/monologue that fits the same duration
 - New visual description for AI image generation
 - Maintain connection to the overall topic
 
@@ -279,7 +279,7 @@ RESPOND WITH ONLY THIS JSON (no markdown):
 {
   "id": "{{existingId}}",
   "title": "New scene title",
-  "narration": "New narrator text (match duration)",
+  "narration": "Character dialogue and speech (match duration, use CHARACTER: format)",
   "visualDescription": "Detailed visual for AI image generation",
   "visualPrompt": "Concise prompt for image AI (50-100 words)",
   "voiceover": {
@@ -326,23 +326,24 @@ PROMPT
 
             'voiceover_dialogue' => [
                 'name' => 'Voiceover Dialogue Conversion',
-                'description' => 'Converts narration into natural dialogue between characters.',
+                'description' => 'Enhances character dialogue with natural conversational flow. Used to refine speech segments for lip-sync video generation.',
                 'variables' => ['narration', 'tone'],
                 'model' => 'gpt-4',
                 'temperature' => 0.7,
                 'max_tokens' => 500,
                 'template' => <<<'PROMPT'
-Convert this narration into natural dialogue between characters.
+Refine and enhance this character dialogue for natural delivery and lip-sync video generation.
 
-NARRATION: {{narration}}
+DIALOGUE: {{narration}}
 TONE: {{tone}}
 
-Create dialogue that:
-1. Conveys the same information as the narration
-2. Sounds natural and conversational
-3. Uses character names (SPEAKER: dialogue format)
+Enhance the dialogue to:
+1. Sound natural and conversational when spoken aloud
+2. Use CHARACTER: format (e.g., SARAH: I can't believe this.)
+3. Include appropriate pauses and emotional beats
+4. Be optimized for lip-sync video generation
 
-RESPOND WITH ONLY THE DIALOGUE TEXT (no explanation):
+RESPOND WITH ONLY THE ENHANCED DIALOGUE TEXT (no explanation):
 PROMPT
             ],
 
