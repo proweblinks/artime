@@ -3923,7 +3923,10 @@ class VideoWizard extends Component
                 $result = $service->buildPrompt($shotData, $context);
 
                 if (($result['success'] ?? false) && !empty($result['prompt'])) {
-                    if (!empty($basePrompt) && strlen($basePrompt) > 20) {
+                    // Only prepend base prompt if it contains actual scene content,
+                    // not just camera motion descriptions like "Slow cinematic pan"
+                    $isCameraMotionOnly = preg_match('/^(very\s+)?(?:subtle|slow|static|gentle|smooth|fast|rapid)?\s*(?:cinematic\s+)?(?:pan|push|pull|drift|movement|tracking|orbit|dolly|zoom|crane|tilt|handheld)/i', trim($basePrompt));
+                    if (!empty($basePrompt) && strlen($basePrompt) > 40 && !$isCameraMotionOnly) {
                         return trim($basePrompt) . '. ' . $result['prompt'];
                     }
                     return $result['prompt'];
@@ -20602,6 +20605,11 @@ PROMPT;
                     $visualDescription
                 );
 
+                // Step 5: Build proper Seedance video prompts for each shot
+                // convertDialogueShotsToStandardFormat only sets videoPrompt to camera motion
+                // descriptions. We need full Seedance prompts: Subject + Action + Camera + Style.
+                $shots = $this->buildSeedanceVideoPromptsForShots($shots, $scene, $sceneIndex, $visualDescription);
+
                 // Phase 12: Validate shot/reverse-shot pattern quality
                 $patternQuality = $this->validateShotReversePatternQuality($shots, $sceneIndex);
                 if ($patternQuality['quality'] === 'needs-review') {
@@ -24327,6 +24335,164 @@ PROMPT;
         }
 
         return null;
+    }
+
+    /**
+     * Build proper Seedance video prompts for all shots after conversion.
+     *
+     * convertDialogueShotsToStandardFormat() only sets videoPrompt to raw camera
+     * motion descriptions like "Slow cinematic pan". This method replaces those with
+     * full Seedance-formatted prompts: Subject + Action + Camera + Style, using the
+     * scene narration, visual descriptions, and character context.
+     *
+     * @param array $shots Converted shots from convertDialogueShotsToStandardFormat
+     * @param array $scene Scene data with narration, visualDescription, etc.
+     * @param int $sceneIndex Index of the scene
+     * @param string $visualDescription Scene-level visual description
+     * @return array Shots with proper Seedance video prompts
+     */
+    protected function buildSeedanceVideoPromptsForShots(array $shots, array $scene, int $sceneIndex, string $visualDescription): array
+    {
+        $narration = $scene['narration'] ?? '';
+        $sceneTitle = $scene['title'] ?? '';
+
+        foreach ($shots as $i => &$shot) {
+            $shotType = $shot['type'] ?? $shot['shotType'] ?? 'medium';
+            $cameraMovement = '';
+
+            // Extract camera movement type string from the shot's camera data
+            $camData = $shot['cameraMovement'] ?? [];
+            if (is_array($camData)) {
+                $cameraMovement = $camData['type'] ?? $camData['motion'] ?? '';
+            } elseif (is_string($camData)) {
+                $cameraMovement = $camData;
+            }
+
+            // Build rich subject action from shot content
+            $subjectAction = '';
+            $shotCharacters = $shot['charactersInShot'] ?? [];
+            $speakingChar = $shot['speakingCharacter'] ?? null;
+            $dialogue = $shot['dialogue'] ?? $shot['monologue'] ?? '';
+            $narratorText = $shot['narratorText'] ?? $shot['narration'] ?? '';
+            $isNarrator = ($shot['speechType'] ?? '') === 'narrator' || !empty($shot['narratorShot']);
+
+            if ($isNarrator) {
+                // Narrator/establishing shots: derive action from narration or visual desc
+                if (!empty($narratorText)) {
+                    $subjectAction = $this->extractActionFromNarration($narratorText);
+                }
+                if (empty($subjectAction)) {
+                    $subjectAction = $this->extractActionFromNarration($visualDescription);
+                }
+            } elseif (!empty($dialogue) && !empty($speakingChar)) {
+                // Dialogue shots: character speaks with physical action
+                $cleanDialogue = trim(strip_tags($dialogue));
+                $shortDialogue = mb_strlen($cleanDialogue) > 60
+                    ? mb_substr($cleanDialogue, 0, 57) . '...'
+                    : $cleanDialogue;
+                $subjectAction = "speaks passionately, saying \"{$shortDialogue}\"";
+            } else {
+                // Visual-only/reaction shots: derive from visual description
+                $subjectAction = $this->extractActionFromNarration($visualDescription);
+            }
+
+            // Build descriptive context for the shot that includes story elements
+            $shotVisualContext = $visualDescription;
+            if (!empty($narratorText) && $isNarrator) {
+                $shotVisualContext = $narratorText . '. ' . $visualDescription;
+            } elseif (!empty($sceneTitle)) {
+                $shotVisualContext = $sceneTitle . '. ' . $visualDescription;
+            }
+
+            // Build shot context for getMotionDescriptionForShot
+            $shotContext = [
+                'index' => $i,
+                'purpose' => $shot['purpose'] ?? ($isNarrator ? 'establishing' : 'dialogue'),
+                'isChained' => $i > 0,
+                'subjectAction' => $subjectAction,
+                'needsLipSync' => $shot['needsLipSync'] ?? false,
+                'hasDialogue' => !empty($dialogue),
+                'charactersInShot' => $shotCharacters,
+                'selectedDuration' => $shot['selectedDuration'] ?? $shot['duration'] ?? 6,
+                'sceneIndex' => $sceneIndex,
+                'movementSlug' => null,
+            ];
+
+            // Map camera movement to slug for SeedancePromptService
+            if (!empty($cameraMovement)) {
+                $seedanceMove = $this->mapDecompositionCameraToSeedance($cameraMovement);
+                if ($seedanceMove !== 'none') {
+                    $shotContext['movementSlug'] = $seedanceMove;
+                    $shot['seedanceCameraMove'] = $seedanceMove;
+                }
+            }
+
+            // Build the proper Seedance prompt via getMotionDescriptionForShot
+            $seedancePrompt = $this->getMotionDescriptionForShot(
+                $shotType,
+                $cameraMovement,
+                $shotVisualContext,
+                $shotContext
+            );
+
+            if (!empty($seedancePrompt)) {
+                $shot['videoPrompt'] = $seedancePrompt;
+                $shot['subjectAction'] = $subjectAction;
+                // Also update the narrative beat
+                if (isset($shot['narrativeBeat'])) {
+                    $shot['narrativeBeat']['motionDescription'] = $seedancePrompt;
+                }
+            }
+        }
+        unset($shot); // Break reference
+
+        return $shots;
+    }
+
+    /**
+     * Extract a concrete physical action from narration text for Seedance prompts.
+     * Looks for verb phrases that describe visible physical movement.
+     *
+     * @param string $text Narration or visual description text
+     * @return string A short action phrase suitable for Seedance, or empty string
+     */
+    protected function extractActionFromNarration(string $text): string
+    {
+        if (empty($text) || strlen($text) < 10) {
+            return '';
+        }
+
+        // Try to find action verbs in the text
+        $patterns = [
+            // Character does something
+            '/\b(?:he|she|they|the subject|the figure|the character)\s+([\w\s]{5,50}?)(?:[.,;!]|$)/i',
+            // Present tense actions
+            '/\b(walks|runs|stands|sits|turns|reaches|holds|picks up|lifts|drops|pushes|pulls|opens|closes|points|waves|nods|steps|moves|rushes|dashes|leaps|jumps|grabs|throws|strikes|fires|drives|rides|flies|swims|climbs|falls|crosses|enters|exits|approaches|retreats|charges|lunges|dodges|blocks|catches|releases)\b[^.]{0,40}/i',
+            // "ing" forms — ongoing actions
+            '/\b(walking|running|standing|fighting|chasing|fleeing|searching|watching|looking|staring|scanning|exploring|climbing|swimming|flying|driving|riding)\b[^.]{0,30}/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $text, $match)) {
+                $extracted = trim($match[0]);
+                // Clean up and limit length
+                $extracted = preg_replace('/\s{2,}/', ' ', $extracted);
+                if (strlen($extracted) > 10 && strlen($extracted) < 80) {
+                    return $extracted;
+                }
+            }
+        }
+
+        // Fallback: take the first sentence and truncate as a scene description
+        $firstSentence = strtok($text, '.!?');
+        if ($firstSentence && strlen($firstSentence) > 10) {
+            $truncated = mb_strlen($firstSentence) > 60
+                ? mb_substr($firstSentence, 0, 57) . '...'
+                : $firstSentence;
+            return trim($truncated);
+        }
+
+        return '';
     }
 
     /**
