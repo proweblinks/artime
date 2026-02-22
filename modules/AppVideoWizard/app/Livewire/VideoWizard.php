@@ -17376,13 +17376,11 @@ PROMPT;
                                     $actScenes[] = $sceneIdx;
                                 }
                             }
-                            // If no uncovered scenes in target acts, use any scene in target acts
+                            // If no uncovered scenes in target acts, skip this location
+                            // Don't duplicate covered scenes — it creates conflicts in validation
+                            // This location will fall through to the steal-from-richest fallback below
                             if (empty($actScenes)) {
-                                foreach ($sceneActMap as $sceneIdx => $actNum) {
-                                    if (in_array($actNum, $appearsInActs)) {
-                                        $actScenes[] = $sceneIdx;
-                                    }
-                                }
+                                continue;
                             }
                             if (!empty($actScenes)) {
                                 $syncedLocations[$locIdx]['scenes'] = array_values(array_unique($actScenes));
@@ -17431,14 +17429,34 @@ PROMPT;
                             ]);
                         } else {
                             // All scenes are covered but some locations have no scenes
-                            // Assign each unassigned location to at least one scene (round-robin)
-                            $sceneIdx = 0;
+                            // Steal one scene from the location with the MOST scenes (balanced redistribution)
                             foreach ($locationsWithoutScenes as $locIdx) {
-                                $syncedLocations[$locIdx]['scenes'] = [$sceneIdx % $totalScenes];
-                                $sceneIdx++;
+                                $richestLocIdx = null;
+                                $richestCount = 0;
+                                foreach ($syncedLocations as $sIdx => $sLoc) {
+                                    $sceneCount = count($sLoc['scenes'] ?? []);
+                                    if ($sceneCount > $richestCount) {
+                                        $richestCount = $sceneCount;
+                                        $richestLocIdx = $sIdx;
+                                    }
+                                }
+                                if ($richestLocIdx !== null && $richestCount > 1) {
+                                    // Steal the last scene from the richest location
+                                    $stolenScene = array_pop($syncedLocations[$richestLocIdx]['scenes']);
+                                    $syncedLocations[$locIdx]['scenes'] = [$stolenScene];
+                                    Log::debug('LocationBible: Stole scene from richest location', [
+                                        'poorLocation' => $syncedLocations[$locIdx]['name'] ?? $locIdx,
+                                        'richLocation' => $syncedLocations[$richestLocIdx]['name'] ?? $richestLocIdx,
+                                        'stolenScene' => $stolenScene,
+                                        'richRemainingScenes' => count($syncedLocations[$richestLocIdx]['scenes']),
+                                    ]);
+                                } else {
+                                    // Can't steal without leaving a location empty — force duplicate
+                                    $syncedLocations[$locIdx]['scenes'] = [$locIdx % $totalScenes];
+                                }
                             }
 
-                            Log::debug('LocationBible: All scenes covered, assigned locations round-robin', [
+                            Log::debug('LocationBible: All scenes covered, redistributed from richest', [
                                 'locationsAssigned' => count($locationsWithoutScenes),
                             ]);
                         }
