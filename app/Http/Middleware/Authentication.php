@@ -164,6 +164,7 @@ class Authentication
                 "AppProfile",
                 "Payment",
                 "AppFiles",
+                "AppVideoWizard",
             ];
 
             if(!session()->has("login_as")){
