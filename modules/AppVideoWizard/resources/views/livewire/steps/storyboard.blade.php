@@ -1522,30 +1522,15 @@ function getCameraMovementIcon($movement) {
 
                                             {{-- Compact bottom toolbar --}}
                                             <div class="vw-preview-toolbar">
-                                                <span class="vw-preview-label">{{ __('Select main image:') }}</span>
+                                                <span class="vw-preview-label">{{ __('Scene image:') }}</span>
                                                 <div class="vw-preview-actions">
-                                                    <button type="button"
-                                                            class="vw-preview-btn ai"
-                                                            wire:click="generateImage({{ $index }}, '{{ $scene['id'] }}')"
-                                                            wire:loading.attr="disabled"
-                                                            wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')"
-                                                            title="{{ __('AI Generate') }}">
-                                                        <span wire:loading.remove wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">🎨 {{ __('Generate') }}</span>
-                                                        <span wire:loading wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">⏳</span>
-                                                    </button>
-                                                    <button type="button"
-                                                            class="vw-preview-btn stock"
-                                                            wire:click="openStockBrowser({{ $index }})"
-                                                            title="{{ __('Stock Media') }}">
-                                                        📷 {{ __('Stock') }}
-                                                    </button>
                                                     <button type="button"
                                                             class="vw-preview-btn collage"
                                                             wire:click="generateCollagePreview({{ $index }})"
                                                             wire:loading.attr="disabled"
                                                             wire:target="generateCollagePreview({{ $index }})"
-                                                            title="{{ __('Collage First') }}">
-                                                        <span wire:loading.remove wire:target="generateCollagePreview({{ $index }})">🖼️ {{ __('Collage') }}</span>
+                                                            title="{{ __('Regenerate shots') }}">
+                                                        <span wire:loading.remove wire:target="generateCollagePreview({{ $index }})">🖼️ {{ __('Regenerate') }}</span>
                                                         <span wire:loading wire:target="generateCollagePreview({{ $index }})">⏳</span>
                                                     </button>
                                                     <button type="button"
@@ -1558,51 +1543,25 @@ function getCameraMovementIcon($movement) {
                                             </div>
                                         </div>
                                     @else
-                                        {{-- DYNAMIC: No background - Centered layout with cards --}}
+                                        {{-- DYNAMIC: No background - Single Generate button --}}
                                         <div class="vw-empty-center">
                                             <div class="vw-empty-icon-float">🎬</div>
-                                            <div class="vw-scene-empty-text">{{ __('Choose image source') }}</div>
-                                            <div class="vw-scene-empty-buttons">
-                                                <button type="button"
-                                                        class="vw-scene-empty-btn ai"
-                                                        wire:click="generateImage({{ $index }}, '{{ $scene['id'] }}')"
-                                                        wire:loading.attr="disabled"
-                                                        wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">
-                                                    <span class="vw-scene-empty-btn-icon" wire:loading.remove wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">🎨</span>
-                                                    <span wire:loading wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">
-                                                        <svg style="width: 20px; height: 20px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
-                                                            <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
-                                                        </svg>
-                                                    </span>
-                                                    <span class="vw-scene-empty-btn-label" wire:loading.remove wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">{{ __('AI Generate') }}</span>
-                                                    <span class="vw-scene-empty-btn-cost" wire:loading.remove wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">{{ $imageModels[$selectedModel]['cost'] ?? 2 }} {{ __('tokens') }}</span>
-                                                </button>
-                                                <button type="button"
-                                                        class="vw-scene-empty-btn stock"
-                                                        wire:click="openStockBrowser({{ $index }})"
-                                                        wire:loading.attr="disabled"
-                                                        wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">
-                                                    <span class="vw-scene-empty-btn-icon">📷</span>
-                                                    <span class="vw-scene-empty-btn-label">{{ __('Stock Media') }}</span>
-                                                    <span class="vw-scene-empty-btn-cost">{{ __('FREE') }}</span>
-                                                </button>
-                                                <button type="button"
-                                                        class="vw-scene-empty-btn collage"
-                                                        wire:click="generateCollagePreview({{ $index }})"
-                                                        wire:loading.attr="disabled"
-                                                        wire:target="generateCollagePreview({{ $index }})">
-                                                    <span class="vw-scene-empty-btn-icon" wire:loading.remove wire:target="generateCollagePreview({{ $index }})">🖼️</span>
-                                                    <span wire:loading wire:target="generateCollagePreview({{ $index }})">
-                                                        <svg style="width: 20px; height: 20px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
-                                                            <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
-                                                        </svg>
-                                                    </span>
-                                                    <span class="vw-scene-empty-btn-label" wire:loading.remove wire:target="generateCollagePreview({{ $index }})">{{ __('Collage First') }}</span>
-                                                    <span class="vw-scene-empty-btn-cost" wire:loading.remove wire:target="generateCollagePreview({{ $index }})">{{ $imageModels[$selectedModel]['cost'] ?? 2 }} {{ __('tokens') }}</span>
-                                                </button>
-                                            </div>
+                                            <div class="vw-scene-empty-text">{{ __('Generate storyboard shots') }}</div>
+                                            <button type="button"
+                                                    class="vw-scene-generate-btn"
+                                                    wire:click="generateCollagePreview({{ $index }})"
+                                                    wire:loading.attr="disabled"
+                                                    wire:target="generateCollagePreview({{ $index }})">
+                                                <span wire:loading.remove wire:target="generateCollagePreview({{ $index }})">🎬 {{ __('Generate') }}</span>
+                                                <span wire:loading wire:target="generateCollagePreview({{ $index }})">
+                                                    <svg style="width: 18px; height: 18px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
+                                                        <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                                                    </svg>
+                                                    {{ __('Generating...') }}
+                                                </span>
+                                                <span class="vw-scene-generate-cost" wire:loading.remove wire:target="generateCollagePreview({{ $index }})">{{ $imageModels[$selectedModel]['cost'] ?? 2 }} {{ __('tokens') }}</span>
+                                            </button>
                                         </div>
                                     @endif
 

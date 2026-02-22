@@ -1824,24 +1824,6 @@
         transform: translateY(-1px);
     }
 
-    .vw-preview-btn.ai {
-        background: linear-gradient(135deg, var(--vw-border-focus), rgba(6, 182, 212, 0.6));
-        border-color: var(--vw-border-focus);
-    }
-
-    .vw-preview-btn.ai:hover {
-        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.3), rgba(6, 182, 212, 0.8));
-    }
-
-    .vw-preview-btn.stock {
-        background: rgba(16, 185, 129, 0.5);
-        border-color: rgba(16, 185, 129, 0.4);
-    }
-
-    .vw-preview-btn.stock:hover {
-        background: rgba(16, 185, 129, 0.7);
-    }
-
     .vw-preview-btn.collage {
         background: linear-gradient(135deg, rgba(236, 72, 153, 0.5), var(--vw-border-focus));
         border-color: rgba(236, 72, 153, 0.4);
@@ -1898,136 +1880,47 @@
         cursor: wait;
     }
 
-    /* Action Cards Grid - Compact horizontal layout */
-    .vw-scene-empty-buttons {
+    /* Single Generate Button - Full-width prominent CTA */
+    .vw-scene-generate-btn {
         display: flex;
+        align-items: center;
+        justify-content: center;
         gap: 0.5rem;
         width: 100%;
-        max-width: 100%;
-        padding: 0 0.5rem;
-    }
-
-    /* Individual Action Card - Compact */
-    .vw-scene-empty-btn {
-        flex: 1;
-        padding: 0.65rem 0.5rem;
+        max-width: 280px;
+        padding: 0.7rem 1.25rem;
         border-radius: 0.5rem;
-        border: 1px solid var(--vw-border);
-        background: rgba(0,0,0,0.02);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.25);
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.1), rgba(236, 72, 153, 0.08));
         backdrop-filter: blur(8px);
         color: var(--vw-text);
         cursor: pointer;
-        font-size: 0.75rem;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.35rem;
+        font-size: 0.85rem;
+        font-weight: 600;
         transition: all 0.2s ease;
         position: relative;
-        overflow: hidden;
     }
 
-    /* Subtle hover effect */
-    .vw-scene-empty-btn:hover {
-        transform: translateY(-2px);
-    }
-
-    /* AI Generate - Primary gradient card */
-    .vw-scene-empty-btn.ai {
-        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.06), rgba(6, 182, 212, 0.15));
-        border-color: rgba(var(--vw-primary-rgb), 0.12);
-    }
-
-    .vw-scene-empty-btn.ai:hover {
-        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.08), rgba(6, 182, 212, 0.25));
+    .vw-scene-generate-btn:hover {
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.18), rgba(236, 72, 153, 0.15));
         border-color: var(--vw-border-focus);
-        box-shadow: 0 4px 16px rgba(var(--vw-primary-rgb), 0.08);
+        box-shadow: 0 4px 16px rgba(var(--vw-primary-rgb), 0.12);
+        transform: translateY(-1px);
     }
 
-    /* Stock Media - Green accent card */
-    .vw-scene-empty-btn.stock {
-        background: rgba(16, 185, 129, 0.1);
-        border-color: rgba(16, 185, 129, 0.25);
+    .vw-scene-generate-btn:disabled {
+        opacity: 0.7;
+        cursor: wait;
+        transform: none;
     }
 
-    .vw-scene-empty-btn.stock:hover {
-        background: rgba(16, 185, 129, 0.2);
-        border-color: rgba(16, 185, 129, 0.5);
-        box-shadow: 0 4px 16px rgba(16, 185, 129, 0.15);
-    }
-
-    /* Collage First - Pink gradient card */
-    .vw-scene-empty-btn.collage {
-        background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(var(--vw-primary-rgb), 0.04));
-        border-color: rgba(236, 72, 153, 0.25);
-    }
-
-    .vw-scene-empty-btn.collage:hover {
-        background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(var(--vw-primary-rgb), 0.08));
-        border-color: rgba(236, 72, 153, 0.5);
-        box-shadow: 0 4px 16px rgba(236, 72, 153, 0.15);
-    }
-
-    /* With background image - stronger glassmorphism */
-    .vw-scene-empty.has-bg-image .vw-scene-empty-btn {
-        backdrop-filter: blur(12px);
-        background: rgba(0, 0, 0, 0.4) !important;
-        border-color: var(--vw-border);
-    }
-
-    .vw-scene-empty.has-bg-image .vw-scene-empty-btn.ai {
-        background: linear-gradient(135deg, var(--vw-border-accent), rgba(6, 182, 212, 0.4)) !important;
-    }
-
-    .vw-scene-empty.has-bg-image .vw-scene-empty-btn.stock {
-        background: rgba(16, 185, 129, 0.35) !important;
-    }
-
-    .vw-scene-empty.has-bg-image .vw-scene-empty-btn.collage {
-        background: linear-gradient(135deg, rgba(236, 72, 153, 0.35), rgba(var(--vw-primary-rgb), 0.12)) !important;
-    }
-
-    /* Icon with glow effect */
-    .vw-scene-empty-btn-icon {
-        font-size: 1.6rem;
-        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-        transition: transform 0.3s ease;
-    }
-
-    .vw-scene-empty-btn:hover .vw-scene-empty-btn-icon {
-        transform: scale(1.1);
-    }
-
-    /* Label text */
-    .vw-scene-empty-btn-label {
-        font-weight: 500;
-        font-size: 0.8rem;
-        letter-spacing: 0.01em;
-    }
-
-    /* Cost badge - pill style */
-    .vw-scene-empty-btn-cost {
+    .vw-scene-generate-cost {
         font-size: 0.65rem;
         color: var(--vw-text-secondary);
-        background: rgba(0, 0, 0, 0.2);
+        background: rgba(0, 0, 0, 0.15);
         padding: 0.15rem 0.5rem;
         border-radius: 1rem;
-        margin-top: 0.25rem;
-    }
-
-    .vw-scene-empty-btn.stock .vw-scene-empty-btn-cost {
-        color: rgba(16, 185, 129, 0.9);
-        background: rgba(16, 185, 129, 0.15);
-    }
-
-    .vw-scene-empty-btn.ai .vw-scene-empty-btn-cost {
-        color: rgba(var(--vw-primary-rgb), 0.9);
-        background: rgba(var(--vw-primary-rgb), 0.06);
-    }
-
-    .vw-scene-empty-btn.collage .vw-scene-empty-btn-cost {
-        color: rgba(236, 72, 153, 0.9);
-        background: rgba(236, 72, 153, 0.15);
+        margin-left: 0.25rem;
     }
 
     /* ========================================

@@ -961,7 +961,8 @@ class ShotIntelligenceService
     }
 
     /**
-     * Snap duration to nearest available value.
+     * Snap duration UP to the nearest available value.
+     * Always rounds up to preserve pacing — never compresses.
      */
     protected function snapToAvailableDuration(int $duration, array $available): int
     {
@@ -969,19 +970,16 @@ class ShotIntelligenceService
             return $duration;
         }
 
-        // Find nearest available duration
-        $nearest = $available[0];
-        $minDiff = abs($duration - $nearest);
-
+        // Find the first available duration >= requested
+        sort($available);
         foreach ($available as $avail) {
-            $diff = abs($duration - $avail);
-            if ($diff < $minDiff) {
-                $minDiff = $diff;
-                $nearest = $avail;
+            if ($avail >= $duration) {
+                return $avail;
             }
         }
 
-        return $nearest;
+        // If larger than all available, return the largest
+        return end($available);
     }
 
     /**
@@ -1063,8 +1061,8 @@ class ShotIntelligenceService
         // Shot-type based durations (cinematography best practices)
         $durationMap = [
             // Opening/establishing shots - longer to set the scene
-            'establishing' => 6,
-            'extreme-wide' => 10,
+            'establishing' => 8,
+            'extreme-wide' => 8,
             'wide' => 6,
 
             // Standard narrative shots
@@ -1074,8 +1072,8 @@ class ShotIntelligenceService
             'two-shot' => 6,
             'over-shoulder' => 6,
 
-            // Close shots - quicker for impact
-            'close-up' => 5,
+            // Close shots - breathing room for emotional content
+            'close-up' => 6,
             'extreme-close-up' => 5,
             'detail' => 5,
             'insert' => 5,

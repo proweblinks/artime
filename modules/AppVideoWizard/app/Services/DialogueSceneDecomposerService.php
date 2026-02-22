@@ -1304,7 +1304,7 @@ class DialogueSceneDecomposerService
             'dialogue' => null,
             'useMultitalk' => false,
             'needsLipSync' => false,
-            'duration' => 3,
+            'duration' => 6,
             'emotionalIntensity' => 0.2,
             'visualDescription' => "Wide two-shot establishing {$charA} and {$charB} in conversation, " .
                 "both characters visible, neutral staging, setting the scene for dialogue.",
@@ -1329,7 +1329,7 @@ class DialogueSceneDecomposerService
             'dialogue' => null,
             'useMultitalk' => false,
             'needsLipSync' => false,
-            'duration' => 2,
+            'duration' => 5,
             'emotionalIntensity' => $contextShot['emotionalIntensity'] ?? 0.5,
             'visualDescription' => "Brief two-shot showing both characters, visual breathing room in the dialogue.",
             'spatial' => [
@@ -1355,7 +1355,7 @@ class DialogueSceneDecomposerService
             'dialogue' => null,
             'useMultitalk' => false,
             'needsLipSync' => false,
-            'duration' => 3,
+            'duration' => 6,
             'emotionalIntensity' => 0.8,
             'visualDescription' => "Close-up of {$speaker} for emotional emphasis, " .
                 "intense expression, dramatic moment in conversation.",
@@ -1384,7 +1384,7 @@ class DialogueSceneDecomposerService
             'description' => 'Two-shot establishing ' . implode(' and ', array_slice($characterNames, 0, 2)),
             'visualPromptAddition' => 'Two characters visible in frame, establishing their spatial relationship',
             'charactersInShot' => array_slice($speakers, 0, 2),
-            'duration' => 3, // Establishing shots are typically 2-4 seconds
+            'duration' => 6, // Establishing shots need scene-setting time
             'needsLipSync' => false,
         ];
     }
@@ -1558,7 +1558,7 @@ class DialogueSceneDecomposerService
             'description' => "Reaction shot of {$speaker}",
             'visualPromptAddition' => "{$speaker} reacting to what was just said, processing the information, subtle facial expression showing their emotional response",
             'charactersInShot' => [$speaker],
-            'duration' => 2, // Reaction shots are typically 1-3 seconds
+            'duration' => 5, // Minimum Seedance duration for quick cuts
             'needsLipSync' => false,
             'characterData' => $charData['characterData'] ?? null,
         ];
@@ -1811,27 +1811,55 @@ class DialogueSceneDecomposerService
     }
 
     /**
-     * Calculate shot durations based on dialogue length.
-     * Speaking rate: ~150 words per minute = 2.5 words per second
+     * Calculate shot durations based on dialogue length and shot type.
+     * Uses cinematography-based minimums, narration floor, and Seedance snap-up.
      */
     protected function calculateShotDurations(array $shots): array
     {
         foreach ($shots as &$shot) {
-            if ($shot['useMultitalk'] ?? false) {
-                // Calculate based on word count (150 wpm = 2.5 words/second)
-                $wordCount = $shot['wordCount'] ?? str_word_count($shot['dialogue'] ?? '');
-                $speakingDuration = $wordCount / 2.5;
+            $shotType = $shot['type'] ?? $shot['shotType'] ?? 'medium';
+            $typeMinimum = $this->getMinimumDurationForShotType($shotType);
 
-                // Add buffer for natural pacing (0.5s before + 0.5s after)
-                $shot['duration'] = max(3, ceil($speakingDuration + 1));
+            if ($shot['useMultitalk'] ?? false) {
+                $wordCount = $shot['wordCount'] ?? str_word_count($shot['dialogue'] ?? '');
+                // 150 WPM = 2.5 words/sec + 2s breathing room
+                $narrationFloor = (int) ceil($wordCount / 2.5) + 2;
+                $duration = max($typeMinimum, $narrationFloor);
+                $shot['duration'] = $this->snapUpToSeedanceDuration(min(12, $duration));
                 $shot['calculatedFromWords'] = true;
             } else {
-                // Non-speaking shots get default duration
-                $shot['duration'] = $shot['duration'] ?? 3;
+                // Non-speaking shots use type minimum, snapped to Seedance
+                $shot['duration'] = $this->snapUpToSeedanceDuration($shot['duration'] ?? $typeMinimum);
             }
         }
 
         return $shots;
+    }
+
+    /**
+     * Snap a duration UP to the nearest valid Seedance duration.
+     */
+    private function snapUpToSeedanceDuration(int $duration): int
+    {
+        foreach ([4, 5, 6, 8, 10, 12] as $avail) {
+            if ($avail >= $duration) return $avail;
+        }
+        return 12;
+    }
+
+    /**
+     * Get minimum duration for a shot type based on cinematography principles.
+     */
+    private function getMinimumDurationForShotType(string $shotType): int
+    {
+        return match($shotType) {
+            'establishing', 'extreme-wide' => 8,
+            'wide', 'two-shot' => 6,
+            'medium', 'medium-wide', 'medium-close', 'full', 'over-shoulder', 'pov' => 6,
+            'close-up' => 6,
+            'extreme-close-up', 'reaction', 'insert', 'cutaway', 'detail' => 5,
+            default => 6,
+        };
     }
 
     /**
@@ -2105,9 +2133,9 @@ class DialogueSceneDecomposerService
         array $spatial
     ): array {
         // Calculate duration based on intensity (longer for bigger reactions)
-        $baseDuration = 2;
+        $baseDuration = 5;
         $duration = $listenerEmotion['intensity'] >= 0.7
-            ? $baseDuration + 1.5  // Hold on big reactions
+            ? 6  // Hold on big reactions
             : $baseDuration;
 
         // Build visual description
@@ -2619,7 +2647,7 @@ class DialogueSceneDecomposerService
             'id' => uniqid('shot_'),
             'type' => $shotType,
             'purpose' => 'dialogue',
-            'duration' => $this->calculateDurationFromTextLength($text),
+            'duration' => $this->calculateDurationFromTextLength($text, $shotType),
             'dialogue' => $text,
             'monologue' => $text,
             'speaker' => $speaker,
@@ -2655,18 +2683,21 @@ class DialogueSceneDecomposerService
     }
 
     /**
-     * Calculate shot duration based on text length.
-     * Speaking rate: ~150 words per minute = ~2.5 words per second.
+     * Calculate shot duration based on text length and shot type.
+     * Uses cinematography minimums, narration floor, and Seedance snap-up.
      *
      * @param string $text Dialogue text
-     * @return int Duration in seconds (minimum 3s)
+     * @param string $shotType Shot type for minimum duration lookup
+     * @return int Duration in seconds (valid Seedance duration)
      */
-    protected function calculateDurationFromTextLength(string $text): int
+    protected function calculateDurationFromTextLength(string $text, string $shotType = 'medium'): int
     {
         $wordCount = str_word_count($text);
-        // 2.5 words per second + 1 second buffer for natural pacing
-        $duration = ceil($wordCount / 2.5) + 1;
-        return max(3, (int) $duration); // Minimum 3 seconds
+        // 150 WPM = 2.5 words/sec + 2s breathing room
+        $narrationFloor = (int) ceil($wordCount / 2.5) + 2;
+        $typeMinimum = $this->getMinimumDurationForShotType($shotType);
+        $duration = max($typeMinimum, $narrationFloor);
+        return $this->snapUpToSeedanceDuration(min(12, $duration));
     }
 
     /**
@@ -3142,7 +3173,7 @@ class DialogueSceneDecomposerService
      * PHASE 14: Calculate duration for an action beat.
      *
      * @param string $beat Action beat text
-     * @return int Duration in seconds (minimum 3s)
+     * @return int Duration in seconds (minimum 5s, snapped to Seedance)
      */
     protected function calculateActionBeatDuration(string $beat): int
     {
@@ -3150,7 +3181,7 @@ class DialogueSceneDecomposerService
         $wordCount = str_word_count($beat);
         // Action scenes: ~2 words per second visual pacing + 2s buffer
         $duration = ceil($wordCount / 2) + 2;
-        return max(3, min(10, (int) $duration)); // 3-10 seconds per beat
+        return $this->snapUpToSeedanceDuration(max(5, min(12, (int) $duration)));
     }
 
     /**

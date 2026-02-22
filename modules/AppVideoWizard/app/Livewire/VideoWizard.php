@@ -23079,11 +23079,12 @@ PROMPT;
             ];
         }
 
-        // Recalculate durations based on dialogue/narration text content
+        // Recalculate durations based on dialogue/narration text content + shot type
         foreach ($shots as $idx => $shot) {
             $textForDuration = $shot['dialogue'] ?? $shot['monologue'] ?? null;
             if (!empty($textForDuration)) {
-                $textDuration = $this->calculateDurationFromText($textForDuration);
+                $sType = $shot['type'] ?? $shot['shotType'] ?? 'medium';
+                $textDuration = $this->calculateDurationFromText($textForDuration, $sType);
                 $shots[$idx]['duration'] = $textDuration;
                 $shots[$idx]['selectedDuration'] = $textDuration;
                 $shots[$idx]['durationClass'] = $this->getDurationClass($textDuration);
@@ -23115,15 +23116,14 @@ PROMPT;
      */
     protected function getDurationForShotType(string $shotType): int
     {
-        // Cinematic conventions for shot durations:
-        // - Establishing/Wide shots: longer to set the scene (10s)
-        // - Medium shots: standard duration (6s)
-        // - Close-ups/Details: quick emotional impact (5s)
+        // Cinematography-based durations snapped to Seedance values
         return match($shotType) {
-            'establishing', 'wide' => 10,
-            'medium', 'medium-close' => 6,
-            'close-up', 'detail', 'reaction', 'insert' => 5,
-            default => 6, // Default to standard
+            'establishing', 'extreme-wide' => 8,
+            'wide', 'two-shot' => 6,
+            'medium', 'medium-close', 'medium-wide', 'full', 'over-shoulder', 'pov' => 6,
+            'close-up' => 6,
+            'extreme-close-up', 'detail', 'reaction', 'insert', 'cutaway' => 5,
+            default => 6,
         };
     }
 
@@ -27420,7 +27420,7 @@ PROMPT;
                         'type' => 'wide',
                         'purpose' => 'establishing',
                         'segmentIndex' => $segmentIndex,
-                        'duration' => $this->calculateDurationFromText($narratorText),
+                        'duration' => $this->calculateDurationFromText($narratorText, 'wide'),
                     ];
 
                     // Assign narrator voice
@@ -27544,18 +27544,49 @@ PROMPT;
     }
 
     /**
-     * Calculate shot duration based on text length.
-     * Speaking rate: ~150 words per minute = ~2.5 words per second.
+     * Calculate shot duration based on text length and shot type.
+     * Uses cinematography-based minimums per shot type, narration floor,
+     * and snaps UP to valid Seedance durations.
      *
-     * @param string $text Dialogue text
-     * @return int Duration in seconds (minimum 3s for natural pacing)
+     * @param string $text Dialogue/narration text
+     * @param string $shotType Shot type for minimum duration lookup
+     * @return int Duration in seconds (valid Seedance duration)
      */
-    protected function calculateDurationFromText(string $text): int
+    protected function calculateDurationFromText(string $text, string $shotType = 'medium'): int
     {
         $wordCount = str_word_count($text);
-        // 2.5 words per second + 1 second buffer for natural pacing
-        $duration = ceil($wordCount / 2.5) + 1;
-        return max(3, min(15, (int) $duration)); // 3-15 seconds range
+        // 150 WPM = 2.5 words/sec + 2s breathing room
+        $narrationFloor = (int) ceil($wordCount / 2.5) + 2;
+        $typeMinimum = $this->getMinimumDurationForShotType($shotType);
+        $duration = max($typeMinimum, $narrationFloor);
+        return $this->snapUpToSeedanceDuration(min(12, $duration));
+    }
+
+    /**
+     * Snap a duration UP to the nearest valid Seedance duration.
+     * Always rounds up, never compresses.
+     */
+    protected function snapUpToSeedanceDuration(int $duration): int
+    {
+        foreach ([4, 5, 6, 8, 10, 12] as $avail) {
+            if ($avail >= $duration) return $avail;
+        }
+        return 12;
+    }
+
+    /**
+     * Get minimum duration for a shot type based on cinematography principles.
+     */
+    protected function getMinimumDurationForShotType(string $shotType): int
+    {
+        return match($shotType) {
+            'establishing', 'extreme-wide' => 8,
+            'wide', 'two-shot' => 6,
+            'medium', 'medium-wide', 'medium-close', 'full', 'over-shoulder', 'pov' => 6,
+            'close-up' => 6,
+            'extreme-close-up', 'reaction', 'insert', 'cutaway', 'detail' => 5,
+            default => 6,
+        };
     }
 
     /**
@@ -27757,11 +27788,12 @@ PROMPT;
             }
         }
 
-        // Recalculate duration for shots with narrator text based on word count
+        // Recalculate duration for shots with narrator text based on word count + shot type
         foreach ($shots as $shotIdx => $shot) {
             if (!empty($shot['narratorText']) && $shot['narratorText'] !== '[Narrator continues]') {
-                $textDuration = $this->calculateDurationFromText($shot['narratorText']);
-                $shots[$shotIdx]['duration'] = max($shot['duration'] ?? 3, $textDuration);
+                $shotType = $shot['type'] ?? $shot['shotType'] ?? 'medium';
+                $textDuration = $this->calculateDurationFromText($shot['narratorText'], $shotType);
+                $shots[$shotIdx]['duration'] = max($shot['duration'] ?? 5, $textDuration);
                 $shots[$shotIdx]['selectedDuration'] = $shots[$shotIdx]['duration'];
             }
         }
@@ -27788,10 +27820,10 @@ PROMPT;
      */
     protected function createBaseVisualShotsForNarrator(int $sceneIndex, array $scene): array
     {
-        // Use scene duration to determine shot count, 3-5 visual shots based on content
-        // These are "silent" visual shots that narrator will play over
+        // Use scene duration to determine shot count, 2-5 visual shots based on content
+        // These are "silent" visual shots that narrator will play over (~6s each)
         $sceneDuration = $scene['duration'] ?? 10;
-        $shotCount = max(3, min(5, ceil($sceneDuration / 3))); // 3-5 shots, ~3s each
+        $shotCount = max(2, min(5, (int) ceil($sceneDuration / 6)));
 
         $sceneId = $scene['id'] ?? 'scene_' . $sceneIndex;
         $visualDescription = $scene['visualDescription'] ?? $scene['visual'] ?? $scene['narration'] ?? '';
@@ -27805,10 +27837,10 @@ PROMPT;
         $shots = [];
         for ($i = 0; $i < $shotCount; $i++) {
             $shotType = $this->selectShotTypeForNarrator($i, $shotCount);
-            // Calculate duration from narrator text chunk (falls back to 3s minimum)
+            // Calculate duration from narrator text chunk + shot type (falls back to type minimum)
             $chunkDuration = !empty($narratorChunks[$i])
-                ? $this->calculateDurationFromText($narratorChunks[$i])
-                : 3;
+                ? $this->calculateDurationFromText($narratorChunks[$i], $shotType)
+                : $this->snapUpToSeedanceDuration($this->getMinimumDurationForShotType($shotType));
 
             $shots[] = [
                 'id' => "shot-{$sceneId}-narrator-{$i}",
