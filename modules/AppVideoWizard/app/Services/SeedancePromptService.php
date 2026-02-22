@@ -4,6 +4,7 @@ namespace Modules\AppVideoWizard\Services;
 
 use Illuminate\Support\Facades\Log;
 use Modules\AppVideoWizard\Models\VwCameraMovement;
+use Modules\AppVideoWizard\Models\VwPrompt;
 use Modules\AppVideoWizard\Models\VwSeedanceStyle;
 use Modules\AppVideoWizard\Models\VwSetting;
 
@@ -83,60 +84,79 @@ class SeedancePromptService
         'warehouse' => 'echoing footsteps in empty space',
     ];
 
-    /** Default technical rules text. */
+    /** Default technical rules text (enhanced with Seedance 2.0 guide). */
     protected const DEFAULT_TECHNICAL_RULES = <<<'RULES'
-SEEDANCE VIDEO PROMPT RULES:
+SEEDANCE 2.0 VIDEO PROMPT RULES:
 
-ADVERBS — Use natural, descriptive adverbs freely:
-- High intensity: rapidly, violently, crazily, intensely, aggressively, wildly, fiercely, powerfully
-- Medium intensity: slowly, gently, steadily, smoothly, carefully, cautiously
+FIVE-PART STRUCTURE — Every prompt follows: Subject → Action → Camera → Style → Audio
+Each part is a single sentence separated by periods. Keep total prompt under 200 words.
+Template: Subject + Action + Camera [Shot size + Movement + Angle + Lens] + Style [Visual anchor + Lighting + Color] + Audio
+
+SUBJECT — Name or describe each character clearly:
+- Use uppercase names: "SARAH (detective, auburn hair)" not "the woman"
+- For multiple subjects, describe each separately
+- Include age, material, or type when relevant
+- Do NOT describe face structure — the source IMAGE defines the face
+- Use @Image1, @Image2 notation for multi-reference character consistency
+
+ACTION — EXPLICIT MOTION is mandatory:
+- Use one clear verb in the present tense. Focus on a SINGLE movement per shot.
+- Seedance CANNOT infer motion. Every movement must be explicitly described.
+- WRONG: "the cat attacks" (too vague)
+- RIGHT: "the cat slaps the man's face with its right paw"
+- Specify body parts: which hand, which direction, what gets hit
+- Use active verbs only. NO passive voice.
+- BANNED weak verbs: "goes", "moves", "does", "gets", "starts", "begins"
+- Include dialogue in quotes: says "Get off me!" while pushing back
+- Include character sounds: meows, yells, screams, growls
+- Include impact sounds: crashes, clattering, shattering
+- For action scenes: emphasize "realistic physics" and "accurate body proportions"
+- Show visible impact physics: shockwaves, debris, splash effects
+- Add sensory details: textures, temperature cues, light quality on surfaces
+- When characters interact with objects, describe what happens to the objects
+
+CAMERA — One movement per shot (CRITICAL Seedance 2.0 constraint):
+- Wide shots: slow dolly or locked-off ONLY, NO fast pans
+- Medium shots: handheld = personal feel, gimbal = polished feel
+- Close-ups: tiny push-ins only, AVOID pans (pans feel jarring on close-ups)
+- Pan: rotates laterally to reveal adjacent info, keep slow
+- Dolly/Track: moves toward, away, or alongside subject, cinematic at any speed
+- Handheld: adds slight sway/micro-shake, works for personal footage
+- NEVER combine two camera motions in a single shot
+- Specify shot size, angle, and movement using clear camera terminology
+- Avoid conflicting camera directions in the same prompt
+
+STYLE — Visual direction:
+- Always end with style anchor: "Cinematic, photorealistic."
+- Include lighting quality and color treatment
+- Add atmospheric details: haze, dust, rain, fog
+- Supported styles: cinematic, commercial, documentary, animated, whimsical, timelapse, lifestyle, futuristic
+
+AUDIO — Sound direction:
+- "No music. Only [ambient sounds]." for ambient-only shots
+- Specify "no music" for intimate, raw footage
+- Include ambient on-location sounds for authenticity
+- Sync sound effects precisely with visual actions
+- Use "low ambient hum" or "drone" for atmospheric scenes
+
+ADVERBS — Use descriptive adverbs freely:
+- High intensity: rapidly, violently, crazily, intensely, fiercely, powerfully
+- Medium intensity: slowly, gently, steadily, smoothly, carefully
 - Temporal: suddenly, immediately, then, finally, instantly
-- Place adverbs BEFORE or AFTER verbs naturally. Write as you would narrate the scene.
-
-EXPLICIT MOTION — Seedance CANNOT infer motion:
-Every movement must be EXPLICITLY described. The model will NOT animate what you don't write.
-WRONG: "the cat attacks" (too vague — HOW does it attack?)
-RIGHT: "the cat slaps the man's face with its right paw"
-If a body part should move, DESCRIBE the motion. If an object should fly, DESCRIBE the trajectory.
-
-DIALOGUE & SOUNDS — INCLUDE THEM:
-- Include character dialogue in quotes: yells "Get off me!"
-- Include character sounds: meows, yells, screams, growls, hisses
-- Include environmental sounds caused by actions: crashes, clattering, shattering
-- These help Seedance generate accurate audio and mouth movements.
-
-CAMERA STYLE — Describe when relevant:
-- "A chaotic, shaking handheld camera follows the action"
-- "Smooth tracking shot" or "Static wide shot"
-- Camera style helps set the visual tone.
-- Avoid conflicting camera directions in the same prompt.
-
-PHYSICAL ACTION — SPECIFIC BODY PARTS:
-GOOD: "slaps the man's face with its right paw"
-GOOD: "lands violently on the man's left shoulder, its claws gripping wildly"
-BAD: "the cat attacks him" (which body part? what motion? what gets hit?)
 
 MULTIPLE SUBJECTS — Handle explicitly:
-- Name or describe each subject clearly: "The man in the hat" vs "the woman in red"
-- Describe each subject's action separately when multiple subjects are present.
-
-OBJECT DISPLACEMENT — ALWAYS INCLUDE:
-When characters interact with objects during action, describe what happens.
-
-FACE & IDENTITY PRESERVATION:
-- Do NOT add face/identity prefix text — the source IMAGE defines the face.
-- NEVER describe face structure changes.
-- You may mention mouth opening for SPEAKING or SOUND PRODUCTION.
-
-STYLE ANCHOR — ALWAYS end with: "Cinematic, photorealistic."
+- Name or describe each subject clearly
+- Describe each subject's action separately when multiple subjects are present
 
 BANNED:
-- No semicolons
-- No appearance/clothing descriptions
+- No semicolons in prompts
+- No appearance/clothing descriptions (image defines this)
 - No facial micro-expression descriptions
 - No passive voice — only active verbs
-- No weak/generic verbs: "goes", "moves", "does", "gets", "starts", "begins"
-- ABSOLUTELY NO background music descriptions.
+- No background music descriptions (unless explicitly enabled)
+- No conflicting camera directions in the same prompt
+- No fast pans with wide shots
+- No pans with close-ups
 RULES;
 
     /** Default sanitization patterns grouped by phase. */
@@ -195,6 +215,26 @@ RULES;
     ];
 
     /**
+     * Try to compile a VwPrompt template by slug. Returns null if template
+     * doesn't exist or compilation fails — caller falls back to hardcoded logic.
+     */
+    protected function tryCompileTemplate(string $slug, array $variables): ?string
+    {
+        try {
+            $prompt = VwPrompt::getBySlug($slug);
+            if (!$prompt) return null;
+            $compiled = $prompt->compile($variables);
+            // Clean unresolved empty placeholders (when variable was empty string)
+            $compiled = preg_replace('/,?\s*\{\{\w+\}\}\s*,?/', '', $compiled);
+            $compiled = preg_replace('/,\s*,/', ',', $compiled);
+            $compiled = trim($compiled, " ,.\n");
+            return !empty($compiled) ? $compiled : null;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
      * Build a complete Seedance-native prompt from shot data and context.
      *
      * @param array $shot Shot data (type, subjectAction, description, cameraMovement, etc.)
@@ -212,18 +252,32 @@ RULES;
             $style = $this->buildStylePart($shot, $context);
             $audio = $this->buildAudioDirection($shot, $context);
 
-            // Assemble: Subject Action. Scene Context. Continuity. Camera. Style. Audio.
-            $parts = array_filter([
-                $subject . ' ' . $action,
-                $sceneContext,
-                $continuity,
-                $camera,
-                $style,
+            // Try template-based assembly first
+            $fromTemplate = $this->tryCompileTemplate('seedance_assembly', [
+                'subject_action' => $subject . ' ' . $action,
+                'scene_context' => $sceneContext,
+                'continuity' => $continuity,
+                'camera' => $camera,
+                'style' => $style,
+                'audio' => $audio,
             ]);
-            $prompt = implode('. ', $parts) . '.';
 
-            if (!empty($audio)) {
-                $prompt .= ' ' . $audio;
+            if ($fromTemplate) {
+                $prompt = $fromTemplate;
+            } else {
+                // Fallback: hardcoded assembly
+                $parts = array_filter([
+                    $subject . ' ' . $action,
+                    $sceneContext,
+                    $continuity,
+                    $camera,
+                    $style,
+                ]);
+                $prompt = implode('. ', $parts) . '.';
+
+                if (!empty($audio)) {
+                    $prompt .= ' ' . $audio;
+                }
             }
 
             // Clean up
@@ -282,9 +336,21 @@ RULES;
                 $name = strtoupper($bibleEntry['name']);
                 $role = $bibleEntry['role'] ?? 'character';
                 $brief = $this->buildBriefCharacterDescription($bibleEntry);
-                $descriptions[] = !empty($brief)
-                    ? "{$name} ({$role}, {$brief})"
-                    : "{$name} ({$role})";
+
+                // Try template-based subject format
+                $fromTemplate = $this->tryCompileTemplate('seedance_subject', [
+                    'character_name' => $name,
+                    'role' => $role,
+                    'brief_description' => $brief,
+                ]);
+
+                if ($fromTemplate) {
+                    $descriptions[] = $fromTemplate;
+                } elseif (!empty($brief)) {
+                    $descriptions[] = "{$name} ({$role}, {$brief})";
+                } else {
+                    $descriptions[] = "{$name} ({$role})";
+                }
             } else {
                 $descriptions[] = strtoupper($charName);
             }
@@ -304,30 +370,44 @@ RULES;
      */
     public function buildActionPart(array $shot, array $context): string
     {
-        $parts = [];
-
         // 1. Dialogue with speaker attribution (skip narrator shots)
         $dialogue = $shot['dialogue'] ?? $shot['monologue'] ?? '';
         $isNarrator = ($shot['speechType'] ?? '') === 'narrator';
 
-        if (!empty($dialogue) && !$isNarrator) {
-            $clean = trim(strip_tags($dialogue));
-            $truncated = $this->truncateAtWordBoundary($clean, 80);
-            $parts[] = "says \"{$truncated}\"";
-        }
-
         // 2. Physical action from subjectAction
         $subjectAction = $shot['subjectAction'] ?? '';
+        $cleanedAction = '';
         if (!empty($subjectAction) && strlen($subjectAction) > 5) {
-            $cleaned = $this->cleanActionVerb($subjectAction);
+            $cleanedAction = $this->cleanActionVerb($subjectAction);
             // Avoid duplicating speech verbs if we already have dialogue
-            if (empty($dialogue) || !preg_match('/^(?:speaks?|says?|talking)\b/i', $cleaned)) {
-                $parts[] = $cleaned;
+            if (!empty($dialogue) && preg_match('/^(?:speaks?|says?|talking)\b/i', $cleanedAction)) {
+                $cleanedAction = '';
             }
         }
 
-        if (!empty($parts)) {
+        // Try template-based action
+        if (!empty($dialogue) && !$isNarrator) {
+            $clean = trim(strip_tags($dialogue));
+            $truncated = $this->truncateAtWordBoundary($clean, 80);
+
+            $fromTemplate = $this->tryCompileTemplate('seedance_action_dialogue', [
+                'dialogue_text' => $truncated,
+                'physical_action' => $cleanedAction,
+            ]);
+            if ($fromTemplate) return $fromTemplate;
+
+            // Hardcoded fallback
+            $parts = ["says \"{$truncated}\""];
+            if (!empty($cleanedAction)) $parts[] = $cleanedAction;
             return implode(', ', $parts);
+        }
+
+        if (!empty($cleanedAction)) {
+            $fromTemplate = $this->tryCompileTemplate('seedance_action_no_dialogue', [
+                'physical_action' => $cleanedAction,
+            ]);
+            if ($fromTemplate) return $fromTemplate;
+            return $cleanedAction;
         }
 
         // Fallback: extract from description or use shot-type fallback
@@ -379,13 +459,17 @@ RULES;
 
         // Build shot size from shot type
         $shotSize = $this->mapShotTypeToSize($shotType);
+        $movementText = $seedanceSyntax ?: 'Eye-level, Normal lens';
 
-        if ($seedanceSyntax) {
-            return "{$shotSize}, {$seedanceSyntax}";
-        }
+        // Try template-based camera
+        $fromTemplate = $this->tryCompileTemplate('seedance_camera', [
+            'shot_size' => $shotSize,
+            'movement_syntax' => $movementText,
+        ]);
+        if ($fromTemplate) return $fromTemplate;
 
-        // Construct manually: size + default movement
-        return "{$shotSize}, Eye-level, Normal lens";
+        // Hardcoded fallback
+        return "{$shotSize}, {$movementText}";
     }
 
     /**
@@ -393,43 +477,45 @@ RULES;
      */
     public function buildStylePart(array $shot, array $context): string
     {
-        $parts = [];
-
-        // Visual style
+        // Resolve visual style
         $visualSlug = VwSetting::getValue('seedance_default_visual_style', 'cinematic');
         $visualStyle = VwSeedanceStyle::getBySlug($visualSlug);
-        if ($visualStyle) {
-            $parts[] = $visualStyle['promptSyntax'];
-        } else {
-            $parts[] = $this->getStyleAnchor();
-        }
+        $visualText = $visualStyle ? $visualStyle['promptSyntax'] : $this->getStyleAnchor();
 
-        // Lighting
+        // Resolve lighting
         $lightingSlug = VwSetting::getValue('seedance_default_lighting', 'natural-window-light');
         $lightingStyle = VwSeedanceStyle::getBySlug($lightingSlug);
-        if ($lightingStyle) {
-            $parts[] = $lightingStyle['promptSyntax'];
-        }
+        $lightingText = $lightingStyle ? $lightingStyle['promptSyntax'] : '';
 
-        // Color treatment (optional)
+        // Resolve color treatment
         $colorSlug = VwSetting::getValue('seedance_default_color_treatment', '');
+        $colorText = '';
         if (!empty($colorSlug)) {
             $colorStyle = VwSeedanceStyle::getBySlug($colorSlug);
-            if ($colorStyle) {
-                $parts[] = $colorStyle['promptSyntax'];
+            $colorText = $colorStyle ? $colorStyle['promptSyntax'] : '';
+        }
+
+        // Genre-specific atmosphere as color fallback
+        if (empty($colorText)) {
+            $genre = $context['genre'] ?? '';
+            if (!empty($genre)) {
+                $genreAtmosphere = $context['atmosphere'] ?? '';
+                if (!empty($genreAtmosphere) && strlen($genreAtmosphere) < 50) {
+                    $colorText = $genreAtmosphere;
+                }
             }
         }
 
-        // Genre-specific override if context provides one
-        $genre = $context['genre'] ?? '';
-        if (!empty($genre) && empty($colorSlug)) {
-            $genreAtmosphere = $context['atmosphere'] ?? '';
-            if (!empty($genreAtmosphere) && strlen($genreAtmosphere) < 50) {
-                $parts[] = $genreAtmosphere;
-            }
-        }
+        // Try template-based style
+        $fromTemplate = $this->tryCompileTemplate('seedance_style', [
+            'visual_style' => $visualText,
+            'lighting' => $lightingText,
+            'color_treatment' => $colorText,
+        ]);
+        if ($fromTemplate) return $fromTemplate;
 
-        return implode(', ', array_filter($parts));
+        // Hardcoded fallback
+        return implode(', ', array_filter([$visualText, $lightingText, $colorText]));
     }
 
     /**
@@ -458,6 +544,12 @@ RULES;
         $ambientCues = $this->extractAmbientCues($description);
 
         if (!empty($ambientCues)) {
+            // Try template-based audio
+            $fromTemplate = $this->tryCompileTemplate('seedance_audio', [
+                'ambient_cues' => $ambientCues,
+            ]);
+            if ($fromTemplate) return $fromTemplate;
+
             return "No music. Only {$ambientCues}.";
         }
 
@@ -647,6 +739,13 @@ RULES;
      */
     public function getTechnicalRules(string $version = '1.5'): string
     {
+        // Try VwPrompt template first (supports version history + rollback)
+        $fromTemplate = $this->tryCompileTemplate('seedance_technical_rules', [
+            'style_anchor' => $this->getStyleAnchor(),
+        ]);
+        if ($fromTemplate) return $fromTemplate;
+
+        // Fallback to VwSetting, then to hardcoded constant
         return VwSetting::getValue('seedance_technical_rules', self::DEFAULT_TECHNICAL_RULES);
     }
 
@@ -843,6 +942,15 @@ RULES;
         $prevChar = $prev['speakingCharacter'] ?? '';
         $prevAction = $prev['subjectAction'] ?? '';
 
+        // Try template-based continuity
+        $fromTemplate = $this->tryCompileTemplate('seedance_continuity', [
+            'prev_shot_type' => ucfirst($prevType),
+            'prev_character' => !empty($prevChar) ? strtoupper($prevChar) : '',
+            'prev_action' => (strlen($prevAction) < 40) ? $prevAction : '',
+        ]);
+        if ($fromTemplate) return $fromTemplate;
+
+        // Hardcoded fallback
         $parts = [ucfirst($prevType) . ' shot'];
         if (!empty($prevChar)) {
             $parts[] = 'of ' . strtoupper($prevChar);

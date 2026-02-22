@@ -391,6 +391,156 @@ INSTRUCTION: {{instruction}}
 RESPOND WITH ONLY THE IMPROVED JSON (no markdown, no explanation):
 PROMPT
             ],
+
+            // =================================================================
+            // Seedance Prompt Templates (structural, not AI prompts)
+            // =================================================================
+
+            'seedance_assembly' => [
+                'name' => 'Seedance: Assembly',
+                'description' => 'Master assembly template — controls part ordering and separators for the final Seedance prompt.',
+                'variables' => ['subject_action', 'scene_context', 'continuity', 'camera', 'style', 'audio'],
+                'model' => 'n/a',
+                'temperature' => 0,
+                'max_tokens' => 0,
+                'template' => '{{subject_action}}. {{scene_context}}. {{continuity}}. {{camera}}. {{style}}. {{audio}}',
+            ],
+
+            'seedance_subject' => [
+                'name' => 'Seedance: Subject',
+                'description' => 'Per-character identity format — how each character is introduced in the prompt.',
+                'variables' => ['character_name', 'role', 'brief_description'],
+                'model' => 'n/a',
+                'temperature' => 0,
+                'max_tokens' => 0,
+                'template' => '{{character_name}} ({{role}}, {{brief_description}})',
+            ],
+
+            'seedance_action_dialogue' => [
+                'name' => 'Seedance: Action (Dialogue)',
+                'description' => 'Action format when the character has dialogue — speech attribution + physical action.',
+                'variables' => ['dialogue_text', 'physical_action'],
+                'model' => 'n/a',
+                'temperature' => 0,
+                'max_tokens' => 0,
+                'template' => 'says "{{dialogue_text}}", {{physical_action}}',
+            ],
+
+            'seedance_action_no_dialogue' => [
+                'name' => 'Seedance: Action (No Dialogue)',
+                'description' => 'Action format when the character has no dialogue — physical action only.',
+                'variables' => ['physical_action'],
+                'model' => 'n/a',
+                'temperature' => 0,
+                'max_tokens' => 0,
+                'template' => '{{physical_action}}',
+            ],
+
+            'seedance_camera' => [
+                'name' => 'Seedance: Camera',
+                'description' => 'Camera specification format — shot size + movement syntax.',
+                'variables' => ['shot_size', 'movement_syntax'],
+                'model' => 'n/a',
+                'temperature' => 0,
+                'max_tokens' => 0,
+                'template' => '{{shot_size}}, {{movement_syntax}}',
+            ],
+
+            'seedance_style' => [
+                'name' => 'Seedance: Style',
+                'description' => 'Visual style direction — visual style + lighting + color treatment.',
+                'variables' => ['visual_style', 'lighting', 'color_treatment'],
+                'model' => 'n/a',
+                'temperature' => 0,
+                'max_tokens' => 0,
+                'template' => '{{visual_style}}, {{lighting}}, {{color_treatment}}',
+            ],
+
+            'seedance_audio' => [
+                'name' => 'Seedance: Audio',
+                'description' => 'Audio/ambient direction — environmental sound cues.',
+                'variables' => ['ambient_cues'],
+                'model' => 'n/a',
+                'temperature' => 0,
+                'max_tokens' => 0,
+                'template' => 'No music. Only {{ambient_cues}}.',
+            ],
+
+            'seedance_continuity' => [
+                'name' => 'Seedance: Continuity',
+                'description' => 'Previous shot reference for visual continuity between shots.',
+                'variables' => ['prev_shot_type', 'prev_character', 'prev_action'],
+                'model' => 'n/a',
+                'temperature' => 0,
+                'max_tokens' => 0,
+                'template' => '[Previous: {{prev_shot_type}} shot, of {{prev_character}}, {{prev_action}}]',
+            ],
+
+            'seedance_technical_rules' => [
+                'name' => 'Seedance: Technical Rules',
+                'description' => 'Full Seedance 2.0 prompt engineering rules — injected as system context for prompt building.',
+                'variables' => ['style_anchor'],
+                'model' => 'n/a',
+                'temperature' => 0,
+                'max_tokens' => 0,
+                'template' => <<<'PROMPT'
+SEEDANCE 2.0 VIDEO PROMPT RULES:
+
+FIVE-PART STRUCTURE — Every prompt follows: Subject → Action → Camera → Style → Audio
+Each part is a single sentence separated by periods. Keep total prompt under 200 words.
+
+SUBJECT — Name or describe each character clearly:
+- Use uppercase names: "SARAH (detective, auburn hair)" not "the woman"
+- For multiple subjects, describe each separately: "SARAH and MIKE"
+- Do NOT describe face structure — the source IMAGE defines the face
+
+ACTION — EXPLICIT MOTION is mandatory:
+- Seedance CANNOT infer motion. Every movement must be explicitly described.
+- WRONG: "the cat attacks" (too vague)
+- RIGHT: "the cat slaps the man's face with its right paw"
+- Specify body parts: which hand, which direction, what gets hit
+- Use active verbs only. NO passive voice.
+- BANNED weak verbs: "goes", "moves", "does", "gets", "starts", "begins"
+- Include dialogue in quotes: says "Get off me!" while pushing back
+- Include character sounds: meows, yells, screams, growls
+- Include impact sounds: crashes, clattering, shattering
+- For action scenes: emphasize "realistic physics" and "accurate body proportions"
+- Add sensory details: textures, temperature cues, light quality on surfaces
+
+CAMERA — One movement per shot:
+- Wide shots: slow dolly or locked-off only, NO fast pans
+- Medium shots: handheld = personal feel, gimbal = polished feel
+- Close-ups: tiny push-ins only, AVOID pans
+- SINGLE movement per shot — never combine two camera motions
+- Describe camera style when relevant: "Smooth tracking shot" or "Static wide shot"
+
+STYLE — Visual direction:
+- Always end with style anchor: "{{style_anchor}}"
+- Include lighting quality and color treatment
+- Add atmospheric details: haze, dust, rain, fog
+
+AUDIO — Sound direction:
+- "No music. Only [ambient sounds]." for ambient-only shots
+- Mention music style only if background music is needed
+- Include environmental sounds caused by actions
+
+ADVERBS — Use descriptive adverbs freely:
+- High intensity: rapidly, violently, crazily, intensely, fiercely, powerfully
+- Medium intensity: slowly, gently, steadily, smoothly, carefully
+- Temporal: suddenly, immediately, then, finally, instantly
+
+MULTI-REFERENCE — For character consistency across shots:
+- Use @Image1, @Image2 notation when referencing multiple character images
+
+BANNED:
+- No semicolons in prompts
+- No appearance/clothing descriptions (image defines this)
+- No facial micro-expression descriptions
+- No passive voice — only active verbs
+- No background music descriptions (unless explicitly enabled)
+- No conflicting camera directions in the same prompt
+PROMPT
+            ],
         ];
     }
 

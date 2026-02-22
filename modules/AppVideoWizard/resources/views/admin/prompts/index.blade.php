@@ -89,6 +89,11 @@
                                 <td>
                                     <div class="fw-semibold">{{ $prompt->name }}</div>
                                     <code class="small text-muted">{{ $prompt->slug }}</code>
+                                    @if(str_starts_with($prompt->slug, 'seedance_'))
+                                        <span class="badge bg-success ms-1">Seedance</span>
+                                    @else
+                                        <span class="badge bg-primary ms-1">Script</span>
+                                    @endif
                                     @if($prompt->description)
                                         <div class="small text-muted mt-1">{{ Str::limit($prompt->description, 60) }}</div>
                                     @endif
