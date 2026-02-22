@@ -13633,10 +13633,11 @@ PROMPT;
             $hasExistingLocations = !empty($this->sceneMemory['locationBible']['locations']);
             $hasExistingStyle = !empty($this->sceneMemory['styleBible']['style']);
 
-            // Distinguish between skeleton entries (from speaker detection, no descriptions)
-            // and fully enriched entries (from AI extraction or manual edits)
+            // Distinguish between skeleton entries (from speaker detection, even with script-extracted descriptions)
+            // and fully enriched entries (from AI extraction via CharacterExtractionService)
+            // Only aiGenerated flag means full extraction with DNA fields has run
             $hasEnrichedCharacters = collect($existingCharacters)->contains(function ($c) {
-                return !empty($c['description']) || !empty($c['aiGenerated']);
+                return !empty($c['aiGenerated']);
             });
 
             // 1. Auto-populate Style Bible based on production type (if not already set)
