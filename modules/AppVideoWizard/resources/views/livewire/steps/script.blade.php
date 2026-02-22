@@ -1781,7 +1781,7 @@
                                     @if($isGeneratingStoryBible) disabled @endif
                                     style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #f59e0b, #ec4899); border: none; border-radius: 0.5rem; color: white; font-weight: 600; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; white-space: nowrap;">
                                 <span wire:loading.remove wire:target="generateStoryBible">✨ {{ __('Generate Story Bible') }}</span>
-                                <span wire:loading wire:target="generateStoryBible" style="display: flex; align-items: center; gap: 0.35rem;">
+                                <span wire:loading.flex wire:target="generateStoryBible" style="align-items: center; gap: 0.35rem;">
                                     <div style="width: 14px; height: 14px; border: 2px solid var(--vw-text-secondary); border-top-color: white; border-radius: 50%; animation: vw-spin 0.8s linear infinite;"></div>
                                     {{ __('Generating...') }}
                                 </span>

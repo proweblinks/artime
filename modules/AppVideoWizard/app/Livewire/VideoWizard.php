@@ -17136,14 +17136,22 @@ PROMPT;
         }
 
         if (!empty($storyBibleStyle['lighting'])) {
-            // Handle lighting - could be string or structured
+            // Handle lighting - both source and target could be string or array
+            $currentLighting = $this->sceneMemory['styleBible']['lighting'] ?? '';
             if (is_string($storyBibleStyle['lighting'])) {
-                $this->sceneMemory['styleBible']['lighting']['setup'] = $storyBibleStyle['lighting'];
+                if (is_array($currentLighting)) {
+                    $currentLighting['setup'] = $storyBibleStyle['lighting'];
+                    $this->sceneMemory['styleBible']['lighting'] = $currentLighting;
+                } else {
+                    // Both are strings — just replace
+                    $this->sceneMemory['styleBible']['lighting'] = $storyBibleStyle['lighting'];
+                }
             } else {
-                $this->sceneMemory['styleBible']['lighting'] = array_merge(
-                    $this->sceneMemory['styleBible']['lighting'],
-                    $storyBibleStyle['lighting']
-                );
+                if (is_array($currentLighting)) {
+                    $this->sceneMemory['styleBible']['lighting'] = array_merge($currentLighting, $storyBibleStyle['lighting']);
+                } else {
+                    $this->sceneMemory['styleBible']['lighting'] = $storyBibleStyle['lighting'];
+                }
             }
         }
 
