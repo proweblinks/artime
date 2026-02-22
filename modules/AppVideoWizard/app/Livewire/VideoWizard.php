@@ -21880,7 +21880,7 @@ PROMPT;
         // Build character list for the prompt (once, reuse for retries)
         $characterList = '';
         if (!empty($characters)) {
-            $charNames = array_column($characters, 'name');
+            $charNames = array_map(fn($c) => is_array($c['name'] ?? '') ? ($c['name']['full'] ?? $c['name'][0] ?? 'Unknown') : ($c['name'] ?? 'Unknown'), $characters);
             $characterList = "CHARACTERS IN SCENE:\n" . implode(', ', $charNames);
         }
 
