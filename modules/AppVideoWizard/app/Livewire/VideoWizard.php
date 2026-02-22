@@ -14934,6 +14934,36 @@ PROMPT;
     }
 
     /**
+     * Get location context from Location Bible for a given scene index.
+     * Used to pass rich location data to DialogueSceneDecomposerService
+     * instead of relying on narration keyword extraction.
+     *
+     * @param int $sceneIndex Zero-based scene index
+     * @return array Location context with location, timeOfDay, weather, mood, etc.
+     */
+    protected function getLocationContextForScene(int $sceneIndex): array
+    {
+        $locations = $this->sceneMemory['locationBible']['locations'] ?? [];
+
+        foreach ($locations as $location) {
+            $scenes = $location['scenes'] ?? [];
+            if (in_array($sceneIndex, $scenes)) {
+                return [
+                    'location' => $location['name'] ?? null,
+                    'timeOfDay' => $location['timeOfDay'] ?? null,
+                    'weather' => $location['weather'] ?? null,
+                    'mood' => $location['mood'] ?? null,
+                    'atmosphere' => $location['atmosphere'] ?? null,
+                    'lightingStyle' => $location['lightingStyle'] ?? null,
+                    'locationType' => $location['type'] ?? null,
+                ];
+            }
+        }
+
+        return [];
+    }
+
+    /**
      * Find if a character with a synonymous name already exists.
      * Handles cases like "Hero" and "Protagonist" referring to the same character.
      * PHASE 4 OPTIMIZED: Pre-built lookup map for O(1) synonym group detection.
@@ -14972,6 +15002,13 @@ PROMPT;
         // O(1) lookup to find which group the input name belongs to
         $nameGroupIdx = $synonymLookup[$name] ?? null;
 
+        // Strip honorific/title prefixes for partial matching
+        $honorifics = ['captain', 'commander', 'dr', 'dr.', 'doctor', 'professor', 'prof',
+            'sergeant', 'sgt', 'lieutenant', 'lt', 'colonel', 'col', 'general', 'gen',
+            'agent', 'detective', 'officer', 'chief', 'king', 'queen', 'prince', 'princess',
+            'lord', 'lady', 'sir', 'dame', 'elder', 'master', 'grand', 'the'];
+        $nameStripped = $this->stripHonorifics($name, $honorifics);
+
         foreach ($characters as $index => $character) {
             $existingName = strtolower(trim($character['name']));
 
@@ -14987,9 +15024,50 @@ PROMPT;
                     return $index;
                 }
             }
+
+            // Partial name matching: strip honorifics and check containment
+            // Handles "Captain Kaelen Vance" matching "KAELEN VANCE" and vice versa
+            $existingStripped = $this->stripHonorifics($existingName, $honorifics);
+
+            // Skip if either stripped name is too short (1-2 chars) to avoid false matches
+            if (strlen($nameStripped) > 2 && strlen($existingStripped) > 2) {
+                // Check if one stripped name contains the other
+                if (str_contains($existingStripped, $nameStripped) || str_contains($nameStripped, $existingStripped)) {
+                    return $index;
+                }
+
+                // Check if all significant words of one appear in the other
+                $nameWords = array_filter(explode(' ', $nameStripped), fn($w) => strlen($w) > 1);
+                $existingWords = array_filter(explode(' ', $existingStripped), fn($w) => strlen($w) > 1);
+
+                if (count($nameWords) >= 2 && count($existingWords) >= 2) {
+                    $nameInExisting = count(array_intersect($nameWords, $existingWords));
+                    // Match if at least 2 words overlap (e.g., "kaelen vance" in "kaelen vance")
+                    if ($nameInExisting >= 2) {
+                        return $index;
+                    }
+                }
+            }
         }
 
         return null;
+    }
+
+    /**
+     * Strip honorific/title prefixes from a character name.
+     *
+     * @param string $name Lowercased character name
+     * @param array $honorifics List of honorific prefixes to strip
+     * @return string Name with honorifics removed
+     */
+    protected function stripHonorifics(string $name, array $honorifics): string
+    {
+        $words = explode(' ', $name);
+        // Strip leading honorifics
+        while (!empty($words) && in_array($words[0], $honorifics)) {
+            array_shift($words);
+        }
+        return implode(' ', $words);
     }
 
     /**
@@ -17006,6 +17084,25 @@ PROMPT;
                 // NOTE: Use 'scenes' field (consistent with toggleLocationScene) not 'appliedScenes'
                 // Preserve existing ID or generate new one for reference image generation
                 $locationId = $existing['id'] ?? $bibleLoc['id'] ?? ('loc_' . time() . '_' . $idx);
+                // Derive mood from atmosphere if missing
+                $mood = $bibleLoc['mood'] ?? '';
+                $atmosphere = $bibleLoc['atmosphere'] ?? '';
+                if (empty($mood) && !empty($atmosphere)) {
+                    $mood = $atmosphere;
+                }
+
+                // Derive lightingStyle from timeOfDay if missing
+                $lightingStyle = $bibleLoc['lightingStyle'] ?? '';
+                if (empty($lightingStyle)) {
+                    $tod = strtolower($bibleLoc['timeOfDay'] ?? 'day');
+                    $lightingStyle = match ($tod) {
+                        'dawn', 'dusk' => 'warm golden-hour light with long shadows',
+                        'night' => 'low-key dramatic lighting with deep shadows',
+                        'golden-hour' => 'warm golden backlight with soft fill',
+                        default => 'natural daylight',
+                    };
+                }
+
                 $locationBibleFormat = [
                     'id' => $locationId,
                     'name' => $name,
@@ -17013,9 +17110,9 @@ PROMPT;
                     'type' => $bibleLoc['type'] ?? 'exterior',
                     'timeOfDay' => $bibleLoc['timeOfDay'] ?? 'day',
                     'weather' => $bibleLoc['weather'] ?? 'clear',
-                    'atmosphere' => $bibleLoc['atmosphere'] ?? '',
-                    'mood' => $bibleLoc['mood'] ?? '',
-                    'lightingStyle' => $bibleLoc['lightingStyle'] ?? '',
+                    'atmosphere' => $atmosphere,
+                    'mood' => $mood,
+                    'lightingStyle' => $lightingStyle,
                     'keyElements' => $bibleLoc['keyElements'] ?? [],
                     // PROTECTED: Scene assignments with user modification tracking
                     'scenes' => $finalScenes,
@@ -21051,12 +21148,15 @@ PROMPT;
                 // Get Character Bible for voice/character mapping
                 $characterBible = $this->sceneMemory['characterBible'] ?? [];
 
+                // Get Location Bible context for this scene
+                $locationContext = $this->getLocationContextForScene($sceneIndex);
+
                 // Step 3: Enhance with DialogueSceneDecomposerService patterns
                 $enhancedShots = $dialogueDecomposer->enhanceShotsWithDialoguePatterns(
                     $distributedShots,
                     $scene,
                     $characterBible,
-                    ['animationModel' => 'seedance']
+                    ['animationModel' => 'seedance', 'locationContext' => $locationContext]
                 );
 
                 // Step 4: Convert to standard shot format
@@ -21103,6 +21203,7 @@ PROMPT;
             $actionShots = $dialogueDecomposer->decomposeActionScene($scene, $sceneIndex, [
                 'visualDescription' => $visualDescription,
                 'characterBible' => $this->sceneMemory['characterBible'] ?? [],
+                'locationContext' => $this->getLocationContextForScene($sceneIndex),
             ]);
 
             if (!empty($actionShots)) {
@@ -21150,6 +21251,7 @@ PROMPT;
                 'includeEstablishing' => true,
                 'includeReactionShots' => true,
                 'animationModel' => 'seedance',
+                'locationContext' => $this->getLocationContextForScene($sceneIndex),
             ]);
 
             if (!empty($dialogueShots)) {

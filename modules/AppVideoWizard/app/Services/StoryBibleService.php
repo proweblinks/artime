@@ -339,7 +339,10 @@ Generate a COMPLETE Story Bible with ALL of the following sections:
      * Key objects and furniture
      * Textures and atmosphere
    - TimeOfDay: day/night/dawn/dusk/golden-hour
+   - Weather: clear/rain/storm/fog/snow/cloudy/windy
    - Atmosphere: tense/peaceful/energetic/mysterious/etc.
+   - Mood: emotional quality of the space (e.g., "foreboding", "serene", "chaotic")
+   - LightingStyle: how the location is lit (e.g., "harsh fluorescent", "warm candlelight", "neon glow", "natural sunlight")
 
 6. VISUAL STYLE
    - Mode: cinematic-realistic/stylized-animation/mixed-hybrid
@@ -392,7 +395,10 @@ Return ONLY valid JSON (no markdown, no explanation):
       "type": "interior",
       "description": "Detailed visual description: architecture, materials, colors, key objects, textures, atmosphere. Be VERY specific for AI image generation.",
       "timeOfDay": "day",
+      "weather": "clear",
       "atmosphere": "tense",
+      "mood": "foreboding",
+      "lightingStyle": "harsh fluorescent overhead with deep shadows",
       "appearsInActs": [1, 3]
     }
   ],
@@ -614,13 +620,36 @@ SCALED;
         $locations = $bible['locations'] ?? [];
         $normalized['locations'] = [];
         foreach ($locations as $idx => $loc) {
+            $mood = $loc['mood'] ?? '';
+            $atmosphere = $loc['atmosphere'] ?? '';
+            $lightingStyle = $loc['lightingStyle'] ?? '';
+
+            // Fallback: derive mood from atmosphere if empty
+            if (empty($mood) && !empty($atmosphere)) {
+                $mood = $atmosphere;
+            }
+
+            // Fallback: derive lightingStyle from timeOfDay if empty
+            if (empty($lightingStyle)) {
+                $tod = strtolower($loc['timeOfDay'] ?? 'day');
+                $lightingStyle = match ($tod) {
+                    'dawn', 'dusk' => 'warm golden-hour light with long shadows',
+                    'night' => 'low-key dramatic lighting with deep shadows',
+                    'golden-hour' => 'warm golden backlight with soft fill',
+                    default => 'natural daylight',
+                };
+            }
+
             $normalized['locations'][] = [
                 'id' => $loc['id'] ?? 'loc_' . time() . '_' . $idx,
                 'name' => $loc['name'] ?? 'Location ' . ($idx + 1),
                 'type' => $this->normalizeLocationType($loc['type'] ?? 'interior'),
                 'description' => $loc['description'] ?? '',
                 'timeOfDay' => $this->normalizeTimeOfDay($loc['timeOfDay'] ?? 'day'),
-                'atmosphere' => $loc['atmosphere'] ?? '',
+                'weather' => $loc['weather'] ?? 'clear',
+                'atmosphere' => $atmosphere,
+                'mood' => $mood,
+                'lightingStyle' => $lightingStyle,
                 'appearsInActs' => is_array($loc['appearsInActs'] ?? null) ? $loc['appearsInActs'] : [1],
                 'referenceImage' => null,
             ];

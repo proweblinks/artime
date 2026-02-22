@@ -395,6 +395,9 @@ class DialogueSceneDecomposerService
         // Distribute narrator segments and scene narration to shots
         $shots = $this->distributeNarrationToShots($shots, $narratorSegments, $sceneNarrationInfo);
 
+        // Ensure visual continuity across shots (was missing - location context from Location Bible)
+        $shots = $this->ensureVisualContinuity($shots, $scene, $options['locationContext'] ?? []);
+
         return $shots;
     }
 
@@ -2559,7 +2562,7 @@ class DialogueSceneDecomposerService
         $shots = $this->validateAndFixTransitions($shots);
 
         // Phase 14: Ensure visual continuity across shots - added by Plan 14-02
-        $shots = $this->ensureVisualContinuity($shots, $scene);
+        $shots = $this->ensureVisualContinuity($shots, $scene, $options['locationContext'] ?? []);
 
         Log::info('DialogueSceneDecomposer: Enhanced shots with dialogue patterns', [
             'total_shots' => count($shots),
@@ -2744,18 +2747,28 @@ class DialogueSceneDecomposerService
      * for downstream prompt builders. This ensures visual elements remain
      * consistent across the shot sequence.
      *
+     * Prefers Location Bible data (passed via $locationContext) over narration
+     * keyword extraction, since the Location Bible has structured data from
+     * the Story Bible with mood, atmosphere, and lighting information.
+     *
      * @param array $shots Array of shots to enhance
      * @param array $scene Scene data with narration
+     * @param array $locationContext Optional Location Bible context for this scene
      * @return array Shots with visual continuity metadata
      */
-    protected function ensureVisualContinuity(array $shots, array $scene): array
+    protected function ensureVisualContinuity(array $shots, array $scene, array $locationContext = []): array
     {
         $narration = $scene['narration'] ?? '';
 
+        // Prefer Location Bible data, fallback to narration extraction
         $sceneContext = [
-            'location' => $this->extractLocation($narration),
-            'timeOfDay' => $this->extractTimeOfDay($narration),
-            'weather' => $this->extractWeather($narration),
+            'location' => $locationContext['location'] ?? $this->extractLocation($narration),
+            'timeOfDay' => $locationContext['timeOfDay'] ?? $this->extractTimeOfDay($narration),
+            'weather' => $locationContext['weather'] ?? $this->extractWeather($narration),
+            'mood' => $locationContext['mood'] ?? null,
+            'atmosphere' => $locationContext['atmosphere'] ?? null,
+            'lightingStyle' => $locationContext['lightingStyle'] ?? null,
+            'locationType' => $locationContext['locationType'] ?? null,
         ];
 
         foreach ($shots as &$shot) {
@@ -2769,6 +2782,7 @@ class DialogueSceneDecomposerService
         Log::debug('DialogueDecomposer: Visual continuity applied', [
             'shot_count' => count($shots),
             'context' => $sceneContext,
+            'source' => !empty($locationContext) ? 'location-bible' : 'narration-extraction',
         ]);
 
         return $shots;
@@ -3009,7 +3023,7 @@ class DialogueSceneDecomposerService
         $shots = $this->validateAndFixTransitions($shots);
 
         // Apply visual continuity
-        $shots = $this->ensureVisualContinuity($shots, $scene);
+        $shots = $this->ensureVisualContinuity($shots, $scene, $context['locationContext'] ?? []);
 
         Log::info('DialogueSceneDecomposer: Action scene decomposed', [
             'scene_index' => $sceneIndex,
