@@ -22289,8 +22289,9 @@ PROMPT;
                 // Select shot type based on emotional intensity (Hollywood rule)
                 $recommendedType = $this->selectShotTypeForIntensity($intensity, $i, count($shots));
 
-                // Use recommended type unless shot already has a specific type set
-                if (empty($shot['type']) || $shot['type'] === 'medium') {
+                // Only override type if empty — preserve intentionally-set types
+                // (e.g. 'establishing' for first shot, 'medium' for last shot from selectShotTypeForNarrator)
+                if (empty($shot['type'])) {
                     $shot['type'] = $recommendedType;
                     $shot['shotType'] = $recommendedType;
                 }
@@ -22341,6 +22342,39 @@ PROMPT;
                 'description' => $varietyDesc . ' ' . $baseVisualDescription,
             ]), $sceneIndex);
             $shot['prompt'] = $shot['imagePrompt'];
+
+            // CRITICAL: Rebuild videoPrompt and narrativeBeat using the UNIQUE variety description
+            // Without this, all shots keep the same generic video prompt from initial creation
+            $momentAction = $moment['action'] ?? '';
+            $shotContext = [
+                'index' => $i,
+                'purpose' => $shot['beatType'] ?? 'narrative',
+                'isChained' => $i > 0,
+                'subjectAction' => $momentAction, // Pass moment's action for unique video prompt
+                'subject' => $moment['subject'] ?? ($characterName !== 'the subject' ? $characterName : ''),
+                'emotion' => $shot['emotion'] ?? ($moment['emotion'] ?? ''),
+                'narration' => $sceneContext['narration'] ?? '',
+                'dialogue' => $shot['dialogue'] ?? '',
+                'characters' => $sceneContext['characters'] ?? [],
+                'mood' => $sceneContext['mood'] ?? '',
+            ];
+            $cameraMovement = $shot['cameraMovement'] ?? 'static';
+            $shot['videoPrompt'] = $this->getMotionDescriptionForShot(
+                $shot['type'],
+                $cameraMovement,
+                $varietyDesc,
+                $shotContext
+            );
+            $shot['narrativeBeat']['motionDescription'] = $shot['videoPrompt'];
+
+            // Recalculate duration to respect shot type minimums after any type changes
+            $typeMinimum = $this->getMinimumDurationForShotType($shot['type']);
+            $snappedMinimum = $this->snapUpToSeedanceDuration($typeMinimum);
+            if (($shot['duration'] ?? 0) < $snappedMinimum) {
+                $shot['duration'] = $snappedMinimum;
+                $shot['selectedDuration'] = $snappedMinimum;
+                $shot['durationClass'] = $this->getDurationClass($snappedMinimum);
+            }
         }
 
         return $shots;
@@ -22454,6 +22488,18 @@ PROMPT;
         $shot['uniqueVisualDescription'] = $fallbackDesc;
         $shot['imagePrompt'] = $this->buildShotPrompt($baseVisual, ['type' => $shotType], $index, null, $sceneContext);
         $shot['prompt'] = $shot['imagePrompt'];
+
+        // Rebuild videoPrompt with fallback description
+        $shotContext = [
+            'index' => $index,
+            'purpose' => 'narrative',
+            'isChained' => $index > 0,
+            'narration' => $sceneContext['narration'] ?? '',
+            'mood' => $sceneContext['mood'] ?? '',
+        ];
+        $cameraMovement = $shot['cameraMovement'] ?? 'static';
+        $shot['videoPrompt'] = $this->getMotionDescriptionForShot($shotType, $cameraMovement, $fallbackDesc, $shotContext);
+        $shot['narrativeBeat']['motionDescription'] = $shot['videoPrompt'];
 
         return $shot;
     }
