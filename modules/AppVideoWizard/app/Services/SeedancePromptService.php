@@ -88,19 +88,20 @@ class SeedancePromptService
     protected const DEFAULT_TECHNICAL_RULES = <<<'RULES'
 SEEDANCE 2.0 VIDEO PROMPT RULES:
 
-FIVE-PART STRUCTURE — Every prompt follows: Subject → Action → Camera → Style → Audio
-Each part is a single sentence separated by periods. Keep total prompt under 200 words.
-Template: Subject + Action + Camera [Shot size + Movement + Angle + Lens] + Style [Visual anchor + Lighting + Color] + Audio
+FLOWING NARRATIVE — Write natural prose, not rigid multi-part templates:
+- Start directly with the first action. No subject listing line.
+- Use natural character references: "the man", "the cat", NOT ALL CAPS.
+- Use normal sentences with periods. Connect with temporal words: then, instantly, finally.
+- Weave camera movements into the narrative naturally.
+- Keep total prompt under 200 words.
 
-SUBJECT — Name or describe each character clearly:
-- Use uppercase names: "SARAH (detective, auburn hair)" not "the woman"
-- For multiple subjects, describe each separately
+SUBJECT — Name or describe each character naturally:
+- Use natural references: "the man", "the cat", "the woman" — NOT uppercase names
+- For multiple subjects, describe each separately within the narrative
 - Include age, material, or type when relevant
 - Do NOT describe face structure — the source IMAGE defines the face
-- Use @Image1, @Image2 notation for multi-reference character consistency
 
 ACTION — EXPLICIT MOTION is mandatory:
-- Use one clear verb in the present tense. Focus on a SINGLE movement per shot.
 - Seedance CANNOT infer motion. Every movement must be explicitly described.
 - WRONG: "the cat attacks" (too vague)
 - RIGHT: "the cat slaps the man's face with its right paw"
@@ -110,12 +111,9 @@ ACTION — EXPLICIT MOTION is mandatory:
 - Include dialogue in quotes: says "Get off me!" while pushing back
 - Include character sounds: meows, yells, screams, growls
 - Include impact sounds: crashes, clattering, shattering
-- For action scenes: emphasize "realistic physics" and "accurate body proportions"
-- Show visible impact physics: shockwaves, debris, splash effects
-- Add sensory details: textures, temperature cues, light quality on surfaces
 - When characters interact with objects, describe what happens to the objects
 
-CAMERA — One movement per shot (CRITICAL Seedance 2.0 constraint):
+CAMERA — Weave into the narrative naturally (one movement per shot):
 - Wide shots: slow dolly or locked-off ONLY, NO fast pans
 - Medium shots: handheld = personal feel, gimbal = polished feel
 - Close-ups: tiny push-ins only, AVOID pans (pans feel jarring on close-ups)
@@ -123,28 +121,24 @@ CAMERA — One movement per shot (CRITICAL Seedance 2.0 constraint):
 - Dolly/Track: moves toward, away, or alongside subject, cinematic at any speed
 - Handheld: adds slight sway/micro-shake, works for personal footage
 - NEVER combine two camera motions in a single shot
-- Specify shot size, angle, and movement using clear camera terminology
-- Avoid conflicting camera directions in the same prompt
+- Write naturally: "Chaotic handheld camera follows the action" — NOT as a separate end-tag
 
-STYLE — Visual direction:
-- Always end with style anchor: "Cinematic, photorealistic."
-- Include lighting quality and color treatment
-- Add atmospheric details: haze, dust, rain, fog
+STYLE — End naturally:
+- End with a brief style note: "Cinematic, photorealistic." when it fits naturally
 - Supported styles: cinematic, commercial, documentary, animated, whimsical, timelapse, lifestyle, futuristic
 
-AUDIO — Sound direction:
-- "No music. Only [ambient sounds]." for ambient-only shots
-- Specify "no music" for intimate, raw footage
+AUDIO — Sound direction woven naturally:
+- End with a natural sound note: "Only buzzing clippers and ambient hum."
 - Include ambient on-location sounds for authenticity
 - Sync sound effects precisely with visual actions
-- Use "low ambient hum" or "drone" for atmospheric scenes
 
 ADVERBS — Use Seedance-optimized degree words:
 - PREFERRED (best Seedance response): quickly, fast, violently, powerfully, wildly, crazy, intense, strong, with large amplitude, at high frequency, greatly
 - ACCEPTABLE motion adverbs: rapidly, slowly, gently, steadily, smoothly, carefully
 - TEMPORAL: suddenly, immediately, then, finally, instantly
 - AVOID literary adverbs: decisively, gracefully, elegantly, meticulously, tenderly, deftly, nimbly, briefly — replace with PREFERRED words
-- Every prompt should use at least 2-3 degree words even for calm scenes
+- Use degree words where they match the actual energy — don't force intensity onto calm actions
+- Calm scene: 0-2 degree words. Moderate: 3-6. Intense/chaotic: 8+
 
 DIALOGUE FORMAT:
 - ALL dialogue MUST use double quotes: says "text here"
@@ -167,11 +161,10 @@ CHARACTER SOUNDS — REQUIRED for animal subjects:
 - Place sounds naturally within action beats
 
 MULTIPLE SUBJECTS — Handle explicitly:
-- Name or describe each subject clearly
+- Name or describe each subject clearly within the narrative
 - Describe each subject's action separately when multiple subjects are present
 
 BANNED:
-- No semicolons in prompts
 - No appearance/clothing descriptions (image defines this)
 - No facial micro-expression descriptions
 - No passive voice — only active verbs
@@ -179,7 +172,6 @@ BANNED:
 - No conflicting camera directions in the same prompt
 - No fast pans with wide shots
 - No pans with close-ups
-- No standalone subject fragments (e.g., "CAT WAITER." alone) — integrate into first action sentence
 RULES;
 
     /** Default sanitization patterns grouped by phase. */
@@ -681,14 +673,14 @@ RULES;
             }
         }
 
-        // Style anchor (ensure present)
-        $styleAnchor = $this->getStyleAnchor();
-        if (!preg_match('/cinematic|photorealistic/i', $prompt)) {
+        // Style anchor — only add if NO style info at all (don't strip-and-force)
+        if (!preg_match('/cinematic|photorealistic|documentary|animated|whimsical|commercial/i', $prompt)) {
+            $styleAnchor = $this->getStyleAnchor();
             $prompt .= ' ' . $styleAnchor . '.';
         }
 
-        // Audio direction (append if not already present)
-        $hasAudioDirection = preg_match('/\b(no speech|ambient audio only|no music\. only)\b/i', $prompt);
+        // Audio direction — only append if no sound/audio info present at all
+        $hasAudioDirection = preg_match('/\b(no speech|ambient audio only|no music|only\s+\w+.*sounds?|only\s+dialogue)\b/i', $prompt);
         if (!$hasAudioDirection) {
             $audioDirection = $this->buildAudioDirection($shot, []);
             if (!empty($audioDirection)) {

@@ -784,7 +784,8 @@ ADVERBS — Use Seedance-optimized degree words:
 - ACCEPTABLE motion adverbs: rapidly, slowly, gently, steadily, smoothly, carefully
 - TEMPORAL: suddenly, immediately, then, finally, instantly
 - AVOID literary adverbs: decisively, gracefully, elegantly, meticulously, tenderly, deftly, nimbly, briefly — replace with PREFERRED words
-- Every prompt should use at least 2-3 degree words even for calm/gentle scenes.
+- Use degree words where they match the actual energy — don't force intensity onto calm actions.
+- Calm scene: 0-2 degree words. Moderate: 3-6. Intense/chaotic: 8+.
 
 EXPLICIT MOTION — Seedance CANNOT infer motion:
 Every movement must be EXPLICITLY described. The model will NOT animate what you don't write.
@@ -804,10 +805,10 @@ OFF-SCREEN, STATE DESCRIPTIONS, VAGUE MOTION — BANNED:
 - No passive state descriptions ("the plate now misses one piece") — remove or convert to action
 - No vague motion ("fades from view", "disappears") — use explicit motion ("walks into far background")
 
-CAMERA STYLE — Describe when relevant:
-- "A chaotic, shaking handheld camera follows the action"
-- "Smooth tracking shot" or "Static wide shot"
-- Camera style helps set the visual tone.
+CAMERA — Weave camera movements into the narrative naturally:
+- "The camera follows the action with chaotic handheld shaking"
+- "A smooth tracking shot captures the movement"
+- Do NOT add camera as a separate end-tag sentence. Integrate it into the flow.
 
 PHYSICAL ACTION — SPECIFIC BODY PARTS:
 GOOD: "slaps the man's face with its right paw"
@@ -827,7 +828,9 @@ FACE & IDENTITY PRESERVATION:
 - NEVER describe face structure changes: "face shifts", "expression changes to", "features contort".
 - You may mention mouth opening for SPEAKING or SOUND PRODUCTION (e.g. "yells", "mouth opens wide") — these are actions.
 
-STYLE ANCHOR — ALWAYS end with: "Cinematic, photorealistic."
+STYLE & SOUND — End naturally:
+- End with a brief style note like "Cinematic, photorealistic." if it fits naturally.
+- End with a natural sound description: "Only dialogue, meows, and crash sounds." — NOT "No music. Only [sounds]."
 
 SCALE & SIZE — Seedance renders characters at DEFAULT size unless told otherwise:
 - If characters are miniaturized/tiny → you MUST say so: "tiny miniature cat barely ankle-height"
@@ -835,7 +838,6 @@ SCALE & SIZE — Seedance renders characters at DEFAULT size unless told otherwi
 - Without explicit size cues, Seedance renders normal-sized characters.
 
 BANNED:
-- No semicolons
 - No appearance/clothing descriptions (fur color, clothing details — only what they DO)
 - No facial micro-expression descriptions ("eyes widen", "brow furrows", "expression shifts") — convey emotion through body language
 - No passive voice — only active verbs
@@ -859,29 +861,31 @@ RULES;
         return <<<'CLONE_RULES'
 === CLONE VIDEO PROMPT FORMAT ===
 
-Write a natural, vivid narrative that describes the complete action of the source video.
-Use clear, descriptive language. Include dialogue, sounds, and camera style.
+Write flowing narrative prose that describes the complete action of the source video.
+Use natural character references ("the man", "the cat"), NOT ALL CAPS names.
+Weave camera movements into the narrative naturally ("the camera follows the action with chaotic handheld shaking").
 
 PROMPT STRUCTURE — FOLLOW THE COMPLETE ACTION TIMELINE:
 Write flowing prose that covers EVERY action phase from the analysis. Do NOT skip any phase.
-Connect actions with natural transitions: "then", "suddenly", "in a quick motion".
-End with: "Cinematic, photorealistic."
+Connect actions with natural transitions: "then", "in a quick motion", "instantly".
 If the analysis describes 8 action phases → cover ALL 8 in your narrative.
 
 INCLUDE:
 - Dialogue in quotes from the audio transcript: yells "How can you ruin this?"
 - Character sounds: meows, yells, screams — these drive accurate audio generation
-- Camera style when notable: "A chaotic, shaking handheld camera follows the action"
+- Camera woven into the narrative: "Chaotic handheld camera follows the action with slight shaking"
 - Specific body parts: "slaps the man's face with its right paw", "lands on the man's left shoulder"
 - Object displacement as cause-and-effect: "jumps onto the counter and violently knocks over the iced coffee cup"
 - Physical body language for intensity: teeth baring, ears flattening, body tensing, arms flailing, fists clenching
+- End with a brief style and sound note: "Cinematic, photorealistic. Only dialogue, meows, and crash sounds."
 
 DEGREE WORDS — Use ONLY these Seedance-optimized intensity modifiers:
 - PREFERRED: quickly, fast, violently, powerfully, wildly, crazy, intense, strong, with large amplitude, at high frequency, greatly
 - ACCEPTABLE: slowly, gently, steadily, smoothly, carefully, rapidly, suddenly
 - Use "crazy" (adjective) NOT "crazily". Use "strong" NOT "strongly". Use "intense" NOT "intensely".
 - BANNED adverbs: aggressively, fiercely, crazily, intensely, desperately, gracefully, elegantly, frantically, decisively, tenderly
-- Every action sentence should include at least one degree word.
+- Use degree words where they match the actual energy — don't force intensity onto calm actions.
+- Calm scene: 0-2 degree words total. Moderate: 3-6. Intense/chaotic: 8+.
 
 DO NOT INCLUDE:
 - NO scene/setting/environment descriptions — the source image provides the scene.
@@ -889,11 +893,11 @@ DO NOT INCLUDE:
 - NO background music mentions — Seedance generates audio from text, any music reference creates unwanted audio.
 - NO facial micro-expressions ("eyes widen", "brow furrows") — convey emotion through BODY ACTIONS (teeth baring, ears flattening, tail lashing).
 - NO emotional adjectives: angry, furious, terrified, desperate, mischievous, aggressive, defiant — describe PHYSICAL body language instead.
-- NO semicolons, NO passive voice.
+- NO passive voice.
 - Do NOT fabricate actions not in the analysis. Faithful to what actually happened.
 - Match intensity: calm scene = gently/steadily/slowly, intense scene = violently/wildly/powerfully/fast.
 - If characters are miniaturized/enlarged, MENTION the size — it affects rendering.
-- Target: 100-150 words (8+ action phases → aim for 120-150 words). Under 90 = missing key actions. Completeness over brevity — include every phase from FIRST to LAST.
+- WORD COUNT scales with complexity: Simple action = 40-80 words. Moderate = 80-120. Complex multi-phase = 120-150. Do NOT inflate a simple video to hit a word count — authenticity over length.
 
 GOLD-STANDARD EXAMPLE (~75 words — this prompt produced excellent Seedance results):
 "The bear steadily walks forward. The bike's front wheel bumps into the bear's butt. The bear rapidly glances back over his shoulder, flashing a big funny smile, then turns his head forward. Instantly the bear starts a rhythmic hip-swaying butt dance, hips wildly bobbing side to side with large amplitude at high frequency, its whole body bouncing in a funny groove. The bear's arms swing loosely with large amplitude matching the hip rhythm. Continuous comedic energy throughout. Cinematic, photorealistic."
@@ -904,7 +908,7 @@ WHY IT WORKS — Follow this pattern for ANY video:
 - Reaction: Immediate response (1-2 sentences)
 - Main action: The core — most detail here (1-3 sentences)
 - Aftermath/Resolution: What happens AFTER the climax — pulling off, throwing, walking away, giving up. DO NOT SKIP THIS. (1-3 sentences)
-- Style: "Cinematic, photorealistic." (always last)
+- Ending: Brief style and sound note at the end.
 The bear example is SHORT because the bear has no resolution phase. For videos with more phases, write MORE sentences.
 CRITICAL: Your LAST action sentence should describe the FINAL thing that happens in the video, NOT the climax.
 CLONE_RULES;
@@ -1046,28 +1050,8 @@ CLONE_RULES;
             $text
         );
 
-        // Phase 3b4: Uppercase common character references for Seedance compliance
-        // "The man" → "MAN", "the cat" → "CAT", "the woman" → "WOMAN", etc.
-        $characterPatterns = [
-            '/\b[Tt]he man\b/' => 'MAN',
-            '/\b[Tt]he woman\b/' => 'WOMAN',
-            '/\b[Tt]he cat\b/' => 'CAT',
-            '/\b[Tt]he dog\b/' => 'DOG',
-            '/\b[Tt]he boy\b/' => 'BOY',
-            '/\b[Tt]he girl\b/' => 'GIRL',
-            '/\b[Aa] man\b/' => 'MAN',
-            '/\b[Aa] woman\b/' => 'WOMAN',
-            '/\b[Aa] cat\b/' => 'CAT',
-            '/\b[Aa] dog\b/' => 'DOG',
-            '/\b[Tt]he customer\b/' => 'CUSTOMER',
-            '/\b[Tt]he employee\b/' => 'EMPLOYEE',
-            '/\b[Tt]he child\b/' => 'CHILD',
-            '/\b[Tt]he baby\b/' => 'BABY',
-        ];
-
-        foreach ($characterPatterns as $pattern => $replacement) {
-            $text = preg_replace($pattern, $replacement, $text);
-        }
+        // Phase 3b4: REMOVED — No longer converting character references to ALL CAPS.
+        // Seedance 2.0 guide uses natural references ("the man", "the cat").
 
         // Phase 3c: Remove appearance/clothing descriptions
         $appearancePatterns = [
@@ -1469,11 +1453,13 @@ ANTI-PATTERNS (Seedance ignores or misinterprets these — NEVER use):
 - Off-screen references: "someone throws", "a noise from another room"
 - Vague quantities: "several", "many", "a bunch of" → use exact numbers
 
-SEEDANCE 1.5 PRO FORMAT: Natural vivid narrative. 80-150 words total.
-Build as action beats: Setup → Trigger → Reaction → Main action (body parts + modifiers) → Mood + Style.
-Use natural adverbs freely: rapidly, violently, aggressively, wildly, fiercely, crazily, intensely, gently, steadily.
+SEEDANCE 2.0 FORMAT: Flowing narrative prose. 40-150 words — scale with complexity.
+Write naturally with camera woven in: "the camera follows the action with chaotic handheld shaking."
+Use natural character references ("the man", "the cat"), NOT uppercase names.
+Build as action beats: Setup → Trigger → Reaction → Main action (body parts + modifiers) → Resolution → Style/Sound.
 Temporal words: then, instantly, after, finally. Include dialogue in quotes and character sounds. NO scene descriptions. NO appearance.
 Main action gets 50-60% of words with specific body part motions and intensity modifiers.
+End with brief style and sound note.
 RULES,
                 'generate' => <<<'RULES'
 === ADAPTIVE MODE — CHOOSE THE BEST STRUCTURE ===
@@ -1487,14 +1473,14 @@ GENTLE/CUTE concepts (calm, wholesome):
   Sentence 1-2: Establish setting + character in calm starting position with 2-3 named objects nearby.
   Sentence 3-4: Character performs small deliberate actions — tapping, nudging, tilting. One degree word each (quickly, fast).
   Sentence 5-6: Gentle continuation with a small environmental reaction (object tips, item slides).
-  Sentence 7: Warm resolution. "Continuous [gentle character sounds] throughout. Cinematic, photorealistic."
+  Sentence 7: Warm resolution with gentle character sounds woven in. End with brief style note.
   Degree words: 2-4 total. Tier 1 only (quickly, fast).
 
 PHYSICAL COMEDY concepts (slapstick, exaggerated):
   Sentence 1: Setting + character + trigger moment (a line of dialogue or situation).
   Sentence 2-3: Exaggerated physical reaction with body part decomposition. 1-2 degree words per action.
   Sentence 4-5: Chain reaction — action causes objects to move/fall/break. Stack degree words.
-  Sentence 6-7: Peak moment + aftermath. "Continuous [character sounds] throughout. Cinematic, photorealistic."
+  Sentence 6-7: Peak moment + aftermath with character sounds woven in. End with brief style note.
   Degree words: 6-10 total. Tier 1-2 (quickly, fast, powerfully, strong, intense).
 
 CHAOTIC concepts (destruction, aggressive, attack):
@@ -1502,14 +1488,14 @@ CHAOTIC concepts (destruction, aggressive, attack):
   Sentence 2: "Instantly" — first strike with stacked degree words (2-3 per action).
   Sentence 3-4: Escalation — rapid body part actions + chain reactions. "crazy" on most actions.
   Sentence 5-6: Peak chaos — maximum destruction, all body parts active simultaneously.
-  Sentence 7: "Continuous crazy aggressive [character] screaming throughout. Cinematic, photorealistic."
+  Sentence 7: Peak chaos with continuous character screaming woven in. End with brief style note.
   Degree words: 12-18 total. Tier 3 dominant (crazy, wildly, violently, with large amplitude, at high frequency).
 
 RHYTHMIC/MUSICAL concepts (dancing, marching, synchronized):
   Sentence 1-2: Establish setting + character begins rhythmic action pattern.
   Sentence 3-4: Layer additional body parts joining the rhythm (head bobs, tail sways, paws tap).
   Sentence 5-6: Full-body synchronization — all parts moving in coordinated pattern. Nearby objects vibrate/rattle.
-  Sentence 7: Camera-break moment or flourish. "Continuous crazy [character vocalizing] throughout. Cinematic, photorealistic."
+  Sentence 7: Camera-break moment or flourish with character vocalizations woven in. End with brief style note.
   Degree words: 5-8 total. Mix of Tier 1-2 (quickly, fast, powerfully, at high frequency).
 
 DRAMATIC concepts (slow build, tension, payoff):
@@ -1517,19 +1503,20 @@ DRAMATIC concepts (slow build, tension, payoff):
   Sentence 3: Small tell — one body part moves (ear twitches, finger taps).
   Sentence 4-5: Build — more body parts engage, degree words increase. Objects begin to react.
   Sentence 6-7: Payoff explosion — sudden burst of stacked degree words + chain reactions.
-  Sentence 8: "Continuous [sounds] throughout. Cinematic, photorealistic."
+  Sentence 8: Sounds woven into the final beat. End with brief style note.
   Degree words: 6-12 total. Start with 0, escalate to Tier 3 at climax.
 
-BODY PART DECOMPOSITION — APPLIES TO ALL TYPES:
-Every character: 4-7 body parts with distinct simultaneous actions.
-Animals: head, ears, mouth/jaw, front paws, hind legs, tail, body/torso.
-Humans: head, arms/hands, legs/feet, torso.
+BODY PART DETAIL — SCALE WITH COMPLEXITY:
+- Simple/calm video: describe the overall motion, not individual body parts. "The cat walks forward" is fine.
+- Physical comedy/action: add key body parts that matter. "slaps with its right paw" — only decompose what's relevant.
+- Chaotic/intense: full body part detail where multiple limbs are doing different things simultaneously.
+- Do NOT decompose simple actions into body-part inventories.
 
-SOUND DESCRIPTIONS — APPLIES TO ALL TYPES (3-5 per prompt):
-Apply degree words to sounds. "crazy loud meow" > "meow". "glass shattering" > "sound effects".
+SOUND DESCRIPTIONS — ONLY WHAT'S ACTUALLY HEARD:
+Include sounds from the video. Do NOT pad with invented sounds to fill a quota.
 
-CHAIN REACTIONS — MINIMUM 2 PER PROMPT:
-[Character body part + action + degree word] → [object reacts] → [secondary consequence]
+CHAIN REACTIONS — ONLY IF THEY HAPPEN:
+If actions cause objects to move/fall/break, include them. Do NOT invent chain reactions.
 
 ANTI-PATTERNS (NEVER use):
 - Abstract: "chaos ensues", "mayhem unfolds"
@@ -1559,7 +1546,7 @@ STRUCTURE — DIALOGUE TRIGGER → UNBROKEN CHAOS:
    Every beat: physical action + animal sound + environmental consequence happening simultaneously.
 4. PEAK LAUNCH: Animal launches onto human with maximum force — clawing, kicking, shredding.
 5. ENVIRONMENTAL CHAIN REACTIONS: Body smashes into objects → objects topple → things crash/clatter.
-6. CLOSING: "continuous crazy aggressive [animal] screaming throughout. Cinematic, photorealistic."
+6. CLOSING: End with continuous animal screaming woven into the final action beat, then a brief style and sound note.
 
 AGGRESSOR DOMINANCE — THE ANIMAL CONTROLS 100% OF THE ACTION:
 - The animal is the ONLY one driving action. It attacks, lunges, claws, launches, smashes.
@@ -2278,8 +2265,8 @@ CRITICAL RULES:
 - ANIMAL SOUNDS — ONLY IF HEARD: If the visual analysis reports animal vocalizations were HEARD in the audio (meowing, hissing, barking, growling), include them as actions in the scene. If the analysis says "No animal vocalizations detected" or only mentions panting/breathing, do NOT add animal sounds. Animals NEVER speak human words.
 - VOICEOVER vs CHARACTER SOUNDS: The audio transcript is likely a VOICEOVER narration dubbed over the video. Animals make their natural sounds. Voiceover goes in the official Seedance voiceover format.
 - The main character (camera focus) should be described FIRST in the videoPrompt.
-- UPPERCASE CHARACTER NAMES: In the videoPrompt, ALWAYS use UPPERCASE names: MAN, CAT, WOMAN, DOG, CUSTOMER, EMPLOYEE. NEVER write "the man", "the cat", "a woman" — ALWAYS "MAN", "CAT", "WOMAN". Start the videoPrompt with a Subject line listing all characters: "MAN and CAT."
-- ACTIVE VOICE ONLY: Every sentence must use active voice with the character as subject. WRONG: "causing him to flinch". RIGHT: "MAN flinches back". WRONG: "which sends items flying". RIGHT: "items fly off the counter".
+- NATURAL CHARACTER REFERENCES: In the videoPrompt, use natural references: "the man", "the cat", "the woman". NOT ALL CAPS names. Start directly with the first action, no character listing line.
+- ACTIVE VOICE ONLY: Every sentence must use active voice with the character as subject. WRONG: "causing him to flinch". RIGHT: "The man flinches back". WRONG: "which sends items flying". RIGHT: "items fly off the counter".
 - ABSOLUTELY NO background music in the videoPrompt. NEVER write "music plays", "upbeat music", "beat drops", "soundtrack", or any music mention. Seedance generates audio from the prompt text — any music reference causes unwanted background music. Only character sounds, dialogue, and physical sound effects.
 
 {$videoPromptInstruction}
@@ -2328,7 +2315,7 @@ Return ONLY a JSON object (no markdown, no explanation):
     {"speaker": "Character Name", "text": "What they actually say or do (for animals: 'meows angrily', for humans: 'actual spoken words')"},
     {"speaker": "Voiceover", "text": "Narration text if applicable"}
   ],
-  "videoPrompt": "SEE SYSTEM RULES + SEEDANCE RULES BELOW — 120-200 words. Natural vivid narrative: one sentence per phase with SPECIFIC body parts, motions, directions, dialogue in quotes, character sounds, and camera style.",
+  "videoPrompt": "SEE SYSTEM RULES + SEEDANCE RULES BELOW — 40-200 words (scale with complexity). Flowing narrative prose with actions, dialogue in quotes, character sounds, and camera woven naturally.",
   "cameraFixed": true or false,
   "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
   "viralHook": "Why this would go viral (one sentence)",
@@ -2342,19 +2329,25 @@ SEEDANCE VIDEO PROMPT RULES — READ THIS LAST, FOLLOW EXACTLY
 The "videoPrompt" is THE MOST IMPORTANT FIELD. It drives the actual video generation.
 You are CLONING a reference video — capture the ENERGY and CONCEPT of the reference FAITHFULLY.
 
-WORD COUNT: 120-200 words. Write a vivid natural narrative with specific motions, body parts, directions, dialogue in quotes, character sounds, and camera style.
-Build as ordered action beats following the COMPLETE action timeline from the analysis. End with "Cinematic, photorealistic."
-CRITICAL — EVERY ACTION PHASE MUST BE REPRESENTED:
-- The analysis describes a second-by-second action timeline. Each distinct action phase MUST appear as at least one sentence in the videoPrompt.
-- Do NOT skip, merge, or compress any action phase. If the analysis describes 8 phases, the prompt needs ~8 action sentences.
+SIMPLICITY PRINCIPLE — Match the prompt's complexity to the video's complexity:
+- Simple action (cat walking, person dancing) = short prompt (40-80 words). Do NOT inflate.
+- Moderate action (physical comedy, slapstick) = medium prompt (80-120 words).
+- Complex action (multi-phase fight, chaos, multiple characters) = full prompt (120-200 words).
+- If the video shows ONE repeating action (walking, marching, dancing), describe it ONCE well — do NOT write 8 sentences about the same motion.
+- A prompt that accurately captures a simple video in 50 words is BETTER than a 150-word prompt that over-describes it.
+
+Write flowing narrative prose. Cover the KEY action beats from the analysis timeline.
+IMPORTANT — Don't skip genuinely DIFFERENT actions:
 - A cat leaping, a man flinching, a struggle, a throw — these are SEPARATE actions requiring SEPARATE sentences.
 - Do NOT jump from "cat clings to back" to "man throws cat" — the STRUGGLE phase between them is critical.
+- BUT if 5 phases describe the same repeating motion (walking, stomping, marching), merge them into 1-2 sentences.
 DEGREE WORDS — Use these Seedance-optimized intensity modifiers (NOT literary adverbs):
 - PREFERRED: quickly, fast, violently, powerfully, wildly, crazy, intense, strong, with large amplitude, at high frequency, greatly
 - ACCEPTABLE: slowly, gently, steadily, smoothly, carefully, rapidly, suddenly
 - BANNED: aggressively, fiercely, crazily, intensely, desperately, gracefully, elegantly, frantically, furiously, decisively, tenderly, deftly, nimbly, hastily, menacingly
 - Use "crazy" (adjective) NOT "crazily". Use "strong" NOT "strongly". Use "intense" NOT "intensely".
-- Every action sentence MUST include at least one degree word.
+- Use degree words where they match the actual energy. Calm actions don't need forced intensity.
+- Calm scene: 0-2 degree words. Moderate scene: 3-6. Intense/chaotic: 8+.
 Connect actions with temporal words: then, instantly, after, finally.
 NO scene descriptions, NO appearance/clothing — only actions, motions, dialogue, sounds, and camera style.
 CONVEY INTENSITY THROUGH BODY ACTIONS — not emotional adjectives:
@@ -2393,27 +2386,25 @@ NOW generate the JSON. For videoPrompt, follow these steps IN ORDER:
 
 STEP 1: List every action phase from the analysis timeline (e.g., 0:00-0:02 = setup, 0:02-0:03 = escalation, ... 0:08-0:09 = resolution).
 STEP 2: For EACH phase, write ONE sentence capturing the SPECIFIC physical action:
-   - WHO does it — use UPPERCASE names: MAN, CAT, WOMAN, DOG (NEVER "the man", "the cat", "a woman")
+   - WHO does it — use natural references: "the man", "the cat", "the woman" (NOT ALL CAPS)
    - WHAT body part (hand, paw, mouth, legs, arms, chest)
    - WHAT specific motion (leans forward, opens mouth wide, swats with right paw, jumps off counter, scoops up from floor, flails front and hind legs)
-   - WHAT direction/result (toward CAT, to the floor, around the counter, against MAN's chest)
+   - WHAT direction/result (toward the cat, to the floor, around the counter, against the man's chest)
    - Use degree words: rapidly, violently, powerfully, wildly, quickly, fast, strongly
-   WRONG: "The cat attacks the man." (lowercase names, too vague)
-   RIGHT: "CAT violently swats at MAN's outstretched hand with right paw, claws extended."
-   WRONG: "The man grabs the cat." (lowercase names, no detail on HOW)
-   RIGHT: "MAN rapidly bends down and scoops up the struggling CAT from the floor."
+   WRONG: "The cat attacks the man." (too vague)
+   RIGHT: "The cat violently swats at the man's outstretched hand with its right paw, claws extended."
+   WRONG: "The man grabs the cat." (no detail on HOW)
+   RIGHT: "The man rapidly bends down and scoops up the struggling cat from the floor."
 STEP 3: CHECK FOR OBJECT DISPLACEMENT. Re-read the analysis — did ANY objects get knocked off, scattered, displaced, or sent flying? If yes, that MUST appear in your videoPrompt. Objects falling off counters/tables during chaos are ESSENTIAL visual elements. If the analysis says "cup falls off counter" or "items scatter" and your videoPrompt doesn't mention it, you FAILED.
 STEP 4: LAST sentence MUST be the FINAL phase (resolution/departure/exit). If the subject walks away, holds something up, or gives up — that is the ending. Do NOT stop at the climax and skip the resolution.
 STEP 5: ADD DIALOGUE & SOUNDS. Extract key dialogue from the audio transcript and include it in quotes. Include character sounds (meows, yells, screams). These drive Seedance's audio generation.
-STEP 6: FIVE-PART STRUCTURE — Format the final videoPrompt as:
-   Subject. Action sentences. Camera. Style. Audio.
-   - SUBJECT: Start with "MAN and CAT." or "WOMAN." (uppercase names, one line)
-   - ACTION: All action sentences separated by semicolons
-   - CAMERA: "Medium handheld shot." or "Static wide shot." etc.
-   - STYLE: "Cinematic, photorealistic."
-   - AUDIO: "No music. Only [list specific sounds: dialogue, character sounds, physical impacts]."
+STEP 6: SEEDANCE 2.0 FORMAT — Write the final videoPrompt as flowing narrative prose:
+   - Start DIRECTLY with the first action (no subject listing line)
+   - Weave camera movements naturally into the narrative: "Chaotic handheld camera follows the action with slight shaking"
+   - Use normal sentences with periods, NOT semicolons between actions
+   - End with a brief style and sound note: "Cinematic, photorealistic. Only dialogue, meows, and crash sounds."
 
-The videoPrompt MUST be 120-200 words. Count your words before outputting. Use the FULL budget — do NOT stop early when there are more action phases to cover.
+The videoPrompt should be 40-200 words — scale with the video's complexity. Simple videos = shorter prompts. Complex multi-phase videos = longer prompts. Do NOT pad a simple action to hit a word count.
 PROMPT;
 
         $chaosModeSupercharger = $chaosMode ? $this->getChaosModeSupercharger() : '';
@@ -2446,9 +2437,9 @@ PROMPT;
         } else {
             // Fallback to hardcoded system message
             $systemMessage = <<<SYSTEM
-You are a Seedance 1.5 Pro video prompt specialist. Your #1 job is generating the "videoPrompt" field — a vivid, natural narrative describing ALL actions in the video.
+You are a Seedance 2.0 video prompt specialist. Your #1 job is generating the "videoPrompt" field — flowing narrative prose describing ALL actions in the video.
 
-The analysis contains {$phaseCount} action phases. Your videoPrompt MUST cover ALL {$phaseCount} phases — especially the FINAL resolution/departure beat.
+The analysis contains {$phaseCount} action phases. Cover the KEY action beats — especially the FINAL resolution/departure beat. If multiple phases describe the same repeating motion, merge them into 1-2 sentences instead of writing one sentence per phase.
 
 WRITING STYLE — NATURAL NARRATIVE:
 Write as if you're vividly narrating the scene to someone who can't see it. Use natural, descriptive language.
@@ -2464,33 +2455,30 @@ DEGREE WORDS — Use ONLY these Seedance-optimized intensity modifiers:
 - ACCEPTABLE: slowly, gently, steadily, smoothly, carefully, rapidly, suddenly
 - Use "crazy" NOT "crazily". Use "strong" NOT "strongly". Use "intense" NOT "intensely".
 - BANNED: aggressively, fiercely, crazily, intensely, desperately, gracefully, elegantly, frantically, furiously, decisively, angrily
-- Every action sentence MUST include at least one degree word.
+- Use degree words where they match the actual energy — don't force intensity onto calm actions.
+- Calm scene: 0-2 degree words. Moderate: 3-6. Intense/chaotic: 8+.
 
-EXAMPLE — Good videoPrompt (five-part structure with uppercase names):
-"MAN and CAT. MAN leans powerfully over the counter and yells "How can you ruin such a bad iced coffee? There is no caramel in my caramel swirl!" then quickly points at CAT; CAT meows repeatedly and violently slaps MAN's face with its right paw; then in a quick powerful motion CAT jumps onto the counter and violently knocks over the iced coffee cup and other items; CAT jumps again and lands powerfully on MAN's left shoulder, claws gripping wildly at high frequency. Medium handheld shot. Cinematic, photorealistic. No music. Only dialogue, meows, yells, and crash sounds."
+EXAMPLE — Good videoPrompt (flowing narrative prose, Seedance 2.0 style):
+"The man leans powerfully over the counter, yelling "How can you ruin such a bad iced coffee? There is no caramel in my caramel swirl!" and quickly jabs his finger toward the cat. The cat meows repeatedly and violently slaps the man's face with its right paw, claws extended. In a quick powerful motion the cat jumps onto the counter, violently knocking the iced coffee cup and straw dispenser crashing to the floor. The cat launches again, landing powerfully on the man's left shoulder, claws gripping wildly. Chaotic handheld camera follows the action with slight shaking. Cinematic, photorealistic. Only dialogue, meows, and crash sounds."
 
 VIDEOPROMPT RULES:
-1. ONE sentence per action phase. {$phaseCount} phases = {$phaseCount} sentences. Do NOT skip or merge any phase.
+1. Cover the key action beats. If multiple phases show the SAME repeating motion, merge them — don't write 8 sentences about walking. But genuinely DIFFERENT actions need separate sentences.
 2. DEGREE WORDS: Use ONLY Seedance degree words (quickly, fast, violently, powerfully, wildly, crazy, intense, strong, with large amplitude, at high frequency, greatly, slowly, gently, steadily, smoothly, rapidly, suddenly). NEVER use: aggressively, fiercely, crazily, intensely, desperately, furiously, angrily, gracefully, elegantly, frantically.
 3. SPECIFICITY IS CRITICAL: Say "swats at his hand with right paw" not "attacks him". Say "claws gripping wildly at high frequency" not "struggles". The SPECIFIC body part and direction make the video accurate.
 4. DIALOGUE: Extract key dialogue from the audio transcript and include it in double quotes within the action. This drives Seedance's audio generation.
 5. SOUNDS: Include character vocalizations (meows, yells, screams, growls) — Seedance uses these for audio.
-6. WORD COUNT: 120-200 words. Use the full budget — do NOT stop early.
+6. WORD COUNT: 40-200 words — scale with complexity. Simple action = 40-80 words. Complex multi-phase = 120-200. Do NOT inflate simple videos.
 7. LAST SENTENCE = the FINAL action (resolution/departure/exit), NOT the climax. If the video ends with someone leaving, holding something, or giving up — that MUST be the last sentence.
-8. FIVE-PART STRUCTURE — videoPrompt MUST follow: Subject. Action. Camera. Style. Audio.
-   - Subject: "MAN and CAT." (uppercase names listing all characters)
-   - Action: All action sentences separated by semicolons
-   - Camera: "Medium handheld shot." or similar
-   - Style: "Cinematic, photorealistic."
-   - Audio: "No music. Only dialogue, character sounds, and physical impacts."
-9. CHARACTER NAMES: ALWAYS use UPPERCASE names: MAN, CAT, WOMAN, DOG. NEVER "the man", "the cat", "a woman".
+8. FLOWING NARRATIVE — Write as natural prose. Use normal sentences with periods, NOT semicolons. Start directly with the first action, no character listing line. Weave camera into the narrative naturally: "Chaotic handheld camera follows the action."
+9. CHARACTER NAMES: Use natural references: "the man", "the cat", "the woman". NOT ALL CAPS (no "MAN", "CAT").
 10. Every sentence describes a DIFFERENT action — no repetition.
-11. BANNED: NO appearance/clothing descriptions (Seedance uses the reference image). NO background music references. NO facial micro-expressions (pupils dilating, brows furrowing). NO emotional adjectives (angry, furious, terrified, desperate, mischievous, aggressive). Convey intensity through BODY ACTIONS and degree words.
+11. STYLE & SOUND: End with a brief style and sound note: "Cinematic, photorealistic. Only dialogue, meows, and crash sounds." — NOT "No music. Only [sounds]."
+12. BANNED: NO appearance/clothing descriptions (Seedance uses the reference image). NO background music references. NO facial micro-expressions (pupils dilating, brows furrowing). NO emotional adjectives (angry, furious, terrified, desperate, mischievous, aggressive). Convey intensity through BODY ACTIONS and degree words.
 
 CRITICAL — OBJECT DISPLACEMENT:
 If objects are knocked off, scattered, displaced, or sent flying, this MUST appear in the videoPrompt as cause-and-effect within the action sentence.
-CORRECT: "CAT wildly jumps onto the counter, violently knocking the iced coffee cup and straw dispenser off the counter to the floor."
-WRONG: "CAT jumps onto the counter." (MISSING the objects — the generated video will look flat and wrong)
+CORRECT: "The cat wildly jumps onto the counter, violently knocking the iced coffee cup and straw dispenser off the counter to the floor."
+WRONG: "The cat jumps onto the counter." (MISSING the objects — the generated video will look flat and wrong)
 SYSTEM;
             $userMessage = $prompt;
         }

@@ -34872,10 +34872,10 @@ VISION;
         $result['videoPrompt'] = preg_replace('/^(?:(?:Inside|Within|At|On)\s+(?:a|an|the)\s+[^.]+\.\s*)+/i', '', $result['videoPrompt']);
         $result['videoPrompt'] = preg_replace('/^(?:A|An|The)\s+\w+\s+(?:infant|baby|child|woman|man|person|cat|dog|animal)\s+(?:sits|stands|lies|rests|is\s+seated|is\s+standing)\s+[^.]+\.\s*/i', '', $result['videoPrompt']);
 
-        // Strip style anchor — we'll re-add at end
-        $result['videoPrompt'] = preg_replace('/\s*Cinematic,?\s*photorealistic\.?\s*$/i', '', $result['videoPrompt']);
-        // Ensure "Cinematic, photorealistic." suffix
-        $result['videoPrompt'] = trim($result['videoPrompt']) . '. Cinematic, photorealistic.';
+        // Only add style anchor if completely missing (don't strip-and-force)
+        if (!preg_match('/cinematic|photorealistic/i', $result['videoPrompt'])) {
+            $result['videoPrompt'] = rtrim($result['videoPrompt'], '. ') . '. Cinematic, photorealistic.';
+        }
 
         // Word count enforcement — trim only if severely over target (>155 words)
         $cloneWordCount = str_word_count($result['videoPrompt']);
@@ -38780,7 +38780,7 @@ CRITICAL RULES:
 3. If the image shows a distinctive feature not in the prompt (e.g., long blonde hair), add a SHORT clause about it near the relevant action — do NOT restructure the sentence.
 4. KEEP every action, timing word, camera direction, dialogue, sound effect, and narrator line EXACTLY as-is.
 5. KEEP the exact same sentence structure, word order, and pacing.
-6. KEEP "Cinematic, photorealistic." and "No music." if present.
+6. KEEP any style or sound notes at the end (e.g. "Cinematic, photorealistic.") if present.
 7. DO NOT add flowery descriptions, adjectives, or reformat the prompt style.
 8. Output ONLY the edited prompt — no explanations, no markdown.
 REWRITE;
@@ -38810,7 +38810,7 @@ REWRITE;
             // Also check if the content before "Cinematic, photorealistic." is incomplete
             $contentBeforeAnchor = preg_replace('/\.?\s*Cinematic,?\s*photorealistic\.?\s*$/i', '', $newPrompt);
             $contentEndsCleanly = preg_match('/[.!?"]\s*$/', trim($contentBeforeAnchor));
-            if ($wordCount < 100 || !$contentEndsCleanly) {
+            if ($wordCount < 30 || !$contentEndsCleanly) {
                 \Log::warning('adjustPromptToImage: Truncated response detected, retrying', [
                     'wordCount' => $wordCount,
                     'endsCleanly' => $endsCleanly,
@@ -38840,8 +38840,8 @@ REWRITE;
             // Remove duplicate "Cinematic, photorealistic." anchors (AI sometimes adds a second one)
             $newPrompt = preg_replace('/(Cinematic,?\s*photorealistic\.?\s*){2,}/i', 'Cinematic, photorealistic.', $newPrompt);
 
-            // Ensure it ends with the style anchor
-            if (!preg_match('/Cinematic,?\s*photorealistic\.?\s*$/i', $newPrompt)) {
+            // Only add style anchor if completely missing (don't force it)
+            if (!preg_match('/cinematic|photorealistic/i', $newPrompt)) {
                 $newPrompt = rtrim($newPrompt, '. ') . '. Cinematic, photorealistic.';
             }
 
