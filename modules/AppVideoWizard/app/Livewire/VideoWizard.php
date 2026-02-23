@@ -38312,6 +38312,15 @@ PROMPT;
             . "- The characters are the SAME beings, just transported into a completely different realistic situation\n"
             . "- Their clothing, props, and environment should change to fit the new scenario\n\n";
 
+        $envCore = "REALISTIC ENVIRONMENT REIMAGINATION: Transform the entire environment, location, and atmosphere of this image into a completely different setting while preserving every person, animal, and object in the scene.\n\n";
+
+        $envPreserve = "PRESERVATION RULES (CRITICAL):\n"
+            . "- Keep every person/animal's exact physical appearance: face, features, skin tone, hair, body type\n"
+            . "- Keep their pose, expression, and body language exactly the same\n"
+            . "- Keep all objects and props — they exist in the new environment naturally\n"
+            . "- Adapt clothing and props ONLY if absolutely necessary for the new environment (e.g., add a coat in arctic)\n"
+            . "- The overall composition and framing should mirror the original\n\n";
+
         $rule = "\n\nCRITICAL: The result MUST be 100% photorealistic — a real photograph of a real scene. "
             . "Real skin with visible pores, real materials, real lighting, real physics. "
             . "NO painting, illustration, CGI, or stylization. This is a real-world reimagination.";
@@ -38405,6 +38414,144 @@ PROMPT;
                 'prompt' => $core . $preserve
                     . "NEW SCENARIO — PIRATE SHIP ON THE HIGH SEAS:\n"
                     . "Reimagine these characters aboard a pirate ship. The main animal/character becomes the pirate captain in a tricorn hat, long coat, and boots, standing at the helm or near the mast, commanding the crew. The human character becomes a captured prisoner, mutinous first mate, or rival pirate captain locked in confrontation. The environment is a real wooden sailing ship — weathered deck planks, rope rigging, cannons, Jolly Roger flag, ocean spray, dramatic cloudy sky. Everything must still look like a real photograph — think Pirates of the Caribbean level realism."
+                    . $rule,
+            ],
+
+            // ─── Environments & Locations ───────────────────────────────
+
+            'luxury_penthouse' => [
+                'name' => 'Luxury Penthouse',
+                'icon' => 'fa-solid fa-building',
+                'color' => '#a78bfa',
+                'prompt' => $envCore . $envPreserve
+                    . "NEW ENVIRONMENT — LUXURY PENTHOUSE:\n"
+                    . "Transport this entire scene into a stunning luxury penthouse apartment on the top floor of a skyscraper. Floor-to-ceiling glass windows reveal a breathtaking nighttime city skyline with twinkling lights below. The interior is ultra-modern minimalist — polished marble floors, designer Italian furniture in cream and charcoal, a statement chandelier, recessed ambient lighting with warm golden tones. There's an open-plan living area with a sunken lounge, a sleek kitchen island with wine glasses, and contemporary art on the walls. The atmosphere is sophisticated, wealthy, and intimate. Real materials: genuine leather, brushed brass fixtures, travertine stone, silk curtains."
+                    . $rule,
+            ],
+            'cozy_cabin' => [
+                'name' => 'Mountain Cabin',
+                'icon' => 'fa-solid fa-house-chimney',
+                'color' => '#92400e',
+                'prompt' => $envCore . $envPreserve
+                    . "NEW ENVIRONMENT — COZY MOUNTAIN CABIN:\n"
+                    . "Transport this entire scene into a rustic mountain cabin deep in a snow-covered forest. The interior is warm and intimate — exposed log walls with visible wood grain, a roaring stone fireplace crackling with orange flames, thick wool blankets and fur throws draped over worn leather armchairs. Soft warm lamplight and firelight create dancing shadows. There are bookshelves stuffed with old books, a vintage rug on wide plank floors, steaming mugs of hot cocoa, frosted windows showing heavy snowfall outside among pine trees. The mood is peaceful, warm, and isolated. Everything smells like wood smoke and pine."
+                    . $rule,
+            ],
+            'zen_temple' => [
+                'name' => 'Zen Temple',
+                'icon' => 'fa-solid fa-torii-gate',
+                'color' => '#16a34a',
+                'prompt' => $envCore . $envPreserve
+                    . "NEW ENVIRONMENT — JAPANESE ZEN TEMPLE:\n"
+                    . "Transport this entire scene into a serene Japanese Zen temple. The space features tatami mat floors, sliding shoji paper screens with wooden lattice frames, and an alcove (tokonoma) with a single ikebana flower arrangement and hanging scroll. Natural light filters softly through the paper screens. A small rock garden (karesansui) is visible through an open sliding door — raked white gravel, carefully placed moss-covered stones, a stone lantern, and a red maple tree with delicate leaves. The atmosphere is profoundly calm, meditative, and timeless. Materials are natural: aged wood, bamboo, paper, stone. Incense smoke may curl faintly in the air."
+                    . $rule,
+            ],
+            'moroccan_riad' => [
+                'name' => 'Moroccan Riad',
+                'icon' => 'fa-solid fa-archway',
+                'color' => '#ea580c',
+                'prompt' => $envCore . $envPreserve
+                    . "NEW ENVIRONMENT — MOROCCAN RIAD:\n"
+                    . "Transport this entire scene into a traditional Moroccan riad courtyard. The space is an open-air interior courtyard surrounded by ornate archways with intricate geometric zellige tilework in cobalt blue, emerald green, saffron yellow, and terracotta. A central marble fountain trickles water into a mosaic-tiled pool. There are potted palms, bougainvillea climbing the walls, and hanging brass lanterns casting warm patterned light through their cut-out designs. The floor is a stunning mosaic of hand-laid tiles. Carved plaster walls (tadelakt) in warm sand tones. Luxurious cushions and poufs in rich jewel tones are arranged on built-in seating. The mood is exotic, luxurious, and warmly inviting."
+                    . $rule,
+            ],
+            'parisian_cafe' => [
+                'name' => 'Parisian Café',
+                'icon' => 'fa-solid fa-mug-hot',
+                'color' => '#be185d',
+                'prompt' => $envCore . $envPreserve
+                    . "NEW ENVIRONMENT — PARISIAN CAFÉ:\n"
+                    . "Transport this entire scene into a charming Parisian sidewalk café on a cobblestone street. Classic round marble-topped bistro tables with ornate wrought-iron legs, woven rattan café chairs arranged on a terrace under a striped awning. A chalkboard menu in French is propped outside. Through the café windows: warm interior with dark wood paneling, vintage mirrors, art nouveau details, zinc bar counter, pastry display. The street view shows Haussmann-era buildings with wrought-iron balconies, window boxes with red geraniums, and vintage street lamps. Soft afternoon golden-hour light. The atmosphere is romantic, unhurried, and quintessentially French."
+                    . $rule,
+            ],
+            'tropical_beach' => [
+                'name' => 'Tropical Beach',
+                'icon' => 'fa-solid fa-umbrella-beach',
+                'color' => '#0891b2',
+                'prompt' => $envCore . $envPreserve
+                    . "NEW ENVIRONMENT — TROPICAL BEACH PARADISE:\n"
+                    . "Transport this entire scene onto a pristine tropical beach. Crystal-clear turquoise water with gentle waves lapping at powder-white sand. Tall coconut palm trees lean over the shore, casting long shadows. A thatched-roof beach bar or wooden deck with weathered planks sits nearby. The sky is vivid blue with dramatic white cumulus clouds lit by golden sunlight. There might be a hammock between palms, shells scattered on the sand, a wooden boat pulled ashore, and tropical flowers (frangipani, hibiscus) adding pops of color. The light is warm, golden, and saturated — magic hour on a remote island. The mood is paradise, freedom, and pure relaxation."
+                    . $rule,
+            ],
+            'tokyo_neon' => [
+                'name' => 'Tokyo Neon',
+                'icon' => 'fa-solid fa-city',
+                'color' => '#e11d48',
+                'prompt' => $envCore . $envPreserve
+                    . "NEW ENVIRONMENT — TOKYO NEON STREETS AT NIGHT:\n"
+                    . "Transport this entire scene into the electric neon-drenched streets of nighttime Tokyo — specifically Shinjuku or Shibuya. Towering buildings covered in massive LED billboards and holographic-looking advertisements in Japanese kanji and katakana. Narrow alleyways glow with hundreds of neon signs in pink, blue, cyan, and warm gold. Rain-slicked streets reflect all the neon light like a mirror, creating a doubled electric glow. Vending machines glow in corners, tiny ramen shops with cloth noren curtains, overhead cables cross the sky. The atmosphere is electrifying, overwhelming, and hypnotic — a real photograph that looks almost surreal because of how intense the real neon density is."
+                    . $rule,
+            ],
+            'mediterranean' => [
+                'name' => 'Mediterranean',
+                'icon' => 'fa-solid fa-sun',
+                'color' => '#2563eb',
+                'prompt' => $envCore . $envPreserve
+                    . "NEW ENVIRONMENT — MEDITERRANEAN VILLAGE:\n"
+                    . "Transport this entire scene to a sun-drenched Mediterranean village perched on a clifftop overlooking the deep blue sea — think Santorini, Amalfi Coast, or a Greek island. Whitewashed buildings with blue-painted doors and shutters, terracotta rooftops, and bougainvillea cascading in vivid magenta over stone walls. Narrow winding cobblestone paths and steep steps connect different levels. The sea sparkles brilliant sapphire below with small fishing boats. Clay pots with olive trees, a rustic wooden table with fresh lemons and olive oil, cats lounging in the sun. The light is brilliant, warm Mediterranean sunshine. The mood is timeless, peaceful, and gloriously sunny."
+                    . $rule,
+            ],
+            'venetian_canal' => [
+                'name' => 'Venice Canal',
+                'icon' => 'fa-solid fa-water',
+                'color' => '#0d9488',
+                'prompt' => $envCore . $envPreserve
+                    . "NEW ENVIRONMENT — VENETIAN CANAL:\n"
+                    . "Transport this entire scene onto a gondola or the edge of a narrow Venetian canal. Centuries-old buildings rise directly from the green water — faded ochre, terracotta, and Venetian red facades with peeling plaster revealing ancient brick beneath. Ornate Gothic and Byzantine windows, iron balconies with laundry hung to dry. A stone bridge arches over the canal in the background. A gondola with its distinctive ferro bow glides past. The water reflects all the building colors in shimmering ripples. Golden afternoon light catches the tops of buildings while the canal remains in atmospheric shadow. The mood is romantic, ancient, and hauntingly beautiful."
+                    . $rule,
+            ],
+            'desert_oasis' => [
+                'name' => 'Desert Oasis',
+                'icon' => 'fa-solid fa-wind',
+                'color' => '#d97706',
+                'prompt' => $envCore . $envPreserve
+                    . "NEW ENVIRONMENT — SAHARAN DESERT OASIS:\n"
+                    . "Transport this entire scene to an oasis in the vast Sahara desert. Towering golden sand dunes with razor-sharp ridgelines surround a hidden pocket of lush green — date palms clustered around a pool of remarkably clear blue-green water reflecting the sky. The sand shifts from gold to amber to deep orange in the low-angle sunlight. Perhaps a Berber tent with colorful woven textiles sits under the palms, or a camel caravan rests nearby. The sky is enormous — brilliant blue fading to hazy gold at the horizon. The contrast between the endless barren desert and this tiny pocket of life is striking. The mood is vast, ancient, and otherworldly."
+                    . $rule,
+            ],
+            'arctic_station' => [
+                'name' => 'Arctic Station',
+                'icon' => 'fa-solid fa-snowflake',
+                'color' => '#7dd3fc',
+                'prompt' => $envCore . $envPreserve
+                    . "NEW ENVIRONMENT — ARCTIC RESEARCH STATION:\n"
+                    . "Transport this entire scene to a remote Arctic research station in the frozen wilderness. The landscape is endless white — snow and ice stretching to the horizon under a dramatic sky that shifts between the deep blue of polar twilight and the green/violet shimmer of the aurora borealis. The station itself is a modern modular structure with large observation windows glowing warm orange from within, satellite dishes and weather equipment on the roof, power lines connecting buildings, snow tracked up with boot prints. Everything outside is covered in frost and rime ice. The temperature is obviously brutally cold — breath would be visible. The mood is isolated, extreme, and awe-inspiring."
+                    . $rule,
+            ],
+            'jungle_ruins' => [
+                'name' => 'Jungle Ruins',
+                'icon' => 'fa-solid fa-leaf',
+                'color' => '#15803d',
+                'prompt' => $envCore . $envPreserve
+                    . "NEW ENVIRONMENT — ANCIENT JUNGLE RUINS:\n"
+                    . "Transport this entire scene into ancient temple ruins being reclaimed by dense tropical jungle — think Angkor Wat, Ta Prohm, or Mayan ruins. Massive tree roots snake over and through crumbling stone walls carved with ancient relief sculptures. Moss, ferns, and tropical vines cover every surface in lush green. Shafts of golden sunlight break through the thick jungle canopy, creating dramatic god-rays illuminating dust motes and floating spores. Crumbling stone doorways and corridors lead into shadow. The stone is weathered, cracked, and covered in lichen. A sense of immense age and nature's patient reconquest. The mood is mysterious, sacred, and adventure-filled."
+                    . $rule,
+            ],
+            'underground_bunker' => [
+                'name' => 'Bunker',
+                'icon' => 'fa-solid fa-vault',
+                'color' => '#57534e',
+                'prompt' => $envCore . $envPreserve
+                    . "NEW ENVIRONMENT — UNDERGROUND BUNKER:\n"
+                    . "Transport this entire scene into a Cold War-era underground bunker or fallout shelter. Thick concrete walls with exposed rebar, heavy blast doors with massive wheel locks, industrial metal shelving stacked with supplies and rations. Dim overhead fluorescent tubes cast a cold, slightly greenish light with some bulbs flickering. Exposed pipes and conduit run along the low ceiling. Communication equipment, old CRT monitors, analog gauges, and hand-crank emergency systems line the walls. A large table with maps and documents spread out. The air feels stale and confined. Everything is utilitarian, government-issue, and built to survive catastrophe. The mood is tense, claustrophobic, and survivalist."
+                    . $rule,
+            ],
+            'space_station' => [
+                'name' => 'Space Station',
+                'icon' => 'fa-solid fa-satellite',
+                'color' => '#6366f1',
+                'prompt' => $envCore . $envPreserve
+                    . "NEW ENVIRONMENT — SPACE STATION INTERIOR:\n"
+                    . "Transport this entire scene into the interior of an orbital space station — inspired by the ISS but slightly more futuristic. Modular white and grey panels line the cylindrical corridor, illuminated by bright LED strips. Handholds and foot restraints are everywhere for zero-gravity navigation. Through large observation cupola windows: the stunning curvature of Earth — vivid blue oceans, white cloud formations, the thin luminous atmosphere line, with the blackness of space and countless stars beyond. Equipment lockers, control panels with screens showing orbital data, floating objects that hint at microgravity. The mood is awe-inspiring, technological, and profoundly perspective-shifting. The lighting combines clinical interior lights with the blue glow of Earth through the windows."
+                    . $rule,
+            ],
+            'victorian_mansion' => [
+                'name' => 'Victorian Manor',
+                'icon' => 'fa-solid fa-landmark',
+                'color' => '#7c3aed',
+                'prompt' => $envCore . $envPreserve
+                    . "NEW ENVIRONMENT — VICTORIAN MANSION:\n"
+                    . "Transport this entire scene into a grand Victorian-era mansion interior. Rich, dark wood paneling and ornate crown molding throughout. A massive stone fireplace with carved mantelpiece dominates one wall. Heavy velvet curtains in deep burgundy or forest green frame tall arched windows with beveled glass. An enormous crystal chandelier hangs from an ornately plastered ceiling with gold leaf accents. Antique furniture: Chesterfield sofas in tufted leather, walnut side tables, a grandfather clock ticking in the corner, oil paintings in gilded frames on the walls. Persian rugs layer the hardwood floors. Candelabras and gas-lamp-style sconces provide warm, atmospheric light. The mood is opulent, slightly gothic, and full of old-money grandeur."
                     . $rule,
             ],
         ];

@@ -255,16 +255,18 @@
                  x-data="{ selectedVibe: null }">
 
                 {{-- Explanation --}}
-                <p style="margin: 0 0 0.75rem 0; color: var(--vw-text-muted); font-size: 0.75rem; line-height: 1.4;">
-                    {{ __('Reimagine the entire scene into a different realistic scenario — new setting, new story, new situation — while keeping the same characters. Everything stays 100% photorealistic.') }}
+                <p style="margin: 0 0 0.6rem 0; color: var(--vw-text-muted); font-size: 0.75rem; line-height: 1.4;">
+                    {{ __('Reimagine the entire scene into a different realistic world — change the scenario, environment, or location while keeping the same characters. Everything stays 100% photorealistic.') }}
                 </p>
 
-                {{-- Realism Scenarios Grid --}}
-                <div style="margin-bottom: 0.75rem;">
-                    <label style="display: block; color: var(--vw-text-secondary); font-size: 0.75rem; font-weight: 500; margin-bottom: 0.5rem;">{{ __('Choose a Scenario') }}</label>
-                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.4rem;">
+                {{-- Scenarios Grid --}}
+                <div style="margin-bottom: 0.6rem;">
+                    <label style="display: block; color: var(--vw-text-secondary); font-size: 0.75rem; font-weight: 500; margin-bottom: 0.4rem;">
+                        <i class="fa-solid fa-film" style="margin-right: 0.25rem; color: var(--vw-text-muted);"></i>{{ __('Scenarios') }}
+                    </label>
+                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.35rem;">
                         @php
-                            $realismVibes = [
+                            $scenarioVibes = [
                                 'restaurant_kitchen' => ['name' => __('Restaurant Kitchen'), 'icon' => 'fa-solid fa-utensils', 'color' => '#ef4444'],
                                 'hospital_er' => ['name' => __('Hospital ER'), 'icon' => 'fa-solid fa-hospital', 'color' => '#06b6d4'],
                                 'courtroom' => ['name' => __('Courtroom Drama'), 'icon' => 'fa-solid fa-gavel', 'color' => '#8b5cf6'],
@@ -277,17 +279,56 @@
                                 'pirate_ship' => ['name' => __('Pirate Ship'), 'icon' => 'fa-solid fa-skull-crossbones', 'color' => '#d97706'],
                             ];
                         @endphp
-
-                        @foreach($realismVibes as $key => $vibe)
+                        @foreach($scenarioVibes as $key => $vibe)
                             <button type="button"
                                     @click="selectedVibe = '{{ $key }}'"
                                     wire:click="realismVibeImageStudio('{{ $key }}')"
-                                    style="padding: 0.5rem 0.35rem; border-radius: 0.5rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; transition: all 0.2s;"
+                                    style="padding: 0.45rem 0.3rem; border-radius: 0.5rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.25rem; transition: all 0.2s;"
                                     :style="selectedVibe === '{{ $key }}'
                                         ? 'background: {{ $vibe['color'] }}18; border: 2px solid {{ $vibe['color'] }}; transform: translateY(-1px);'
                                         : 'background: rgba(0,0,0,0.02); border: 2px solid var(--vw-border);'">
-                                <i class="{{ $vibe['icon'] }}" style="font-size: 1rem; color: {{ $vibe['color'] }};"></i>
-                                <span style="color: var(--vw-text); font-size: 0.6rem; font-weight: 500; text-align: center; line-height: 1.15;">{{ $vibe['name'] }}</span>
+                                <i class="{{ $vibe['icon'] }}" style="font-size: 0.9rem; color: {{ $vibe['color'] }};"></i>
+                                <span style="color: var(--vw-text); font-size: 0.55rem; font-weight: 500; text-align: center; line-height: 1.1;">{{ $vibe['name'] }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- Environments & Locations Grid --}}
+                <div style="margin-bottom: 0.6rem;">
+                    <label style="display: block; color: var(--vw-text-secondary); font-size: 0.75rem; font-weight: 500; margin-bottom: 0.4rem;">
+                        <i class="fa-solid fa-location-dot" style="margin-right: 0.25rem; color: var(--vw-text-muted);"></i>{{ __('Environments & Locations') }}
+                    </label>
+                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.35rem;">
+                        @php
+                            $envVibes = [
+                                'luxury_penthouse' => ['name' => __('Luxury Penthouse'), 'icon' => 'fa-solid fa-building', 'color' => '#a78bfa'],
+                                'cozy_cabin' => ['name' => __('Mountain Cabin'), 'icon' => 'fa-solid fa-house-chimney', 'color' => '#92400e'],
+                                'zen_temple' => ['name' => __('Zen Temple'), 'icon' => 'fa-solid fa-torii-gate', 'color' => '#16a34a'],
+                                'moroccan_riad' => ['name' => __('Moroccan Riad'), 'icon' => 'fa-solid fa-archway', 'color' => '#ea580c'],
+                                'parisian_cafe' => ['name' => __('Parisian Café'), 'icon' => 'fa-solid fa-mug-hot', 'color' => '#be185d'],
+                                'tropical_beach' => ['name' => __('Tropical Beach'), 'icon' => 'fa-solid fa-umbrella-beach', 'color' => '#0891b2'],
+                                'tokyo_neon' => ['name' => __('Tokyo Neon'), 'icon' => 'fa-solid fa-city', 'color' => '#e11d48'],
+                                'mediterranean' => ['name' => __('Mediterranean'), 'icon' => 'fa-solid fa-sun', 'color' => '#2563eb'],
+                                'venetian_canal' => ['name' => __('Venice Canal'), 'icon' => 'fa-solid fa-water', 'color' => '#0d9488'],
+                                'desert_oasis' => ['name' => __('Desert Oasis'), 'icon' => 'fa-solid fa-wind', 'color' => '#d97706'],
+                                'arctic_station' => ['name' => __('Arctic Station'), 'icon' => 'fa-solid fa-snowflake', 'color' => '#7dd3fc'],
+                                'jungle_ruins' => ['name' => __('Jungle Ruins'), 'icon' => 'fa-solid fa-leaf', 'color' => '#15803d'],
+                                'underground_bunker' => ['name' => __('Bunker'), 'icon' => 'fa-solid fa-vault', 'color' => '#57534e'],
+                                'space_station' => ['name' => __('Space Station'), 'icon' => 'fa-solid fa-satellite', 'color' => '#6366f1'],
+                                'victorian_mansion' => ['name' => __('Victorian Manor'), 'icon' => 'fa-solid fa-landmark', 'color' => '#7c3aed'],
+                            ];
+                        @endphp
+                        @foreach($envVibes as $key => $vibe)
+                            <button type="button"
+                                    @click="selectedVibe = '{{ $key }}'"
+                                    wire:click="realismVibeImageStudio('{{ $key }}')"
+                                    style="padding: 0.45rem 0.3rem; border-radius: 0.5rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.25rem; transition: all 0.2s;"
+                                    :style="selectedVibe === '{{ $key }}'
+                                        ? 'background: {{ $vibe['color'] }}18; border: 2px solid {{ $vibe['color'] }}; transform: translateY(-1px);'
+                                        : 'background: rgba(0,0,0,0.02); border: 2px solid var(--vw-border);'">
+                                <i class="{{ $vibe['icon'] }}" style="font-size: 0.9rem; color: {{ $vibe['color'] }};"></i>
+                                <span style="color: var(--vw-text); font-size: 0.55rem; font-weight: 500; text-align: center; line-height: 1.1;">{{ $vibe['name'] }}</span>
                             </button>
                         @endforeach
                     </div>
