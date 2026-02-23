@@ -139,10 +139,32 @@ AUDIO — Sound direction:
 - Sync sound effects precisely with visual actions
 - Use "low ambient hum" or "drone" for atmospheric scenes
 
-ADVERBS — Use descriptive adverbs freely:
-- High intensity: rapidly, violently, crazily, intensely, fiercely, powerfully
-- Medium intensity: slowly, gently, steadily, smoothly, carefully
-- Temporal: suddenly, immediately, then, finally, instantly
+ADVERBS — Use Seedance-optimized degree words:
+- PREFERRED (best Seedance response): quickly, fast, violently, powerfully, wildly, crazy, intense, strong, with large amplitude, at high frequency, greatly
+- ACCEPTABLE motion adverbs: rapidly, slowly, gently, steadily, smoothly, carefully
+- TEMPORAL: suddenly, immediately, then, finally, instantly
+- AVOID literary adverbs: decisively, gracefully, elegantly, meticulously, tenderly, deftly, nimbly, briefly — replace with PREFERRED words
+- Every prompt should use at least 2-3 degree words even for calm scenes
+
+DIALOGUE FORMAT:
+- ALL dialogue MUST use double quotes: says "text here"
+- NEVER use single quotes for dialogue
+
+OFF-SCREEN REFERENCES — BANNED:
+- No "off-screen" characters or actions — everything must be visible on-screen
+- Rewrite "off-screen customer says" → "the customer says"
+
+STATE DESCRIPTIONS — BANNED:
+- No passive state observations ("the plate now misses one piece", "the room is empty")
+- Convert to actions or remove entirely — the visual will show the result
+
+VAGUE MOTION — BANNED:
+- No "fades from view", "disappears", "vanishes" — use explicit motion instead
+- Write: "walks into the far background" not "fades from view"
+
+CHARACTER SOUNDS — REQUIRED for animal subjects:
+- If subject is an animal, include at least one vocalization (meow, bark, purr, hiss, growl)
+- Place sounds naturally within action beats
 
 MULTIPLE SUBJECTS — Handle explicitly:
 - Name or describe each subject clearly
@@ -157,6 +179,7 @@ BANNED:
 - No conflicting camera directions in the same prompt
 - No fast pans with wide shots
 - No pans with close-ups
+- No standalone subject fragments (e.g., "CAT WAITER." alone) — integrate into first action sentence
 RULES;
 
     /** Default sanitization patterns grouped by phase. */
@@ -212,6 +235,32 @@ RULES;
             '\\bclear\\s+(?=(?:plastic|glass|shhh|shush|gesture|chewing|slapping|tapping|sound))' => '',
         ],
         'adverbs_to_deduplicate' => ['crazily', 'violently', 'rapidly', 'intensely', 'slowly', 'gently', 'steadily', 'smoothly'],
+        'off_screen_patterns' => [
+            '\\boff[\\s-]screen\\s+' => '',
+            '\\bfrom\\s+off[\\s-]screen\\b[^,.]*' => '',
+        ],
+        'literary_adverbs' => [
+            '\\bdecisively\\b' => 'quickly',
+            '\\bgracefully\\b' => 'smoothly',
+            '\\belegantly\\b' => 'smoothly',
+            '\\bmeticulously\\b' => 'carefully',
+            '\\btenderly\\b' => 'gently',
+            '\\bdeftly\\b' => 'quickly',
+            '\\bnimbly\\b' => 'quickly',
+            '\\bbriefly\\b' => 'quickly',
+            '\\bdeliberately\\b' => 'steadily',
+            '\\bcautiously\\b' => 'carefully',
+            '\\bhastily\\b' => 'quickly',
+            '\\bfrantically\\b' => 'wildly',
+            '\\bfuriously\\b' => 'violently',
+            '\\bferociously\\b' => 'violently',
+            '\\bmenacingly\\b' => 'aggressively',
+        ],
+        'vague_motion' => [
+            '\\bfades?\\s+(?:from|out\\s+of|into)?\\s*view\\b' => 'walks into the far background',
+            '\\bdisappears?\\s+(?:from|into)\\s+(?:view|sight|the\\s+background)\\b' => 'walks away into the background',
+            '\\bvanishes?\\b' => 'moves away quickly',
+        ],
     ];
 
     /**
@@ -673,7 +722,35 @@ RULES;
             $text = preg_replace('/' . $pattern . '/i', $replacement, $text);
         }
 
-        // Phase 5: Fix dangling "wrapped"
+        // Phase 5: Fix off-screen references
+        $offScreenPatterns = $patterns['off_screen_patterns'] ?? [];
+        foreach ($offScreenPatterns as $pattern => $replacement) {
+            $text = preg_replace('/' . $pattern . '/i', $replacement, $text);
+        }
+
+        // Phase 5b: Replace literary adverbs with Seedance degree words
+        $literaryAdverbs = $patterns['literary_adverbs'] ?? [];
+        foreach ($literaryAdverbs as $pattern => $replacement) {
+            $text = preg_replace('/' . $pattern . '/i', $replacement, $text);
+        }
+
+        // Phase 5c: Fix vague motion verbs
+        $vagueMotion = $patterns['vague_motion'] ?? [];
+        foreach ($vagueMotion as $pattern => $replacement) {
+            $text = preg_replace('/' . $pattern . '/i', $replacement, $text);
+        }
+
+        // Phase 5d: Fix single quotes to double quotes for dialogue
+        // Pattern: says/yells/whispers/asks '...' → says "..."
+        $text = preg_replace_callback(
+            '/\b(says?|yells?|whispers?|asks?|shouts?|screams?|murmurs?|replies?|responds?|exclaims?|mutters?)\s*,?\s*\'([^\']+)\'/i',
+            function ($matches) {
+                return $matches[1] . ', "' . $matches[2] . '"';
+            },
+            $text
+        );
+
+        // Phase 5e: Fix dangling "wrapped"
         $text = preg_replace('/\b(?<!un)wrapped(?!\s+(?:around|in|from|shawarma|food|burger|wrap))\s*,/i', ',', $text);
 
         // Phase 6: Clean up artifacts

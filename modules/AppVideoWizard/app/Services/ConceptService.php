@@ -779,11 +779,12 @@ CHAOS;
         return <<<'RULES'
 SEEDANCE VIDEO PROMPT RULES:
 
-ADVERBS — Use natural, descriptive adverbs freely:
-- High intensity: rapidly, violently, crazily, intensely, aggressively, wildly, fiercely, powerfully
-- Medium intensity: slowly, gently, steadily, smoothly, carefully, cautiously
-- Temporal: suddenly, immediately, then, finally, instantly
-- Place adverbs BEFORE or AFTER verbs naturally. Write as you would narrate the scene.
+ADVERBS — Use Seedance-optimized degree words:
+- PREFERRED (best Seedance response): quickly, fast, violently, powerfully, wildly, crazy, intense, strong, with large amplitude, at high frequency, greatly
+- ACCEPTABLE motion adverbs: rapidly, slowly, gently, steadily, smoothly, carefully
+- TEMPORAL: suddenly, immediately, then, finally, instantly
+- AVOID literary adverbs: decisively, gracefully, elegantly, meticulously, tenderly, deftly, nimbly, briefly — replace with PREFERRED words
+- Every prompt should use at least 2-3 degree words even for calm/gentle scenes.
 
 EXPLICIT MOTION — Seedance CANNOT infer motion:
 Every movement must be EXPLICITLY described. The model will NOT animate what you don't write.
@@ -792,10 +793,16 @@ RIGHT: "the cat slaps the man's face with its right paw"
 If a body part should move, DESCRIBE the motion. If an object should fly, DESCRIBE the trajectory.
 
 DIALOGUE & SOUNDS — INCLUDE THEM:
-- Include character dialogue in quotes: yells "Get off me!"
-- Include character sounds: meows, yells, screams, growls, hisses
+- Include character dialogue in DOUBLE quotes: yells "Get off me!" — NEVER use single quotes
+- Include character sounds: meows, yells, screams, growls, hisses, purrs
+- If subject is an ANIMAL, include at least one vocalization per prompt
 - Include environmental sounds caused by actions: crashes, clattering, shattering
 - These help Seedance generate accurate audio and mouth movements.
+
+OFF-SCREEN, STATE DESCRIPTIONS, VAGUE MOTION — BANNED:
+- No "off-screen" references — all characters/actions must be visible on-screen
+- No passive state descriptions ("the plate now misses one piece") — remove or convert to action
+- No vague motion ("fades from view", "disappears") — use explicit motion ("walks into far background")
 
 CAMERA STYLE — Describe when relevant:
 - "A chaotic, shaking handheld camera follows the action"
@@ -1113,26 +1120,50 @@ CLONE_RULES;
         ]);
 
         $validationPrompt = $compiled ?? <<<PROMPT
-You are a Seedance video prompt compliance validator. Scan the prompt below and fix violations.
+You are a Seedance video prompt compliance validator. Scan the prompt below and fix ALL violations.
 
 === RULES ===
 {$rules}
 
 === ADDITIONAL RULES ===
-- Dialogue in quotes is ALLOWED and should be PRESERVED — it drives audio generation
-- Character sounds (meowing, yelling, screaming) are ALLOWED and should be PRESERVED
-- Camera style descriptions are ALLOWED (e.g., "chaotic handheld camera")
-- Natural adverbs are ALLOWED — do NOT restrict to a fixed set
-- Emotional states as part of actions are ALLOWED (e.g., "leans aggressively", "angrily points")
-- NO facial micro-expression descriptions (eyes widening, brow furrowing, mouth curving into smile)
-- EXCEPTION: "glance", "look", "stare", "gaze" are HEAD/EYE ACTIONS — keep them.
-- NO "toward camera", "at the camera", "eyes locked on camera" — rewrite direction without camera mention
-- If the prompt is truncated (ends mid-sentence), fix it by completing or trimming to last complete sentence
-- Must NOT contain face/identity prefix text like "Maintain face consistency"
-- Must NOT contain scene/setting descriptions — the source image already shows the scene
-- Must start directly with the first action
+ALLOWED (preserve these):
+- Dialogue in DOUBLE quotes — it drives audio generation
+- Character sounds (meowing, yelling, screaming, hissing, purring)
+- Camera style descriptions (e.g., "chaotic handheld camera", "stationary camera")
+- Emotional states attached to actions (e.g., "leans aggressively", "angrily points")
+- "glance", "look", "stare", "gaze" are HEAD/EYE ACTIONS — keep them
+
+BANNED (fix these):
+- NO facial micro-expressions (eyes widening, brow furrowing, mouth curving into smile)
+- NO "toward camera", "at the camera", "eyes locked on camera" — rewrite without camera mention
+- NO face/identity prefix text like "Maintain face consistency"
+- NO scene/setting descriptions — the source image already shows the scene
+- NO background music mentions (soundtrack, score, beat, rhythm, melody)
+- NO off-screen references ("off-screen character", "someone off-screen", "a voice from off-screen") — rewrite as on-screen: "the customer says" not "the off-screen customer says"
+- NO state descriptions without action ("the plate now misses one piece", "the room is empty") — convert to action-driven: "the plate sits with one fewer bacon strip" → better: just remove it, the VISUAL shows the result
+- NO vague/abstract motion ("fades from view", "disappears", "vanishes") — use explicit motion: "walks into the far background until no longer visible"
+- NO standalone subject fragments ("CAT WAITER." alone as a sentence) — integrate subject into the first action sentence
+- NO literary/flowery adverbs (decisively, gracefully, elegantly, meticulously, tenderly, deftly, nimbly) — replace with Seedance-optimized degree words when possible
+
+ADVERB OPTIMIZATION (important for Seedance quality):
+- PREFERRED degree words: quickly, fast, violently, powerfully, wildly, crazy, intense, strong, with large amplitude, at high frequency, greatly
+- ACCEPTABLE natural motion adverbs: slowly, gently, steadily, smoothly, carefully, rapidly, suddenly
+- REPLACE literary adverbs: "decisively" → "quickly", "briefly" → "quickly", "gracefully" → "smoothly", "frantically" → "wildly"
+- Every prompt should contain AT LEAST 2-3 degree words even for calm scenes (e.g., "quickly", "fast")
+
+DIALOGUE FORMAT:
+- ALL dialogue MUST use double quotes: says "text here" — NOT single quotes 'text here'
+- Fix any single-quoted dialogue to double quotes
+
+CHARACTER SOUNDS (important for audio generation):
+- If the subject is an ANIMAL, the prompt SHOULD include at least one character vocalization
+- Examples: cat → "lets out a soft meow", "produces a quiet purr"; dog → "lets out a bark"
+- Place sounds naturally within the action sequence, not forced
+
+STRUCTURE:
+- Must start directly with the first action (subject + verb), NOT a bare subject label
 - Must end with "Cinematic, photorealistic."
-- ABSOLUTELY NO background music mentions (soundtrack, score, beat, rhythm, melody)
+- If the prompt is truncated (ends mid-sentence), fix it by completing or trimming to last complete sentence
 {$cloneOverride}
 
 {$wordCountSection}
@@ -1141,15 +1172,15 @@ You are a Seedance video prompt compliance validator. Scan the prompt below and 
 {$prompt}
 
 === INSTRUCTIONS ===
-1. Scan for violations of the rules above
-2. List ALL violations found
-3. Provide the COMPLETE fixed prompt with violations corrected
-4. Rate compliance 0-100
+1. Scan for ALL violations of the rules above (check every sentence individually)
+2. List ALL violations found — be thorough, do not skip minor issues
+3. Provide the COMPLETE fixed prompt with ALL violations corrected
+4. Rate compliance 0-100 (100 = perfect Seedance prompt, 90+ = production-ready, 75-89 = needs improvement, <75 = major issues)
 
 Return ONLY valid JSON (no markdown, no explanation):
 {"score":85,"violations":[{"word":"the violating text","rule":"rule broken","fix":"correction"}],"fixedPrompt":"entire corrected prompt","summary":"one sentence summary"}
 
-CRITICAL: Preserve ALL original actions, dialogue, sounds, and camera descriptions. Only fix genuine violations.
+CRITICAL: Preserve ALL original action beats, dialogue content, sounds, and camera descriptions. Fix format/structure violations but do NOT remove action content. When replacing adverbs, keep the motion intent — just use Seedance-optimal words.
 PROMPT;
 
         try {
