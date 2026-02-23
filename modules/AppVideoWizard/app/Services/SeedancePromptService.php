@@ -266,6 +266,8 @@ RULES;
             '\\bhigh[\\s-]pitched\\b' => 'crazy loud',
             '\\bflatly\\b' => '',
             '\\bneutrally\\b' => '',
+            '\\bcalmly\\b' => 'steadily',
+            '\\bloudly\\b' => 'powerfully',
         ],
         'vague_motion' => [
             '\\bfades?\\s+(?:from|out\\s+of|into)?\\s*view\\b' => 'walks into the far background',
@@ -755,7 +757,7 @@ RULES;
         // Pattern: says/yells/whispers/asks '...' → says "..."
         // Uses apostrophe-aware matching: allows 's, 't, 're etc. inside quotes
         $text = preg_replace_callback(
-            '/\b(says?|yells?|whispers?|asks?|shouts?|screams?|murmurs?|replies?|responds?|exclaims?|mutters?)\s*,?\s*\'((?:[^\']*(?:\'[a-z])?)*)\'(?=[\s.,!?)]|$)/i',
+            '/\b(says?|yells?|yelling|whispers?|whispering|asks?|asking|shouts?|shouting|screams?|screaming|murmurs?|murmuring|replies?|replying|responds?|responding|exclaims?|exclaiming|mutters?|muttering)\s*,?\s*\'((?:[^\']*(?:\'[a-z])?)*)\'(?=[\s.,!?)]|$)/i',
             function ($matches) {
                 return $matches[1] . ' "' . $matches[2] . '"';
             },

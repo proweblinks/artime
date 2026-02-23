@@ -1028,6 +1028,8 @@ CLONE_RULES;
             '/\bhigh[\s-]pitched\b/i' => 'crazy loud',
             '/\bflatly\b/i' => '',
             '/\bneutrally\b/i' => '',
+            '/\bcalmly\b/i' => 'steadily',
+            '/\bloudly\b/i' => 'powerfully',
         ];
 
         foreach ($bannedAdverbs as $pattern => $replacement) {
@@ -1037,12 +1039,35 @@ CLONE_RULES;
         // Phase 3b3: Fix single quotes to double quotes for dialogue
         // Uses apostrophe-aware matching: allows 's, 't, 're etc. inside quotes
         $text = preg_replace_callback(
-            '/\b(says?|yells?|whispers?|asks?|shouts?|screams?|murmurs?|replies?|responds?|exclaims?|mutters?)\s*,?\s*\'((?:[^\']*(?:\'[a-z])?)*)\'(?=[\s.,!?)]|$)/i',
+            '/\b(says?|yells?|yelling|whispers?|whispering|asks?|asking|shouts?|shouting|screams?|screaming|murmurs?|murmuring|replies?|replying|responds?|responding|exclaims?|exclaiming|mutters?|muttering)\s*,?\s*\'((?:[^\']*(?:\'[a-z])?)*)\'(?=[\s.,!?)]|$)/i',
             function ($matches) {
                 return $matches[1] . ' "' . $matches[2] . '"';
             },
             $text
         );
+
+        // Phase 3b4: Uppercase common character references for Seedance compliance
+        // "The man" → "MAN", "the cat" → "CAT", "the woman" → "WOMAN", etc.
+        $characterPatterns = [
+            '/\b[Tt]he man\b/' => 'MAN',
+            '/\b[Tt]he woman\b/' => 'WOMAN',
+            '/\b[Tt]he cat\b/' => 'CAT',
+            '/\b[Tt]he dog\b/' => 'DOG',
+            '/\b[Tt]he boy\b/' => 'BOY',
+            '/\b[Tt]he girl\b/' => 'GIRL',
+            '/\b[Aa] man\b/' => 'MAN',
+            '/\b[Aa] woman\b/' => 'WOMAN',
+            '/\b[Aa] cat\b/' => 'CAT',
+            '/\b[Aa] dog\b/' => 'DOG',
+            '/\b[Tt]he customer\b/' => 'CUSTOMER',
+            '/\b[Tt]he employee\b/' => 'EMPLOYEE',
+            '/\b[Tt]he child\b/' => 'CHILD',
+            '/\b[Tt]he baby\b/' => 'BABY',
+        ];
+
+        foreach ($characterPatterns as $pattern => $replacement) {
+            $text = preg_replace($pattern, $replacement, $text);
+        }
 
         // Phase 3c: Remove appearance/clothing descriptions
         $appearancePatterns = [
@@ -2253,6 +2278,8 @@ CRITICAL RULES:
 - ANIMAL SOUNDS — ONLY IF HEARD: If the visual analysis reports animal vocalizations were HEARD in the audio (meowing, hissing, barking, growling), include them as actions in the scene. If the analysis says "No animal vocalizations detected" or only mentions panting/breathing, do NOT add animal sounds. Animals NEVER speak human words.
 - VOICEOVER vs CHARACTER SOUNDS: The audio transcript is likely a VOICEOVER narration dubbed over the video. Animals make their natural sounds. Voiceover goes in the official Seedance voiceover format.
 - The main character (camera focus) should be described FIRST in the videoPrompt.
+- UPPERCASE CHARACTER NAMES: In the videoPrompt, ALWAYS use UPPERCASE names: MAN, CAT, WOMAN, DOG, CUSTOMER, EMPLOYEE. NEVER write "the man", "the cat", "a woman" — ALWAYS "MAN", "CAT", "WOMAN". Start the videoPrompt with a Subject line listing all characters: "MAN and CAT."
+- ACTIVE VOICE ONLY: Every sentence must use active voice with the character as subject. WRONG: "causing him to flinch". RIGHT: "MAN flinches back". WRONG: "which sends items flying". RIGHT: "items fly off the counter".
 - ABSOLUTELY NO background music in the videoPrompt. NEVER write "music plays", "upbeat music", "beat drops", "soundtrack", or any music mention. Seedance generates audio from the prompt text — any music reference causes unwanted background music. Only character sounds, dialogue, and physical sound effects.
 
 {$videoPromptInstruction}
@@ -2357,7 +2384,7 @@ EXCEPTION: If characters are UNUSUALLY SIZED (miniaturized, enlarged, tiny, gian
 
 === CLONE FAITHFULNESS OVERRIDES ===
 1. DIALOGUE & SOUNDS ARE ESSENTIAL: Include character dialogue in quotes from the audio transcript. Include character sounds (meows, yells, screams, growls) — these drive Seedance's audio generation. Do NOT write onomatopoeia (SMACK, THUD, crash, bang) or music references.
-2. ENERGY MATCHING: Match the ACTUAL energy level. Calm scene = gently/steadily. Intense scene = violently/aggressively/wildly.
+2. ENERGY MATCHING: Match the ACTUAL energy level. Calm scene = gently/steadily. Intense scene = violently/powerfully/wildly.
 3. Do NOT fabricate actions. Only describe what the analysis confirms happened.
 4. CAMERA STYLE: If the analysis describes the camera movement (handheld, tracking, static), include it in the videoPrompt.
 5. OBJECT DISPLACEMENT IS AN ACTION: If the analysis describes objects being knocked off surfaces, scattered, or sent flying during character actions, this MUST appear in the videoPrompt as cause-and-effect within the action sentence.
@@ -2366,20 +2393,25 @@ NOW generate the JSON. For videoPrompt, follow these steps IN ORDER:
 
 STEP 1: List every action phase from the analysis timeline (e.g., 0:00-0:02 = setup, 0:02-0:03 = escalation, ... 0:08-0:09 = resolution).
 STEP 2: For EACH phase, write ONE sentence capturing the SPECIFIC physical action:
-   - WHO does it (the customer, the cat, both)
+   - WHO does it — use UPPERCASE names: MAN, CAT, WOMAN, DOG (NEVER "the man", "the cat", "a woman")
    - WHAT body part (hand, paw, mouth, legs, arms, chest)
    - WHAT specific motion (leans forward, opens mouth wide, swats with right paw, jumps off counter, scoops up from floor, flails front and hind legs)
-   - WHAT direction/result (toward the cat, to the floor, around the counter, against his chest)
-   - Use adverbs: rapidly, violently, crazily, intensely, swiftly, gently, steadily, smoothly
-   WRONG: "The cat attacks the man." (too vague)
-   RIGHT: "The cat violently swats at his outstretched hand with right paw in aggressive fury."
-   WRONG: "The man grabs the cat." (no detail on HOW)
-   RIGHT: "The customer rapidly bends down and scoops up the struggling cat from the floor."
+   - WHAT direction/result (toward CAT, to the floor, around the counter, against MAN's chest)
+   - Use degree words: rapidly, violently, powerfully, wildly, quickly, fast, strongly
+   WRONG: "The cat attacks the man." (lowercase names, too vague)
+   RIGHT: "CAT violently swats at MAN's outstretched hand with right paw, claws extended."
+   WRONG: "The man grabs the cat." (lowercase names, no detail on HOW)
+   RIGHT: "MAN rapidly bends down and scoops up the struggling CAT from the floor."
 STEP 3: CHECK FOR OBJECT DISPLACEMENT. Re-read the analysis — did ANY objects get knocked off, scattered, displaced, or sent flying? If yes, that MUST appear in your videoPrompt. Objects falling off counters/tables during chaos are ESSENTIAL visual elements. If the analysis says "cup falls off counter" or "items scatter" and your videoPrompt doesn't mention it, you FAILED.
 STEP 4: LAST sentence MUST be the FINAL phase (resolution/departure/exit). If the subject walks away, holds something up, or gives up — that is the ending. Do NOT stop at the climax and skip the resolution.
 STEP 5: ADD DIALOGUE & SOUNDS. Extract key dialogue from the audio transcript and include it in quotes. Include character sounds (meows, yells, screams). These drive Seedance's audio generation.
-STEP 6: ADD CAMERA STYLE if notable (e.g., "A chaotic, shaking handheld camera follows the action").
-STEP 7: End with "Cinematic, photorealistic."
+STEP 6: FIVE-PART STRUCTURE — Format the final videoPrompt as:
+   Subject. Action sentences. Camera. Style. Audio.
+   - SUBJECT: Start with "MAN and CAT." or "WOMAN." (uppercase names, one line)
+   - ACTION: All action sentences separated by semicolons
+   - CAMERA: "Medium handheld shot." or "Static wide shot." etc.
+   - STYLE: "Cinematic, photorealistic."
+   - AUDIO: "No music. Only [list specific sounds: dialogue, character sounds, physical impacts]."
 
 The videoPrompt MUST be 120-200 words. Count your words before outputting. Use the FULL budget — do NOT stop early when there are more action phases to cover.
 PROMPT;
@@ -2434,8 +2466,8 @@ DEGREE WORDS — Use ONLY these Seedance-optimized intensity modifiers:
 - BANNED: aggressively, fiercely, crazily, intensely, desperately, gracefully, elegantly, frantically, furiously, decisively, angrily
 - Every action sentence MUST include at least one degree word.
 
-EXAMPLE — Good videoPrompt narrative:
-"The man leans powerfully over the coffee shop counter and yells "How can you ruin such a bad iced coffee? There is no caramel in my caramel swirl!" Then quickly points at the cat in the orange hat. The cat meows repeatedly and violently slaps the man's face with its right paw. Then, in a quick powerful motion, the cat jumps onto the counter and violently knocks over the iced coffee cup and other items, then the cat jumps again and lands powerfully on the man's left shoulder, its claws gripping wildly at high frequency. A chaotic, shaking handheld camera follows the action. Cinematic, photorealistic."
+EXAMPLE — Good videoPrompt (five-part structure with uppercase names):
+"MAN and CAT. MAN leans powerfully over the counter and yells "How can you ruin such a bad iced coffee? There is no caramel in my caramel swirl!" then quickly points at CAT; CAT meows repeatedly and violently slaps MAN's face with its right paw; then in a quick powerful motion CAT jumps onto the counter and violently knocks over the iced coffee cup and other items; CAT jumps again and lands powerfully on MAN's left shoulder, claws gripping wildly at high frequency. Medium handheld shot. Cinematic, photorealistic. No music. Only dialogue, meows, yells, and crash sounds."
 
 VIDEOPROMPT RULES:
 1. ONE sentence per action phase. {$phaseCount} phases = {$phaseCount} sentences. Do NOT skip or merge any phase.
@@ -2445,14 +2477,20 @@ VIDEOPROMPT RULES:
 5. SOUNDS: Include character vocalizations (meows, yells, screams, growls) — Seedance uses these for audio.
 6. WORD COUNT: 120-200 words. Use the full budget — do NOT stop early.
 7. LAST SENTENCE = the FINAL action (resolution/departure/exit), NOT the climax. If the video ends with someone leaving, holding something, or giving up — that MUST be the last sentence.
-8. End with "Cinematic, photorealistic."
-9. Every sentence describes a DIFFERENT action — no repetition.
-10. BANNED: NO appearance/clothing descriptions (Seedance uses the reference image). NO background music references. NO facial micro-expressions (pupils dilating, brows furrowing). NO emotional adjectives (angry, furious, terrified, desperate, mischievous, aggressive). Convey intensity through BODY ACTIONS and degree words.
+8. FIVE-PART STRUCTURE — videoPrompt MUST follow: Subject. Action. Camera. Style. Audio.
+   - Subject: "MAN and CAT." (uppercase names listing all characters)
+   - Action: All action sentences separated by semicolons
+   - Camera: "Medium handheld shot." or similar
+   - Style: "Cinematic, photorealistic."
+   - Audio: "No music. Only dialogue, character sounds, and physical impacts."
+9. CHARACTER NAMES: ALWAYS use UPPERCASE names: MAN, CAT, WOMAN, DOG. NEVER "the man", "the cat", "a woman".
+10. Every sentence describes a DIFFERENT action — no repetition.
+11. BANNED: NO appearance/clothing descriptions (Seedance uses the reference image). NO background music references. NO facial micro-expressions (pupils dilating, brows furrowing). NO emotional adjectives (angry, furious, terrified, desperate, mischievous, aggressive). Convey intensity through BODY ACTIONS and degree words.
 
 CRITICAL — OBJECT DISPLACEMENT:
 If objects are knocked off, scattered, displaced, or sent flying, this MUST appear in the videoPrompt as cause-and-effect within the action sentence.
-CORRECT: "The cat crazily jumps onto the counter, violently knocking the iced coffee cup and straw dispenser off the counter to the floor."
-WRONG: "The cat crazily jumps onto the counter." (MISSING the objects — the generated video will look flat and wrong)
+CORRECT: "CAT wildly jumps onto the counter, violently knocking the iced coffee cup and straw dispenser off the counter to the floor."
+WRONG: "CAT jumps onto the counter." (MISSING the objects — the generated video will look flat and wrong)
 SYSTEM;
             $userMessage = $prompt;
         }
