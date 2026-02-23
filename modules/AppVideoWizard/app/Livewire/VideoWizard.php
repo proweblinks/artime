@@ -38762,29 +38762,27 @@ VISION;
 
             $imageAnalysis = trim($analysisResult['text']);
 
-            // Step 2: Rewrite the prompt to match the image
+            // Step 2: Surgical edit — only replace what changed, keep everything else word-for-word
             $rewritePrompt = <<<REWRITE
-You are a video prompt specialist for Seedance (an AI video generator that creates video from image + text prompt).
+You are making MINIMAL text edits to a video prompt. This is a SURGICAL FIND-AND-REPLACE operation, NOT a rewrite.
 
 CURRENT VIDEO PROMPT:
 {$currentPrompt}
 
-ACTUAL IMAGE ANALYSIS (what's REALLY in the image right now):
+IMAGE ANALYSIS (what the image ACTUALLY shows):
 {$imageAnalysis}
 
-TASK: Rewrite the video prompt so it accurately describes the characters, objects, and environment that are ACTUALLY in the image — NOT what the old prompt says.
+TASK: Compare the prompt against the image analysis. Find ONLY the words/phrases that don't match the image, and replace ONLY those specific words. Keep EVERYTHING else exactly word-for-word identical.
 
-RULES:
-1. REPLACE all character references with what's actually in the image. If the image shows a tiger but the prompt says "Rottweiler", change every mention to tiger. If the image shows long flowing hair/mane but the prompt doesn't mention it, ADD details about the hair interacting with the action (flowing, bouncing, getting cut, etc.)
-2. PRESERVE the story structure: the sequence of actions, timing, pacing, camera movements, and narrative arc must stay the same
-3. PRESERVE any dialogue in "quotes" — keep the same words but adjust character attribution if needed
-4. PRESERVE narrator lines and sound descriptions, adjusting animal sounds to match (e.g., if dog→tiger, barking→growling/roaring)
-5. ADD details about distinctive visual features you see in the image that the action would naturally interact with (e.g., if a character has long hair and is getting a haircut, describe the hair falling, being gathered, etc.)
-6. PRESERVE "Cinematic, photorealistic." at the end
-7. PRESERVE the "No music." instruction if present
-8. Keep 140-170 words total. MUST be complete sentences — never end mid-sentence
-9. Output ONLY the rewritten prompt — no explanations, no markdown, no quotes around it
-10. Double-check your output: every sentence must be grammatically complete before "Cinematic, photorealistic."
+CRITICAL RULES:
+1. This is FIND-AND-REPLACE, not rewriting. The output must be 95%+ identical to the input.
+2. If the prompt says "ROTTWEILER" but the image shows a tiger, replace "ROTTWEILER" with "TIGER" everywhere — that's it.
+3. If the image shows a distinctive feature not in the prompt (e.g., long blonde hair), add a SHORT clause about it near the relevant action — do NOT restructure the sentence.
+4. KEEP every action, timing word, camera direction, dialogue, sound effect, and narrator line EXACTLY as-is.
+5. KEEP the exact same sentence structure, word order, and pacing.
+6. KEEP "Cinematic, photorealistic." and "No music." if present.
+7. DO NOT add flowery descriptions, adjectives, or reformat the prompt style.
+8. Output ONLY the edited prompt — no explanations, no markdown.
 REWRITE;
 
             $rewriteResult = $gemini->analyzeImageWithPrompt($base64, $rewritePrompt, [
