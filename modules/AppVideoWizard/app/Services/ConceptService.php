@@ -872,23 +872,31 @@ INCLUDE:
 - Dialogue in quotes from the audio transcript: yells "How can you ruin this?"
 - Character sounds: meows, yells, screams — these drive accurate audio generation
 - Camera style when notable: "A chaotic, shaking handheld camera follows the action"
-- Emotional states as part of actions: "leans aggressively", "angrily points"
 - Specific body parts: "slaps the man's face with its right paw", "lands on the man's left shoulder"
 - Object displacement as cause-and-effect: "jumps onto the counter and violently knocks over the iced coffee cup"
+- Physical body language for intensity: teeth baring, ears flattening, body tensing, arms flailing, fists clenching
+
+DEGREE WORDS — Use ONLY these Seedance-optimized intensity modifiers:
+- PREFERRED: quickly, fast, violently, powerfully, wildly, crazy, intense, strong, with large amplitude, at high frequency, greatly
+- ACCEPTABLE: slowly, gently, steadily, smoothly, carefully, rapidly, suddenly
+- Use "crazy" (adjective) NOT "crazily". Use "strong" NOT "strongly". Use "intense" NOT "intensely".
+- BANNED adverbs: aggressively, fiercely, crazily, intensely, desperately, gracefully, elegantly, frantically, decisively, tenderly
+- Every action sentence should include at least one degree word.
 
 DO NOT INCLUDE:
 - NO scene/setting/environment descriptions — the source image provides the scene.
 - NO appearance/clothing/color descriptions — the source image provides appearance.
 - NO background music mentions — Seedance generates audio from text, any music reference creates unwanted audio.
-- NO facial micro-expressions ("eyes widen", "brow furrows") — convey emotion through body language.
+- NO facial micro-expressions ("eyes widen", "brow furrows") — convey emotion through BODY ACTIONS (teeth baring, ears flattening, tail lashing).
+- NO emotional adjectives: angry, furious, terrified, desperate, mischievous, aggressive, defiant — describe PHYSICAL body language instead.
 - NO semicolons, NO passive voice.
 - Do NOT fabricate actions not in the analysis. Faithful to what actually happened.
-- Match intensity to the analysis: calm scene = gently/steadily, intense scene = crazily/violently.
+- Match intensity: calm scene = gently/steadily/slowly, intense scene = violently/wildly/powerfully/fast.
 - If characters are miniaturized/enlarged, MENTION the size — it affects rendering.
 - Target: 100-150 words (8+ action phases → aim for 120-150 words). Under 90 = missing key actions. Completeness over brevity — include every phase from FIRST to LAST.
 
 GOLD-STANDARD EXAMPLE (~75 words — this prompt produced excellent Seedance results):
-"The bear steadily walks forward. The bike's front wheel bumps into the bear's butt. The bear rapidly glances back over his shoulder, flashing a big funny smile, then turns his head forward. Instantly the bear starts a rhythmic hip-swaying butt dance, hips crazily bobbing side to side with large amplitude at high frequency, its whole body bouncing in a funny groove. The bear's arms swing loosely with large amplitude matching the hip rhythm. Continuous comedic energy throughout. Cinematic, photorealistic."
+"The bear steadily walks forward. The bike's front wheel bumps into the bear's butt. The bear rapidly glances back over his shoulder, flashing a big funny smile, then turns his head forward. Instantly the bear starts a rhythmic hip-swaying butt dance, hips wildly bobbing side to side with large amplitude at high frequency, its whole body bouncing in a funny groove. The bear's arms swing loosely with large amplitude matching the hip rhythm. Continuous comedic energy throughout. Cinematic, photorealistic."
 
 WHY IT WORKS — Follow this pattern for ANY video:
 - Setup: First action — what starts the scene (1 sentence)
@@ -996,6 +1004,31 @@ CLONE_RULES;
             $text = preg_replace($pattern, $replacement, $text);
         }
 
+        // Phase 3b2: Replace banned adverbs with Seedance degree words
+        $bannedAdverbs = [
+            '/\baggressively\b/i' => 'powerfully',
+            '/\bfiercely\b/i' => 'violently',
+            '/\bcrazily\b/i' => 'wildly',
+            '/\bintensely\b/i' => 'powerfully',
+            '/\bdesperately\b/i' => 'wildly',
+            '/\bangrily\b/i' => 'violently',
+            '/\bfuriously\b/i' => 'violently',
+            '/\bfrantically\b/i' => 'wildly',
+            '/\bgracefully\b/i' => 'smoothly',
+            '/\belegantly\b/i' => 'smoothly',
+            '/\bdecisively\b/i' => 'quickly',
+            '/\btenderly\b/i' => 'gently',
+            '/\bmenacingly\b/i' => 'powerfully',
+            '/\bhastily\b/i' => 'quickly',
+            '/\bferociously\b/i' => 'violently',
+            '/\bdeftly\b/i' => 'quickly',
+            '/\bnimbly\b/i' => 'quickly',
+        ];
+
+        foreach ($bannedAdverbs as $pattern => $replacement) {
+            $text = preg_replace($pattern, $replacement, $text);
+        }
+
         // Phase 3c: Remove appearance/clothing descriptions
         $appearancePatterns = [
             // "wrapped from waist down", "wrapped in [cloth]"
@@ -1054,7 +1087,7 @@ CLONE_RULES;
      */
     public static function deduplicateSeedanceAdverbs(string $text): string
     {
-        $allAdverbs = ['crazily', 'violently', 'rapidly', 'intensely', 'slowly', 'gently', 'steadily', 'smoothly'];
+        $allAdverbs = ['violently', 'powerfully', 'wildly', 'rapidly', 'quickly', 'slowly', 'gently', 'steadily', 'smoothly'];
 
         // Count all adverbs first to pick alternatives that aren't already overused
         $counts = [];
@@ -1130,8 +1163,9 @@ ALLOWED (preserve these):
 - Dialogue in DOUBLE quotes — it drives audio generation
 - Character sounds (meowing, yelling, screaming, hissing, purring)
 - Camera style descriptions (e.g., "chaotic handheld camera", "stationary camera")
-- Emotional states attached to actions (e.g., "leans aggressively", "angrily points")
+- Physical body language for intensity: teeth baring, ears flattening, body tensing, arms flailing, fists clenching, claws extended, tail lashing
 - "glance", "look", "stare", "gaze" are HEAD/EYE ACTIONS — keep them
+- Seedance degree words: quickly, fast, violently, powerfully, wildly, crazy, intense, strong, with large amplitude, at high frequency, greatly
 
 BANNED (fix these):
 - NO facial micro-expressions (eyes widening, brow furrowing, mouth curving into smile)
@@ -1139,11 +1173,12 @@ BANNED (fix these):
 - NO face/identity prefix text like "Maintain face consistency"
 - NO scene/setting descriptions — the source image already shows the scene
 - NO background music mentions (soundtrack, score, beat, rhythm, melody)
-- NO off-screen references ("off-screen character", "someone off-screen", "a voice from off-screen") — rewrite as on-screen: "the customer says" not "the off-screen customer says"
-- NO state descriptions without action ("the plate now misses one piece", "the room is empty") — convert to action-driven: "the plate sits with one fewer bacon strip" → better: just remove it, the VISUAL shows the result
-- NO vague/abstract motion ("fades from view", "disappears", "vanishes") — use explicit motion: "walks into the far background until no longer visible"
-- NO standalone subject fragments ("CAT WAITER." alone as a sentence) — integrate subject into the first action sentence
-- NO literary/flowery adverbs (decisively, gracefully, elegantly, meticulously, tenderly, deftly, nimbly) — replace with Seedance-optimized degree words when possible
+- NO off-screen references ("off-screen character", "someone off-screen", "a voice from off-screen") — rewrite as on-screen
+- NO state descriptions without action ("the plate now misses one piece", "the room is empty") — remove or convert to action
+- NO vague/abstract motion ("fades from view", "disappears", "vanishes") — use explicit motion
+- NO standalone subject fragments ("CAT WAITER." alone as a sentence) — integrate subject into first action sentence
+- NO emotional adjectives: angry, furious, terrified, desperate, mischievous, aggressive, defiant, distressed, satisfied, playful — replace with PHYSICAL body actions + degree words
+- NO banned adverbs: aggressively, fiercely, crazily, intensely, desperately, gracefully, elegantly, frantically, furiously, decisively, angrily, tenderly, deftly, nimbly, hastily, menacingly — replace with Seedance degree words (quickly, violently, powerfully, wildly, fast, etc.)
 
 ADVERB OPTIMIZATION (important for Seedance quality):
 - PREFERRED degree words: quickly, fast, violently, powerfully, wildly, crazy, intense, strong, with large amplitude, at high frequency, greatly
@@ -2272,16 +2307,21 @@ CRITICAL — EVERY ACTION PHASE MUST BE REPRESENTED:
 - Do NOT skip, merge, or compress any action phase. If the analysis describes 8 phases, the prompt needs ~8 action sentences.
 - A cat leaping, a man flinching, a struggle, a throw — these are SEPARATE actions requiring SEPARATE sentences.
 - Do NOT jump from "cat clings to back" to "man throws cat" — the STRUGGLE phase between them is critical.
-Use natural adverbs freely: rapidly, violently, aggressively, wildly, fiercely, crazily, intensely, gently, steadily, desperately.
+DEGREE WORDS — Use these Seedance-optimized intensity modifiers (NOT literary adverbs):
+- PREFERRED: quickly, fast, violently, powerfully, wildly, crazy, intense, strong, with large amplitude, at high frequency, greatly
+- ACCEPTABLE: slowly, gently, steadily, smoothly, carefully, rapidly, suddenly
+- BANNED: aggressively, fiercely, crazily, intensely, desperately, gracefully, elegantly, frantically, furiously, decisively, tenderly, deftly, nimbly, hastily, menacingly
+- Use "crazy" (adjective) NOT "crazily". Use "strong" NOT "strongly". Use "intense" NOT "intensely".
+- Every action sentence MUST include at least one degree word.
 Connect actions with temporal words: then, instantly, after, finally.
 NO scene descriptions, NO appearance/clothing — only actions, motions, dialogue, sounds, and camera style.
-EMOTIONAL STATE MUST BE PART OF EACH ACTION — not separate, not optional:
-- WRONG: "The cat opens its mouth wide then lunges forward." (mechanical, emotionless — Seedance renders a yawn, not an attack)
-- RIGHT: "The cat violently opens its mouth wide in aggressive fury then crazily lunges forward." (anger is VISIBLE, Seedance renders aggression)
-- WRONG: "The man recoils, turning away." (no emotion — could be casual)
-- RIGHT: "The man crazily recoils in surprise, turning away." (shock is VISIBLE)
-- If the analysis says a character is angry, aggressive, surprised, distressed, defiant — that emotion MUST appear as an adjective/phrase IN the action sentence.
-- Ears flattening, body tensing aggressively, teeth baring = PHYSICAL details that define HOW the action looks.
+CONVEY INTENSITY THROUGH BODY ACTIONS — not emotional adjectives:
+- WRONG: "The cat opens its mouth wide then lunges forward." (too mechanical — Seedance renders a yawn)
+- RIGHT: "The cat violently opens its mouth wide with teeth baring then quickly lunges forward with claws extended." (physical detail makes aggression VISIBLE)
+- WRONG: "The man recoils in surprise, turning away." (emotional adjective — Seedance ignores "surprise")
+- RIGHT: "The man wildly recoils, arms flailing, turning away fast." (body motion makes shock VISIBLE)
+- BANNED emotional adjectives: angry, furious, terrified, desperate, mischievous, satisfied, playful, aggressive, defiant, distressed
+- INSTEAD describe PHYSICAL body language: teeth baring, ears flattening, body tensing, arms flailing, fists clenching, chest puffing, tail lashing
 - DO NOT write onomatopoeia (SMACK, THUD, crash, bang) but DO include character dialogue in quotes and character sounds (meows, yells, screams) — these drive Seedance's audio generation.
 
 CRITICAL — IMAGE-TO-VIDEO (NO SCENE DESCRIPTION IN videoPrompt):
@@ -2368,24 +2408,31 @@ Write as if you're vividly narrating the scene to someone who can't see it. Use 
 - INCLUDE dialogue in quotes: yells "How can you ruin this?" or screams "Get off me!"
 - INCLUDE character sounds: meows, yells, screams, growls, hisses — these drive accurate audio generation
 - INCLUDE camera style when notable: "A chaotic, shaking handheld camera follows the action"
-- INCLUDE emotional states as part of actions: "leans aggressively", "angrily points", "desperately struggles"
+- INCLUDE physical body language for intensity: teeth baring, ears flattening, body tensing, arms flailing, claws gripping
 - INCLUDE specific body parts: "slaps the man's face with its right paw", "claws gripping wildly"
 - INCLUDE object displacement as cause-and-effect: "jumps onto the counter and violently knocks over the iced coffee cup"
 
+DEGREE WORDS — Use ONLY these Seedance-optimized intensity modifiers:
+- PREFERRED: quickly, fast, violently, powerfully, wildly, crazy, intense, strong, with large amplitude, at high frequency, greatly
+- ACCEPTABLE: slowly, gently, steadily, smoothly, carefully, rapidly, suddenly
+- Use "crazy" NOT "crazily". Use "strong" NOT "strongly". Use "intense" NOT "intensely".
+- BANNED: aggressively, fiercely, crazily, intensely, desperately, gracefully, elegantly, frantically, furiously, decisively, angrily
+- Every action sentence MUST include at least one degree word.
+
 EXAMPLE — Good videoPrompt narrative:
-"The man leans aggressively over the coffee shop counter and yells 'How can you ruin such a bad iced coffee? There's no caramel in my caramel swirl!' Angrily points at the cat in the orange hat. The cat meows repeatedly and slaps the man's face with its right paw. Then, in a quick, powerful motion, the cat jumps onto the counter and violently knocks over the iced coffee cup and other items, then the cat jumps again and lands violently on the man's left shoulder, its claws gripping wildly at high frequency and speed. A chaotic, shaking handheld camera follows the action. Cinematic, photorealistic."
+"The man leans powerfully over the coffee shop counter and yells "How can you ruin such a bad iced coffee? There is no caramel in my caramel swirl!" Then quickly points at the cat in the orange hat. The cat meows repeatedly and violently slaps the man's face with its right paw. Then, in a quick powerful motion, the cat jumps onto the counter and violently knocks over the iced coffee cup and other items, then the cat jumps again and lands powerfully on the man's left shoulder, its claws gripping wildly at high frequency. A chaotic, shaking handheld camera follows the action. Cinematic, photorealistic."
 
 VIDEOPROMPT RULES:
 1. ONE sentence per action phase. {$phaseCount} phases = {$phaseCount} sentences. Do NOT skip or merge any phase.
-2. Use natural adverbs freely: rapidly, violently, aggressively, wildly, fiercely, powerfully, crazily, intensely, slowly, gently, steadily, desperately, furiously — whatever fits the action.
+2. DEGREE WORDS: Use ONLY Seedance degree words (quickly, fast, violently, powerfully, wildly, crazy, intense, strong, with large amplitude, at high frequency, greatly, slowly, gently, steadily, smoothly, rapidly, suddenly). NEVER use: aggressively, fiercely, crazily, intensely, desperately, furiously, angrily, gracefully, elegantly, frantically.
 3. SPECIFICITY IS CRITICAL: Say "swats at his hand with right paw" not "attacks him". Say "claws gripping wildly at high frequency" not "struggles". The SPECIFIC body part and direction make the video accurate.
-4. DIALOGUE: Extract key dialogue from the audio transcript and include it in quotes within the action. This drives Seedance's audio generation.
+4. DIALOGUE: Extract key dialogue from the audio transcript and include it in double quotes within the action. This drives Seedance's audio generation.
 5. SOUNDS: Include character vocalizations (meows, yells, screams, growls) — Seedance uses these for audio.
 6. WORD COUNT: 120-200 words. Use the full budget — do NOT stop early.
 7. LAST SENTENCE = the FINAL action (resolution/departure/exit), NOT the climax. If the video ends with someone leaving, holding something, or giving up — that MUST be the last sentence.
 8. End with "Cinematic, photorealistic."
 9. Every sentence describes a DIFFERENT action — no repetition.
-10. BANNED: NO appearance/clothing descriptions (Seedance uses the reference image). NO background music references. NO facial micro-expressions (pupils dilating, brows furrowing).
+10. BANNED: NO appearance/clothing descriptions (Seedance uses the reference image). NO background music references. NO facial micro-expressions (pupils dilating, brows furrowing). NO emotional adjectives (angry, furious, terrified, desperate, mischievous, aggressive). Convey intensity through BODY ACTIONS and degree words.
 
 CRITICAL — OBJECT DISPLACEMENT:
 If objects are knocked off, scattered, displaced, or sent flying, this MUST appear in the videoPrompt as cause-and-effect within the action sentence.
@@ -2458,7 +2505,7 @@ SYSTEM;
                 } else {
                     // Fallback to hardcoded
                     $expandPrompt = [
-                        ['role' => 'system', 'content' => "You rewrite Seedance 1.5 Pro video prompts to hit 120-150 words. Keep the SAME actions in the SAME order. Expand short sentences by adding: body parts (arms, paws, chest, fingers), directions (forward, backward, upward), emotional states as part of actions (leans aggressively, angrily points), dialogue in quotes from the scene, character sounds (meows, yells, screams). Use natural adverbs freely. PRESERVE existing dialogue and sounds — never remove them. Return ONLY the rewritten prompt, nothing else."],
+                        ['role' => 'system', 'content' => "You rewrite Seedance 1.5 Pro video prompts to hit 120-150 words. Keep the SAME actions in the SAME order. Expand short sentences by adding: body parts (arms, paws, chest, fingers), directions (forward, backward, upward), physical body language (teeth baring, ears flattening, body tensing, arms flailing), dialogue in quotes from the scene, character sounds (meows, yells, screams). Use ONLY Seedance degree words: quickly, fast, violently, powerfully, wildly, crazy, intense, strong, with large amplitude, at high frequency, greatly, slowly, gently, steadily, smoothly, rapidly, suddenly. NEVER use: aggressively, fiercely, crazily, intensely, desperately, angrily, furiously, gracefully. PRESERVE existing dialogue and sounds — never remove them. Return ONLY the rewritten prompt, nothing else."],
                         ['role' => 'user', 'content' => "This prompt is only {$wordCount} words. Expand each sentence to reach 120-150 total:\n\n{$concept['videoPrompt']}"],
                     ];
                 }
@@ -2595,9 +2642,10 @@ Situation: {$concept['situation']}{$dialogueContext}
 Raw: "{$rawPrompt}"
 
 SEEDANCE TECHNICAL RULES — apply to ALL content:
-- NEVER use emotional adjectives: frustrated, angry, feisty, furious, terrified, desperate, pained, mischievous, satisfied, playful, joyful, content, smug.
-- NEVER use banned adverbs: tightly, briefly, crazily, precariously, fiercely, loudly, sharply, aggressively.
+- NEVER use emotional adjectives: frustrated, angry, feisty, furious, terrified, desperate, pained, mischievous, satisfied, playful, joyful, content, smug, aggressive, defiant, distressed.
+- NEVER use banned adverbs: tightly, briefly, crazily, precariously, fiercely, loudly, sharply, aggressively, desperately, gracefully, elegantly, frantically, furiously, decisively, angrily, tenderly, deftly, nimbly, hastily, menacingly, intensely.
 - ONLY use these degree words: quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy, fast, intense, strong, greatly.
+- ALSO acceptable: slowly, gently, steadily, smoothly, carefully, rapidly, suddenly.
 - Use "crazy" (adjective) NOT "crazily". Use "strong" NOT "strongly". Use "intense" NOT "intensely".
 - Use "at high frequency" NOT "high-frequency". Use "crazy loud" NOT "high-pitched".
 - NO clothing/appearance descriptions (jacket, shirt, hoodie, fur color). Identify characters by type/body only.
