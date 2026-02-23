@@ -38298,152 +38298,113 @@ PROMPT;
     }
 
     /**
-     * Get available realism vibe presets — photographic reality transforms.
-     * Each vibe changes lighting, atmosphere, color science, and mood
-     * while preserving faces, poses, composition, and absolute photorealism.
+     * Get available realism reimagination presets — scene/story transforms within photorealism.
+     * Each preset reimagines the SCENARIO, SETTING, and STORY while keeping the same characters
+     * and maintaining absolute photorealism. Like the Reimagine tab (anime, cyberpunk, etc.)
+     * but the output stays in the real world.
      */
     protected function getRealismVibes(): array
     {
-        $preserve = "ABSOLUTE PRESERVATION (CRITICAL — do NOT alter):\n"
-            . "- Every person's exact face, facial structure, bone structure, skin tone, expression, and age\n"
-            . "- Hair color, style, length, and texture\n"
-            . "- Body positions, poses, gestures, clothing design, and accessories\n"
-            . "- Objects, props, and scene elements present in the frame\n"
-            . "- The composition, framing, and spatial relationships between subjects\n\n";
+        $core = "REALISTIC SCENE REIMAGINATION: Completely reimagine this scene — change the setting, story, and situation while keeping the SAME characters.\n\n";
 
-        $rule = "The output MUST be 100% photorealistic — indistinguishable from a real photograph taken with a real camera. "
-            . "Real skin with visible pores and natural texture. Real materials with authentic surface properties. Real physics. "
-            . "NO painting, illustration, CGI, digital art, or stylization of any kind.";
+        $preserve = "CHARACTER PRESERVATION (CRITICAL):\n"
+            . "- Keep every person/animal's exact physical appearance: face, features, skin tone, hair, body type\n"
+            . "- The characters are the SAME beings, just transported into a completely different realistic situation\n"
+            . "- Their clothing, props, and environment should change to fit the new scenario\n\n";
+
+        $rule = "\n\nCRITICAL: The result MUST be 100% photorealistic — a real photograph of a real scene. "
+            . "Real skin with visible pores, real materials, real lighting, real physics. "
+            . "NO painting, illustration, CGI, or stylization. This is a real-world reimagination.";
 
         return [
-            'cinematic_drama' => [
-                'name' => 'Cinematic Drama',
-                'icon' => 'fa-solid fa-film',
-                'color' => '#f59e0b',
-                'prompt' => "PHOTOGRAPHIC REALITY TRANSFORM: Reimagine this scene as a cinematic movie still from a Hollywood blockbuster.\n\n"
-                    . $preserve
-                    . "TRANSFORM the photographic conditions:\n"
-                    . "- LIGHTING: Dramatic three-point lighting with strong rim/back light separating subjects from background. Deep cinematic shadows on one side of faces.\n"
-                    . "- COLOR SCIENCE: Teal and orange color grade — cool teal shadows, warm orange highlights and skin tones. Rich tonal contrast.\n"
-                    . "- ATMOSPHERE: Shallow depth of field with creamy bokeh. Subtle atmospheric haze. Anamorphic lens characteristics — horizontal flares, oval bokeh.\n"
-                    . "- MOOD: Intense, dramatic, high-stakes. Every frame tells a story.\n\n"
+            'restaurant_kitchen' => [
+                'name' => 'Restaurant Kitchen',
+                'icon' => 'fa-solid fa-utensils',
+                'color' => '#ef4444',
+                'prompt' => $core . $preserve
+                    . "NEW SCENARIO — RESTAURANT KITCHEN:\n"
+                    . "Reimagine these characters in a busy professional restaurant kitchen. The main animal/character becomes a head chef wearing a chef's coat and toque, actively cooking at a hot stove with flames, steam, and sizzling pans. The human character becomes a demanding customer or restaurant critic standing at the kitchen pass, confronting the chef about their order. The environment is a real commercial kitchen — stainless steel surfaces, hanging pots, ticket rail, heat lamps, the organized chaos of service rush. The tension between them is about food, not whatever the original scene was about. Other kitchen staff may be visible in the background."
                     . $rule,
             ],
-            'golden_hour' => [
-                'name' => 'Golden Hour',
-                'icon' => 'fa-solid fa-sun',
-                'color' => '#f97316',
-                'prompt' => "PHOTOGRAPHIC REALITY TRANSFORM: Reimagine this scene as if captured during golden hour — the last 30 minutes before sunset.\n\n"
-                    . $preserve
-                    . "TRANSFORM the photographic conditions:\n"
-                    . "- LIGHTING: Warm, low-angle golden sunlight streaming from behind or beside the subjects. Long soft shadows. Beautiful backlight creating a glowing halo/rim around hair and shoulders.\n"
-                    . "- COLOR SCIENCE: Warm amber and golden tones throughout. Rich orange highlights, soft purple shadows. Skin glows with warm natural light.\n"
-                    . "- ATMOSPHERE: Golden haze in the air, visible light rays, gentle lens flare from the sun. Soft, dreamy quality to the light.\n"
-                    . "- MOOD: Warm, romantic, nostalgic, magical. The world bathed in honey-colored light.\n\n"
+            'hospital_er' => [
+                'name' => 'Hospital ER',
+                'icon' => 'fa-solid fa-hospital',
+                'color' => '#06b6d4',
+                'prompt' => $core . $preserve
+                    . "NEW SCENARIO — HOSPITAL EMERGENCY ROOM:\n"
+                    . "Reimagine these characters in a hospital emergency room. The main animal/character becomes a doctor or surgeon in scrubs, stethoscope, and medical gear, urgently attending to a situation. The human character becomes an anxious patient or frantic family member demanding answers. The environment is a real ER — monitors, IV drips, hospital beds, fluorescent lighting, medical equipment, curtain dividers. The drama is medical urgency, life-and-death stakes. Nurses and orderlies may be visible rushing in the background."
                     . $rule,
             ],
-            'film_noir' => [
-                'name' => 'Film Noir',
-                'icon' => 'fa-solid fa-circle-half-stroke',
-                'color' => '#6b7280',
-                'prompt' => "PHOTOGRAPHIC REALITY TRANSFORM: Reimagine this scene in the style of classic film noir photography — black and white with dramatic shadows.\n\n"
-                    . $preserve
-                    . "TRANSFORM the photographic conditions:\n"
-                    . "- LIGHTING: Hard directional light creating extreme contrast. Sharp shadow patterns — venetian blind shadows, single harsh light source. Deep blacks and bright whites with minimal mid-tones.\n"
-                    . "- COLOR SCIENCE: Full black and white / monochrome. Rich silver gelatin tones with deep inky blacks and luminous highlights. Fine film grain.\n"
-                    . "- ATMOSPHERE: Moody, mysterious, brooding. Smoke or fog catching light beams. Wet surfaces reflecting light.\n"
-                    . "- MOOD: Suspenseful, dangerous, sophisticated. Classic 1940s detective cinema atmosphere.\n\n"
-                    . $rule,
-            ],
-            'moody_editorial' => [
-                'name' => 'Moody Editorial',
-                'icon' => 'fa-solid fa-camera',
+            'courtroom' => [
+                'name' => 'Courtroom Drama',
+                'icon' => 'fa-solid fa-gavel',
                 'color' => '#8b5cf6',
-                'prompt' => "PHOTOGRAPHIC REALITY TRANSFORM: Reimagine this scene as a high-fashion editorial spread from Vogue or GQ magazine.\n\n"
-                    . $preserve
-                    . "TRANSFORM the photographic conditions:\n"
-                    . "- LIGHTING: Dramatic directional studio-quality lighting with precise shadow placement. Strong key light with minimal fill — sculpted, intentional shadows on faces and bodies.\n"
-                    . "- COLOR SCIENCE: Desaturated and muted tones with one or two accent colors that pop. Cool undertones, crushed blacks, controlled highlights. Magazine-quality color separation.\n"
-                    . "- ATMOSPHERE: Ultra-sharp focus on subjects, clean and intentional negative space. The air feels still, composed, deliberate.\n"
-                    . "- MOOD: Powerful, confident, aspirational. Every element is intentional. High-fashion gravitas.\n\n"
+                'prompt' => $core . $preserve
+                    . "NEW SCENARIO — COURTROOM DRAMA:\n"
+                    . "Reimagine these characters in a dramatic courtroom. The main animal/character becomes a sharp defense attorney or judge in robes, commanding the room from behind the bench or at the counsel table. The human character becomes a hostile witness on the stand or opposing counsel, locked in intense legal confrontation. The environment is a real courtroom — wood-paneled walls, judge's bench, witness stand, jury box, legal documents, American flag. The tension is a high-stakes legal battle. Spectators may be visible in the gallery."
                     . $rule,
             ],
-            'vintage_film' => [
-                'name' => 'Vintage Film',
-                'icon' => 'fa-solid fa-camera-retro',
-                'color' => '#d97706',
-                'prompt' => "PHOTOGRAPHIC REALITY TRANSFORM: Reimagine this scene as if shot on 1970s Kodak film stock — warm, grainy, nostalgic.\n\n"
-                    . $preserve
-                    . "TRANSFORM the photographic conditions:\n"
-                    . "- LIGHTING: Soft, natural, slightly overexposed highlights that bloom. Warm directional light with gentle transitions between light and shadow.\n"
-                    . "- COLOR SCIENCE: Warm amber and yellow-green color cast. Faded blacks (lifted shadows), muted reds shifting toward orange, greens shifting warm. Visible but fine film grain texture throughout.\n"
-                    . "- ATMOSPHERE: Slightly soft focus on edges with sharp center. Subtle light leaks or lens imperfections. The organic, imperfect beauty of analog photography.\n"
-                    . "- MOOD: Nostalgic, intimate, warm. Feels like discovering a beautiful photograph from your parents' era.\n\n"
+            'rock_concert' => [
+                'name' => 'Rock Concert',
+                'icon' => 'fa-solid fa-guitar',
+                'color' => '#f97316',
+                'prompt' => $core . $preserve
+                    . "NEW SCENARIO — ROCK CONCERT BACKSTAGE:\n"
+                    . "Reimagine these characters at a rock concert. The main animal/character becomes a rockstar on stage or backstage — leather jacket, guitar or microphone, sweat-drenched under stage lights. The human character becomes an obsessed fan trying to get backstage, or a frustrated tour manager dealing with the rockstar's demands. The environment is a real concert venue — stage lighting, amplifiers, drum kit, crowd in the background, backstage passes, equipment cases. The energy is loud, electric, and chaotic."
                     . $rule,
             ],
-            'raw_street' => [
-                'name' => 'Raw Street',
-                'icon' => 'fa-solid fa-city',
+            'fashion_show' => [
+                'name' => 'Fashion Runway',
+                'icon' => 'fa-solid fa-shirt',
+                'color' => '#ec4899',
+                'prompt' => $core . $preserve
+                    . "NEW SCENARIO — FASHION SHOW:\n"
+                    . "Reimagine these characters at a high-fashion runway show. The main animal/character becomes a top fashion designer or supermodel in avant-garde couture, either strutting the runway or commanding the backstage. The human character becomes a demanding fashion editor or rival designer critiquing the collection. The environment is a real fashion show — catwalk with dramatic lighting, front-row seats, photographers with flashing cameras, racks of designer clothing backstage, models being styled. The atmosphere is glamorous, competitive, and high-pressure."
+                    . $rule,
+            ],
+            'sports_arena' => [
+                'name' => 'Sports Arena',
+                'icon' => 'fa-solid fa-trophy',
+                'color' => '#22c55e',
+                'prompt' => $core . $preserve
+                    . "NEW SCENARIO — SPORTS ARENA:\n"
+                    . "Reimagine these characters in a professional sports setting. The main animal/character becomes a star athlete in full uniform and gear — on the field, court, or in the locker room, in the heat of competition or post-game. The human character becomes an aggressive referee making a controversial call, or a rival coach confronting them. The environment is a real sports arena — stadium seating, scoreboard, bright field lights, team logos, sports equipment. The conflict is athletic competition and fierce rivalry. Teammates or crowd may be visible."
+                    . $rule,
+            ],
+            'science_lab' => [
+                'name' => 'Science Lab',
+                'icon' => 'fa-solid fa-flask',
+                'color' => '#3b82f6',
+                'prompt' => $core . $preserve
+                    . "NEW SCENARIO — RESEARCH LABORATORY:\n"
+                    . "Reimagine these characters in a cutting-edge research laboratory. The main animal/character becomes a brilliant scientist in a lab coat, safety goggles, working with bubbling beakers, microscopes, or high-tech equipment — on the verge of a breakthrough. The human character becomes a skeptical colleague, lab director, or investor questioning the research or demanding results. The environment is a real research lab — test tubes, centrifuges, computer monitors with data, whiteboards covered in equations, chemical storage. The tension is scientific ambition vs. skepticism."
+                    . $rule,
+            ],
+            'crime_scene' => [
+                'name' => 'Crime Scene',
+                'icon' => 'fa-solid fa-magnifying-glass',
                 'color' => '#64748b',
-                'prompt' => "PHOTOGRAPHIC REALITY TRANSFORM: Reimagine this scene as raw, gritty street photography — candid and unpolished.\n\n"
-                    . $preserve
-                    . "TRANSFORM the photographic conditions:\n"
-                    . "- LIGHTING: Harsh available light — fluorescent overhead, streetlamps, neon signs, mixed color temperatures. Unflattering but honest light with hard shadows.\n"
-                    . "- COLOR SCIENCE: High contrast with slightly desaturated colors. Cool blue-gray undertones. Deep blacks, gritty texture. The look of pushed Tri-X or high-ISO digital.\n"
-                    . "- ATMOSPHERE: Rain-slicked surfaces reflecting light. Urban textures — concrete, glass, metal. Slight motion energy. The rawness of real city life.\n"
-                    . "- MOOD: Authentic, gritty, unposed. Documentary truth. The beauty in imperfection.\n\n"
+                'prompt' => $core . $preserve
+                    . "NEW SCENARIO — CRIME SCENE INVESTIGATION:\n"
+                    . "Reimagine these characters at a crime scene. The main animal/character becomes a detective in a trench coat or forensic investigator, examining evidence with intense focus — fingerprints, clues, photographs. The human character becomes a prime suspect being interrogated, or a police captain pressuring for results. The environment is a real crime scene — yellow police tape, evidence markers, forensic kits, squad cars with flashing lights, rain-slicked city street. The mood is tense, noir-influenced, and mysterious."
                     . $rule,
             ],
-            'ethereal_soft' => [
-                'name' => 'Ethereal Soft',
-                'icon' => 'fa-solid fa-feather',
-                'color' => '#f9a8d4',
-                'prompt' => "PHOTOGRAPHIC REALITY TRANSFORM: Reimagine this scene with ethereal, dreamy soft-focus photography — romantic and luminous.\n\n"
-                    . $preserve
-                    . "TRANSFORM the photographic conditions:\n"
-                    . "- LIGHTING: Soft, diffused light wrapping gently around subjects. No harsh shadows. Light seems to come from everywhere — overcast sky or large diffused window. Subtle glow on skin.\n"
-                    . "- COLOR SCIENCE: Soft pastel tones — pale pinks, lavenders, and creamy whites. Lifted shadows, reduced contrast. Skin tones are luminous and porcelain-smooth (but still real).\n"
-                    . "- ATMOSPHERE: Shallow depth of field with gentle, creamy bokeh. Soft pro-mist / diffusion filter quality — highlights bloom softly. The air feels weightless.\n"
-                    . "- MOOD: Romantic, delicate, otherworldly yet real. Like a beautiful waking dream.\n\n"
+            'wedding_chaos' => [
+                'name' => 'Wedding Chaos',
+                'icon' => 'fa-solid fa-champagne-glasses',
+                'color' => '#f59e0b',
+                'prompt' => $core . $preserve
+                    . "NEW SCENARIO — CHAOTIC WEDDING RECEPTION:\n"
+                    . "Reimagine these characters at a wedding reception that's going off the rails. The main animal/character becomes the wedding planner or best man/maid of honor in formal attire, desperately trying to manage a disaster — a fallen cake, broken decorations, or feuding guests. The human character becomes an enraged bride, groom, or parent of the couple making demands. The environment is a real wedding venue — white tablecloths, flower arrangements, tiered wedding cake, dance floor, string lights, guests in formal wear. Beautiful setting, total chaos."
                     . $rule,
             ],
-            'neon_nights' => [
-                'name' => 'Neon Nights',
-                'icon' => 'fa-solid fa-bolt-lightning',
-                'color' => '#e879f9',
-                'prompt' => "PHOTOGRAPHIC REALITY TRANSFORM: Reimagine this scene as nighttime urban photography bathed in neon light.\n\n"
-                    . $preserve
-                    . "TRANSFORM the photographic conditions:\n"
-                    . "- LIGHTING: Colorful neon light sources — magenta, cyan, purple, electric blue — casting vivid colored light and shadows on subjects. Multiple competing light sources creating rich color interplay on skin and surfaces.\n"
-                    . "- COLOR SCIENCE: Rich, saturated neon colors — hot pink, electric blue, deep purple. Dark shadows contrasting with vivid neon highlights. The color palette of a city at night.\n"
-                    . "- ATMOSPHERE: Wet surfaces reflecting neon colors. Urban nighttime energy — glass, chrome, illuminated signs. Slight atmospheric haze catching colored light beams.\n"
-                    . "- MOOD: Electric, vibrant, alive. The energy and excitement of the city after dark.\n\n"
-                    . $rule,
-            ],
-            'nordic_clean' => [
-                'name' => 'Nordic Clean',
-                'icon' => 'fa-solid fa-snowflake',
-                'color' => '#38bdf8',
-                'prompt' => "PHOTOGRAPHIC REALITY TRANSFORM: Reimagine this scene with Scandinavian winter light — crisp, clean, and minimal.\n\n"
-                    . $preserve
-                    . "TRANSFORM the photographic conditions:\n"
-                    . "- LIGHTING: Cool, clear, even light from an overcast northern sky. Soft shadows with blue undertones. Clean, precise illumination that reveals every detail without drama.\n"
-                    . "- COLOR SCIENCE: Cool blue-gray palette. Muted, desaturated colors — whites, pale blues, soft grays. Skin tones are clean and neutral with cool undertones. Minimal color variety.\n"
-                    . "- ATMOSPHERE: Crystal-clear air, sharp focus throughout. Clean negative space. The austere beauty of Scandinavian minimalism. Everything feels precise and intentional.\n"
-                    . "- MOOD: Calm, serene, contemplative. Quiet beauty. The stillness of a Nordic winter morning.\n\n"
-                    . $rule,
-            ],
-            'dawn_mist' => [
-                'name' => 'Dawn Mist',
-                'icon' => 'fa-solid fa-cloud-sun',
-                'color' => '#a78bfa',
-                'prompt' => "PHOTOGRAPHIC REALITY TRANSFORM: Reimagine this scene as if captured at dawn in morning mist — atmospheric and peaceful.\n\n"
-                    . $preserve
-                    . "TRANSFORM the photographic conditions:\n"
-                    . "- LIGHTING: Soft directional light from a low sun barely breaking through fog. Gentle light wrapping around subjects with luminous edges. Subtle god rays visible in the mist.\n"
-                    . "- COLOR SCIENCE: Muted pastels — soft lavender, pale peach, cool blue-gray. Desaturated with a slight warm-cool split between highlights and shadows. Gentle tonal transitions.\n"
-                    . "- ATMOSPHERE: Visible fog and mist diffusing light, reducing contrast with distance. The air is thick and tangible. Foreground subjects are sharper, background melts into mist.\n"
-                    . "- MOOD: Peaceful, mysterious, contemplative. The quiet magic of early morning before the world wakes.\n\n"
+            'pirate_ship' => [
+                'name' => 'Pirate Ship',
+                'icon' => 'fa-solid fa-skull-crossbones',
+                'color' => '#d97706',
+                'prompt' => $core . $preserve
+                    . "NEW SCENARIO — PIRATE SHIP ON THE HIGH SEAS:\n"
+                    . "Reimagine these characters aboard a pirate ship. The main animal/character becomes the pirate captain in a tricorn hat, long coat, and boots, standing at the helm or near the mast, commanding the crew. The human character becomes a captured prisoner, mutinous first mate, or rival pirate captain locked in confrontation. The environment is a real wooden sailing ship — weathered deck planks, rope rigging, cannons, Jolly Roger flag, ocean spray, dramatic cloudy sky. Everything must still look like a real photograph — think Pirates of the Caribbean level realism."
                     . $rule,
             ],
         ];

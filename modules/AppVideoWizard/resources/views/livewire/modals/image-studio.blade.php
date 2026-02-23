@@ -256,25 +256,25 @@
 
                 {{-- Explanation --}}
                 <p style="margin: 0 0 0.75rem 0; color: var(--vw-text-muted); font-size: 0.75rem; line-height: 1.4;">
-                    {{ __('Transform the photographic reality — lighting, atmosphere, color science, and mood — while keeping people, faces, poses, and composition 100% identical. The result stays absolutely photorealistic.') }}
+                    {{ __('Reimagine the entire scene into a different realistic scenario — new setting, new story, new situation — while keeping the same characters. Everything stays 100% photorealistic.') }}
                 </p>
 
-                {{-- Realism Vibes Grid --}}
+                {{-- Realism Scenarios Grid --}}
                 <div style="margin-bottom: 0.75rem;">
-                    <label style="display: block; color: var(--vw-text-secondary); font-size: 0.75rem; font-weight: 500; margin-bottom: 0.5rem;">{{ __('Choose a Vibe') }}</label>
+                    <label style="display: block; color: var(--vw-text-secondary); font-size: 0.75rem; font-weight: 500; margin-bottom: 0.5rem;">{{ __('Choose a Scenario') }}</label>
                     <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.4rem;">
                         @php
                             $realismVibes = [
-                                'cinematic_drama' => ['name' => __('Cinematic Drama'), 'icon' => 'fa-solid fa-film', 'color' => '#f59e0b'],
-                                'golden_hour' => ['name' => __('Golden Hour'), 'icon' => 'fa-solid fa-sun', 'color' => '#f97316'],
-                                'film_noir' => ['name' => __('Film Noir'), 'icon' => 'fa-solid fa-circle-half-stroke', 'color' => '#6b7280'],
-                                'moody_editorial' => ['name' => __('Moody Editorial'), 'icon' => 'fa-solid fa-camera', 'color' => '#8b5cf6'],
-                                'vintage_film' => ['name' => __('Vintage Film'), 'icon' => 'fa-solid fa-camera-retro', 'color' => '#d97706'],
-                                'raw_street' => ['name' => __('Raw Street'), 'icon' => 'fa-solid fa-city', 'color' => '#64748b'],
-                                'ethereal_soft' => ['name' => __('Ethereal Soft'), 'icon' => 'fa-solid fa-feather', 'color' => '#f9a8d4'],
-                                'neon_nights' => ['name' => __('Neon Nights'), 'icon' => 'fa-solid fa-bolt-lightning', 'color' => '#e879f9'],
-                                'nordic_clean' => ['name' => __('Nordic Clean'), 'icon' => 'fa-solid fa-snowflake', 'color' => '#38bdf8'],
-                                'dawn_mist' => ['name' => __('Dawn Mist'), 'icon' => 'fa-solid fa-cloud-sun', 'color' => '#a78bfa'],
+                                'restaurant_kitchen' => ['name' => __('Restaurant Kitchen'), 'icon' => 'fa-solid fa-utensils', 'color' => '#ef4444'],
+                                'hospital_er' => ['name' => __('Hospital ER'), 'icon' => 'fa-solid fa-hospital', 'color' => '#06b6d4'],
+                                'courtroom' => ['name' => __('Courtroom Drama'), 'icon' => 'fa-solid fa-gavel', 'color' => '#8b5cf6'],
+                                'rock_concert' => ['name' => __('Rock Concert'), 'icon' => 'fa-solid fa-guitar', 'color' => '#f97316'],
+                                'fashion_show' => ['name' => __('Fashion Runway'), 'icon' => 'fa-solid fa-shirt', 'color' => '#ec4899'],
+                                'sports_arena' => ['name' => __('Sports Arena'), 'icon' => 'fa-solid fa-trophy', 'color' => '#22c55e'],
+                                'science_lab' => ['name' => __('Science Lab'), 'icon' => 'fa-solid fa-flask', 'color' => '#3b82f6'],
+                                'crime_scene' => ['name' => __('Crime Scene'), 'icon' => 'fa-solid fa-magnifying-glass', 'color' => '#64748b'],
+                                'wedding_chaos' => ['name' => __('Wedding Chaos'), 'icon' => 'fa-solid fa-champagne-glasses', 'color' => '#f59e0b'],
+                                'pirate_ship' => ['name' => __('Pirate Ship'), 'icon' => 'fa-solid fa-skull-crossbones', 'color' => '#d97706'],
                             ];
                         @endphp
 
@@ -296,13 +296,13 @@
                 {{-- Realism prompt textarea --}}
                 <div style="margin-bottom: 0.75rem;">
                     <label for="studio-realism-prompt" style="display: block; color: var(--vw-text-secondary); font-size: 0.75rem; font-weight: 500; margin-bottom: 0.35rem;">
-                        {{ __('Realism Description') }}
+                        {{ __('Scenario Description') }}
                         <span style="color: var(--vw-text-muted); font-weight: 400;">— {{ __('customize or write your own') }}</span>
                     </label>
                     <textarea id="studio-realism-prompt"
                               wire:model.blur="imageStudioPrompt"
                               rows="3"
-                              placeholder="{{ __('Choose a vibe above, or describe your own: "Shot on Kodak Portra 400", "Rainy day through a window", "Harsh midday desert sun"...') }}"
+                              placeholder="{{ __('Choose a scenario above, or describe your own: "Food truck festival", "Underwater submarine", "Wild West saloon showdown"...') }}"
                               style="width: 100%; background: var(--vw-bg-elevated); border: 1px solid var(--vw-border); border-radius: 0.5rem; padding: 0.6rem 0.75rem; color: var(--vw-text); font-size: 0.85rem; resize: vertical; outline: none; font-family: inherit;"
                               onfocus="this.style.borderColor='rgba(245,158,11,0.5)'"
                               onblur="this.style.borderColor='var(--vw-border)'"></textarea>
