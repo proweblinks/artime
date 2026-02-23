@@ -38837,6 +38837,9 @@ REWRITE;
                 }
             }
 
+            // Remove duplicate "Cinematic, photorealistic." anchors (AI sometimes adds a second one)
+            $newPrompt = preg_replace('/(Cinematic,?\s*photorealistic\.?\s*){2,}/i', 'Cinematic, photorealistic.', $newPrompt);
+
             // Ensure it ends with the style anchor
             if (!preg_match('/Cinematic,?\s*photorealistic\.?\s*$/i', $newPrompt)) {
                 $newPrompt = rtrim($newPrompt, '. ') . '. Cinematic, photorealistic.';
