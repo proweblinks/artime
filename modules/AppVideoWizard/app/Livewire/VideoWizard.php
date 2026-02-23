@@ -38782,8 +38782,9 @@ RULES:
 5. ADD details about distinctive visual features you see in the image that the action would naturally interact with (e.g., if a character has long hair and is getting a haircut, describe the hair falling, being gathered, etc.)
 6. PRESERVE "Cinematic, photorealistic." at the end
 7. PRESERVE the "No music." instruction if present
-8. Keep 140-170 words total
+8. Keep 140-170 words total. MUST be complete sentences — never end mid-sentence
 9. Output ONLY the rewritten prompt — no explanations, no markdown, no quotes around it
+10. Double-check your output: every sentence must be grammatically complete before "Cinematic, photorealistic."
 REWRITE;
 
             $rewriteResult = $gemini->analyzeImageWithPrompt($base64, $rewritePrompt, [
@@ -38808,7 +38809,10 @@ REWRITE;
             // Truncation detection: if prompt is too short or ends mid-sentence, retry once
             $wordCount = str_word_count($newPrompt);
             $endsCleanly = preg_match('/[.!?"]\s*$/', $newPrompt);
-            if ($wordCount < 80 || (!$endsCleanly && !preg_match('/photorealistic\.?\s*$/i', $newPrompt))) {
+            // Also check if the content before "Cinematic, photorealistic." is incomplete
+            $contentBeforeAnchor = preg_replace('/\.?\s*Cinematic,?\s*photorealistic\.?\s*$/i', '', $newPrompt);
+            $contentEndsCleanly = preg_match('/[.!?"]\s*$/', trim($contentBeforeAnchor));
+            if ($wordCount < 100 || !$contentEndsCleanly) {
                 \Log::warning('adjustPromptToImage: Truncated response detected, retrying', [
                     'wordCount' => $wordCount,
                     'endsCleanly' => $endsCleanly,
@@ -38906,8 +38910,15 @@ DESC;
                 'maxOutputTokens' => 512,
             ]);
 
+            \Log::debug('updateSceneDescription: Gemini result', [
+                'success' => $result['success'] ?? false,
+                'textLength' => strlen($result['text'] ?? ''),
+                'textPreview' => mb_substr($result['text'] ?? '', 0, 200),
+            ]);
+
             if ($result['success'] && !empty($result['text'])) {
                 $lines = array_values(array_filter(array_map('trim', explode("\n", trim($result['text'])))));
+                \Log::debug('updateSceneDescription: Parsed lines', ['lineCount' => count($lines), 'lines' => array_map(fn($l) => mb_substr($l, 0, 80), array_slice($lines, 0, 5))]);
                 if (count($lines) >= 2) {
                     // Clean up any markdown or label prefixes the AI might add
                     $newCharacter = preg_replace('/^\[?(character|character line|character description)[:\]]\s*/i', '', $lines[0]);
