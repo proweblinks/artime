@@ -38790,7 +38790,7 @@ REWRITE;
                 'model' => 'gemini-2.5-flash',
                 'mimeType' => $mimeType,
                 'temperature' => 0.3,
-                'maxOutputTokens' => 1024,
+                'maxOutputTokens' => 2048,
             ]);
 
             if (!$rewriteResult['success'] || empty($rewriteResult['text'])) {
@@ -38804,6 +38804,36 @@ REWRITE;
             $newPrompt = preg_replace('/^```[\w]*\n?/', '', $newPrompt);
             $newPrompt = preg_replace('/\n?```$/', '', $newPrompt);
             $newPrompt = trim($newPrompt, " \t\n\r\0\x0B\"");
+
+            // Truncation detection: if prompt is too short or ends mid-sentence, retry once
+            $wordCount = str_word_count($newPrompt);
+            $endsCleanly = preg_match('/[.!?"]\s*$/', $newPrompt);
+            if ($wordCount < 80 || (!$endsCleanly && !preg_match('/photorealistic\.?\s*$/i', $newPrompt))) {
+                \Log::warning('adjustPromptToImage: Truncated response detected, retrying', [
+                    'wordCount' => $wordCount,
+                    'endsCleanly' => $endsCleanly,
+                    'preview' => mb_substr($newPrompt, -80),
+                ]);
+
+                $retryResult = $gemini->analyzeImageWithPrompt($base64, $rewritePrompt, [
+                    'model' => 'gemini-2.5-flash',
+                    'mimeType' => $mimeType,
+                    'temperature' => 0.2,
+                    'maxOutputTokens' => 2048,
+                ]);
+
+                if ($retryResult['success'] && !empty($retryResult['text'])) {
+                    $retryPrompt = trim($retryResult['text']);
+                    $retryPrompt = preg_replace('/^```[\w]*\n?/', '', $retryPrompt);
+                    $retryPrompt = preg_replace('/\n?```$/', '', $retryPrompt);
+                    $retryPrompt = trim($retryPrompt, " \t\n\r\0\x0B\"");
+
+                    // Use retry if it's longer
+                    if (str_word_count($retryPrompt) > $wordCount) {
+                        $newPrompt = $retryPrompt;
+                    }
+                }
+            }
 
             // Ensure it ends with the style anchor
             if (!preg_match('/Cinematic,?\s*photorealistic\.?\s*$/i', $newPrompt)) {
@@ -38837,15 +38867,15 @@ REWRITE;
      */
     protected function updateSceneDescriptionFromAnalysis(string $imageAnalysis, $gemini, string $base64, string $mimeType): void
     {
-        $socialContent = $this->concept['socialContent'] ?? null;
-        if (!$socialContent) {
-            return;
-        }
+        // Find character + situation from wherever they're stored
+        $idx = $this->selectedConceptIndex ?? 0;
+        $selectedIdea = $this->concept['socialContent'] ?? ($this->conceptVariations[$idx] ?? []);
 
-        $oldCharacter = $socialContent['character'] ?? '';
-        $oldSituation = $socialContent['situation'] ?? '';
+        $oldCharacter = $selectedIdea['character'] ?? '';
+        $oldSituation = $selectedIdea['situation'] ?? '';
 
         if (empty($oldCharacter) && empty($oldSituation)) {
+            \Log::debug('updateSceneDescription: no character/situation to update');
             return;
         }
 
@@ -38864,33 +38894,35 @@ CURRENT SITUATION DESCRIPTION (regular text):
 
 Rewrite both to match the image. Keep the same sentence structure and length. The character line should describe who is in the scene and what they're doing (the setup). The situation line should describe what happens next (the action/payoff).
 
-Reply in EXACTLY this format (two lines, no labels):
-[character line]
-[situation line]
+Reply in EXACTLY this format (two lines, no labels, no brackets):
+First line is the character description
+Second line is the situation description
 DESC;
 
             $result = $gemini->analyzeImageWithPrompt($base64, $descPrompt, [
                 'model' => 'gemini-2.5-flash',
                 'mimeType' => $mimeType,
                 'temperature' => 0.3,
-                'maxOutputTokens' => 256,
+                'maxOutputTokens' => 512,
             ]);
 
             if ($result['success'] && !empty($result['text'])) {
                 $lines = array_values(array_filter(array_map('trim', explode("\n", trim($result['text'])))));
                 if (count($lines) >= 2) {
-                    // Clean up any markdown or label prefixes
-                    $newCharacter = preg_replace('/^\[?(character|character line)[:\]]\s*/i', '', $lines[0]);
-                    $newSituation = preg_replace('/^\[?(situation|situation line)[:\]]\s*/i', '', $lines[1]);
-                    $newCharacter = trim($newCharacter, "[] \t");
-                    $newSituation = trim($newSituation, "[] \t");
+                    // Clean up any markdown or label prefixes the AI might add
+                    $newCharacter = preg_replace('/^\[?(character|character line|character description)[:\]]\s*/i', '', $lines[0]);
+                    $newSituation = preg_replace('/^\[?(situation|situation line|situation description)[:\]]\s*/i', '', $lines[1]);
+                    $newCharacter = trim($newCharacter, "[]\"' \t");
+                    $newSituation = trim($newSituation, "[]\"' \t");
 
                     if (strlen($newCharacter) > 10 && strlen($newSituation) > 10) {
-                        $this->concept['socialContent']['character'] = $newCharacter;
-                        $this->concept['socialContent']['situation'] = $newSituation;
+                        // Update socialContent if it has these fields
+                        if (isset($this->concept['socialContent'])) {
+                            $this->concept['socialContent']['character'] = $newCharacter;
+                            $this->concept['socialContent']['situation'] = $newSituation;
+                        }
 
-                        // Also update conceptVariations if used
-                        $idx = $this->selectedConceptIndex ?? 0;
+                        // Update conceptVariations (the primary source for the blade)
                         if (isset($this->conceptVariations[$idx])) {
                             $this->conceptVariations[$idx]['character'] = $newCharacter;
                             $this->conceptVariations[$idx]['situation'] = $newSituation;
@@ -38899,6 +38931,8 @@ DESC;
                         \Log::info('🎯 Scene description updated', [
                             'oldCharacter' => mb_substr($oldCharacter, 0, 80),
                             'newCharacter' => mb_substr($newCharacter, 0, 80),
+                            'oldSituation' => mb_substr($oldSituation, 0, 80),
+                            'newSituation' => mb_substr($newSituation, 0, 80),
                         ]);
                     }
                 }
