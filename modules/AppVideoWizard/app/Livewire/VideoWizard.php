@@ -38848,7 +38848,7 @@ REWRITE;
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoPrompt'] = $newPrompt;
 
             // Also update the scene description (character + situation) shown at the top
-            $this->updateSceneDescriptionFromAnalysis($imageAnalysis);
+            $this->updateSceneDescriptionFromAnalysis($imageAnalysis, $base64, $mimeType);
 
             $this->saveProject();
 
@@ -38869,7 +38869,7 @@ REWRITE;
     /**
      * Update the concept's character + situation descriptions to match the current image.
      */
-    protected function updateSceneDescriptionFromAnalysis(string $imageAnalysis): void
+    protected function updateSceneDescriptionFromAnalysis(string $imageAnalysis, string $base64, string $mimeType): void
     {
         // Find character + situation from wherever they're stored
         $idx = $this->selectedConceptIndex ?? 0;
@@ -38885,39 +38885,33 @@ REWRITE;
 
         try {
             $descPrompt = <<<DESC
-Based on this image analysis, rewrite these two text fields to match what's actually in the image.
+Look at this image carefully. I need you to rewrite two short descriptions to match what you see.
 
-IMAGE ANALYSIS:
-{$imageAnalysis}
+CURRENT "character" TEXT: "{$oldCharacter}"
+CURRENT "situation" TEXT: "{$oldSituation}"
 
-CURRENT CHARACTER DESCRIPTION (bold text):
-{$oldCharacter}
+These descriptions are WRONG — they don't match the image. Rewrite them to accurately describe what's in the image. Keep each description roughly the same length (1-2 sentences each).
 
-CURRENT SITUATION DESCRIPTION (regular text):
-{$oldSituation}
-
-Rewrite both to match the image. Keep the same sentence structure and approximate length.
-- "character": describes who is in the scene and what they're doing (the setup)
-- "situation": describes what happens next (the action/payoff)
-
-Reply with ONLY valid JSON, no markdown, no explanation:
-{"character": "...", "situation": "..."}
+You MUST respond with ONLY this JSON format (no other text):
+{"character": "your rewritten character description here", "situation": "your rewritten situation description here"}
 DESC;
 
             $gemini = app(\App\Services\GeminiService::class);
-            $result = $gemini->generateText($descPrompt, 512, null, 'text', [
+            $result = $gemini->analyzeImageWithPrompt($base64, $descPrompt, [
                 'model' => 'gemini-2.5-flash',
-                'temperature' => 0.4,
+                'mimeType' => $mimeType,
+                'temperature' => 0.3,
+                'maxOutputTokens' => 1024,
             ]);
 
-            $text = $result['data'][0] ?? '';
+            $text = $result['text'] ?? '';
             \Log::debug('updateSceneDescription: Gemini result', [
-                'hasError' => !empty($result['error']),
+                'success' => $result['success'] ?? false,
                 'textLength' => strlen($text),
-                'textPreview' => mb_substr($text, 0, 300),
+                'textPreview' => mb_substr($text, 0, 400),
             ]);
 
-            if (empty($result['error']) && !empty($text)) {
+            if (($result['success'] ?? false) && !empty($text)) {
                 $raw = trim($text);
                 // Strip markdown code fences if present
                 $raw = preg_replace('/^```(?:json)?\s*/', '', $raw);
