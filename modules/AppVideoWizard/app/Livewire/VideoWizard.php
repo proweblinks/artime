@@ -38896,11 +38896,12 @@ CURRENT CHARACTER DESCRIPTION (bold text):
 CURRENT SITUATION DESCRIPTION (regular text):
 {$oldSituation}
 
-Rewrite both to match the image. Keep the same sentence structure and length. The character line should describe who is in the scene and what they're doing (the setup). The situation line should describe what happens next (the action/payoff).
+Rewrite both to match the image. Keep the same sentence structure and approximate length.
+- "character": describes who is in the scene and what they're doing (the setup)
+- "situation": describes what happens next (the action/payoff)
 
-Reply in EXACTLY this format (two lines, no labels, no brackets):
-First line is the character description
-Second line is the situation description
+Reply with ONLY valid JSON, no markdown, no explanation:
+{"character": "...", "situation": "..."}
 DESC;
 
             $result = $gemini->analyzeImageWithPrompt($base64, $descPrompt, [
@@ -38913,18 +38914,20 @@ DESC;
             \Log::debug('updateSceneDescription: Gemini result', [
                 'success' => $result['success'] ?? false,
                 'textLength' => strlen($result['text'] ?? ''),
-                'textPreview' => mb_substr($result['text'] ?? '', 0, 200),
+                'textPreview' => mb_substr($result['text'] ?? '', 0, 300),
             ]);
 
             if ($result['success'] && !empty($result['text'])) {
-                $lines = array_values(array_filter(array_map('trim', explode("\n", trim($result['text'])))));
-                \Log::debug('updateSceneDescription: Parsed lines', ['lineCount' => count($lines), 'lines' => array_map(fn($l) => mb_substr($l, 0, 80), array_slice($lines, 0, 5))]);
-                if (count($lines) >= 2) {
-                    // Clean up any markdown or label prefixes the AI might add
-                    $newCharacter = preg_replace('/^\[?(character|character line|character description)[:\]]\s*/i', '', $lines[0]);
-                    $newSituation = preg_replace('/^\[?(situation|situation line|situation description)[:\]]\s*/i', '', $lines[1]);
-                    $newCharacter = trim($newCharacter, "[]\"' \t");
-                    $newSituation = trim($newSituation, "[]\"' \t");
+                $raw = trim($result['text']);
+                // Strip markdown code fences if present
+                $raw = preg_replace('/^```(?:json)?\s*/', '', $raw);
+                $raw = preg_replace('/\s*```$/', '', $raw);
+
+                $parsed = json_decode(trim($raw), true);
+
+                if ($parsed && !empty($parsed['character']) && !empty($parsed['situation'])) {
+                    $newCharacter = trim($parsed['character']);
+                    $newSituation = trim($parsed['situation']);
 
                     if (strlen($newCharacter) > 10 && strlen($newSituation) > 10) {
                         // Update socialContent if it has these fields
