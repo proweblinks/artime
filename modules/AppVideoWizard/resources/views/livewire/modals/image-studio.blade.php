@@ -52,6 +52,13 @@
                         : 'padding: 0.5rem 1rem; border-radius: 0.5rem 0.5rem 0 0; border: 1px solid transparent; border-bottom: none; background: none; color: var(--vw-text-muted); font-size: 0.85rem; font-weight: 500; cursor: pointer;'">
                 <i class="fa-solid fa-palette" style="margin-right: 0.3rem;"></i> {{ __('Reimagine') }}
             </button>
+            <button type="button"
+                    @click="activeTab = 'realism'"
+                    :style="activeTab === 'realism'
+                        ? 'padding: 0.5rem 1rem; border-radius: 0.5rem 0.5rem 0 0; border: 1px solid var(--vw-border-accent); border-bottom: none; background: var(--vw-bg-surface); color: var(--vw-text); font-size: 0.85rem; font-weight: 600; cursor: pointer;'
+                        : 'padding: 0.5rem 1rem; border-radius: 0.5rem 0.5rem 0 0; border: 1px solid transparent; border-bottom: none; background: none; color: var(--vw-text-muted); font-size: 0.85rem; font-weight: 500; cursor: pointer;'">
+                <i class="fa-solid fa-camera" style="margin-right: 0.3rem;"></i> {{ __('Reimagine Realism') }}
+            </button>
         </div>
 
         {{-- Content --}}
@@ -239,6 +246,81 @@
                     </span>
                     <span wire:loading wire:target="applyImageStudioEdit">
                         <i class="fa-solid fa-spinner fa-spin" style="margin-right: 0.3rem;"></i> {{ __('Reimagining...') }}
+                    </span>
+                </button>
+            </div>
+
+            {{-- ============ REIMAGINE REALISM TAB ============ --}}
+            <div x-show="activeTab === 'realism'" x-cloak
+                 x-data="{ selectedVibe: null }">
+
+                {{-- Explanation --}}
+                <p style="margin: 0 0 0.75rem 0; color: var(--vw-text-muted); font-size: 0.75rem; line-height: 1.4;">
+                    {{ __('Transform the photographic reality — lighting, atmosphere, color science, and mood — while keeping people, faces, poses, and composition 100% identical. The result stays absolutely photorealistic.') }}
+                </p>
+
+                {{-- Realism Vibes Grid --}}
+                <div style="margin-bottom: 0.75rem;">
+                    <label style="display: block; color: var(--vw-text-secondary); font-size: 0.75rem; font-weight: 500; margin-bottom: 0.5rem;">{{ __('Choose a Vibe') }}</label>
+                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.4rem;">
+                        @php
+                            $realismVibes = [
+                                'cinematic_drama' => ['name' => __('Cinematic Drama'), 'icon' => 'fa-solid fa-film', 'color' => '#f59e0b'],
+                                'golden_hour' => ['name' => __('Golden Hour'), 'icon' => 'fa-solid fa-sun', 'color' => '#f97316'],
+                                'film_noir' => ['name' => __('Film Noir'), 'icon' => 'fa-solid fa-circle-half-stroke', 'color' => '#6b7280'],
+                                'moody_editorial' => ['name' => __('Moody Editorial'), 'icon' => 'fa-solid fa-camera', 'color' => '#8b5cf6'],
+                                'vintage_film' => ['name' => __('Vintage Film'), 'icon' => 'fa-solid fa-camera-retro', 'color' => '#d97706'],
+                                'raw_street' => ['name' => __('Raw Street'), 'icon' => 'fa-solid fa-city', 'color' => '#64748b'],
+                                'ethereal_soft' => ['name' => __('Ethereal Soft'), 'icon' => 'fa-solid fa-feather', 'color' => '#f9a8d4'],
+                                'neon_nights' => ['name' => __('Neon Nights'), 'icon' => 'fa-solid fa-bolt-lightning', 'color' => '#e879f9'],
+                                'nordic_clean' => ['name' => __('Nordic Clean'), 'icon' => 'fa-solid fa-snowflake', 'color' => '#38bdf8'],
+                                'dawn_mist' => ['name' => __('Dawn Mist'), 'icon' => 'fa-solid fa-cloud-sun', 'color' => '#a78bfa'],
+                            ];
+                        @endphp
+
+                        @foreach($realismVibes as $key => $vibe)
+                            <button type="button"
+                                    @click="selectedVibe = '{{ $key }}'"
+                                    wire:click="realismVibeImageStudio('{{ $key }}')"
+                                    style="padding: 0.5rem 0.35rem; border-radius: 0.5rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; transition: all 0.2s;"
+                                    :style="selectedVibe === '{{ $key }}'
+                                        ? 'background: {{ $vibe['color'] }}18; border: 2px solid {{ $vibe['color'] }}; transform: translateY(-1px);'
+                                        : 'background: rgba(0,0,0,0.02); border: 2px solid var(--vw-border);'">
+                                <i class="{{ $vibe['icon'] }}" style="font-size: 1rem; color: {{ $vibe['color'] }};"></i>
+                                <span style="color: var(--vw-text); font-size: 0.6rem; font-weight: 500; text-align: center; line-height: 1.15;">{{ $vibe['name'] }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- Realism prompt textarea --}}
+                <div style="margin-bottom: 0.75rem;">
+                    <label for="studio-realism-prompt" style="display: block; color: var(--vw-text-secondary); font-size: 0.75rem; font-weight: 500; margin-bottom: 0.35rem;">
+                        {{ __('Realism Description') }}
+                        <span style="color: var(--vw-text-muted); font-weight: 400;">— {{ __('customize or write your own') }}</span>
+                    </label>
+                    <textarea id="studio-realism-prompt"
+                              wire:model.blur="imageStudioPrompt"
+                              rows="3"
+                              placeholder="{{ __('Choose a vibe above, or describe your own: "Shot on Kodak Portra 400", "Rainy day through a window", "Harsh midday desert sun"...') }}"
+                              style="width: 100%; background: var(--vw-bg-elevated); border: 1px solid var(--vw-border); border-radius: 0.5rem; padding: 0.6rem 0.75rem; color: var(--vw-text); font-size: 0.85rem; resize: vertical; outline: none; font-family: inherit;"
+                              onfocus="this.style.borderColor='rgba(245,158,11,0.5)'"
+                              onblur="this.style.borderColor='var(--vw-border)'"></textarea>
+                </div>
+
+                {{-- Realism Apply Button --}}
+                <button type="button"
+                        wire:click="applyImageStudioEdit"
+                        wire:loading.attr="disabled"
+                        wire:target="applyImageStudioEdit"
+                        style="width: 100%; padding: 0.65rem 1rem; background: linear-gradient(135deg, #f59e0b, #f97316); border: none; border-radius: 0.5rem; color: white; font-size: 0.9rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: opacity 0.2s;"
+                        onmouseover="this.style.opacity='0.9'"
+                        onmouseout="this.style.opacity='1'">
+                    <span wire:loading.remove wire:target="applyImageStudioEdit">
+                        <i class="fa-solid fa-camera" style="margin-right: 0.3rem;"></i> {{ __('Transform Reality') }}
+                    </span>
+                    <span wire:loading wire:target="applyImageStudioEdit">
+                        <i class="fa-solid fa-spinner fa-spin" style="margin-right: 0.3rem;"></i> {{ __('Transforming...') }}
                     </span>
                 </button>
             </div>
