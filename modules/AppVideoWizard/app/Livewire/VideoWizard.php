@@ -38677,6 +38677,238 @@ PROMPT;
         }
     }
 
+    // =========================================================================
+    // ADJUST PROMPT TO IMAGE (AI Vision)
+    // =========================================================================
+
+    /**
+     * Analyze the current shot image with AI vision and rewrite the video prompt
+     * to match what's actually in the image. Preserves story structure, timing,
+     * camera movements, and dialogue format while updating characters, objects,
+     * appearance details, and environment to match the visual reality.
+     */
+    public function adjustPromptToImage(int $sceneIndex, int $shotIndex): void
+    {
+        $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? null;
+        if (!$shot) {
+            $this->error = __('Shot not found');
+            return;
+        }
+
+        $imageUrl = $shot['imageUrl'] ?? null;
+        $currentPrompt = $shot['videoPrompt'] ?? '';
+
+        if (empty($imageUrl)) {
+            $this->error = __('No image to analyze');
+            return;
+        }
+
+        if (empty($currentPrompt)) {
+            $this->error = __('No prompt to adjust');
+            return;
+        }
+
+        try {
+            // Download image and convert to base64
+            $imageContent = @file_get_contents($imageUrl);
+            if (!$imageContent) {
+                $this->error = __('Could not download image for analysis');
+                return;
+            }
+            $base64 = base64_encode($imageContent);
+
+            // Detect mime type
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $mimeType = $finfo->buffer($imageContent) ?: 'image/jpeg';
+
+            $gemini = app(\App\Services\GeminiService::class);
+
+            // Step 1: Deep visual analysis of the current image
+            $analysisPrompt = <<<'VISION'
+Analyze this image in exhaustive visual detail. Describe EVERYTHING you see:
+
+1. CHARACTERS: List every person, animal, or creature. For each one describe:
+   - Species/type (human, cat, tiger, monkey, dog breed, etc.)
+   - Physical appearance: size, build, coloring, fur/hair/skin details
+   - Hair/fur: length, style, color, texture (short-haired, long flowing mane, curly, etc.)
+   - Clothing/accessories they're wearing
+   - Facial expression and where they're looking
+   - Exact pose and body position
+
+2. ACTIONS: What is each character physically doing right now?
+   - Hand/paw positions and what they're holding
+   - Interaction between characters
+
+3. OBJECTS & PROPS: Every visible object — tools, furniture, food, equipment, etc.
+
+4. ENVIRONMENT: The setting — indoor/outdoor, room type, lighting, colors, atmosphere
+
+5. NOTABLE DETAILS: Anything unusual, distinctive, or important that stands out
+
+Be PRECISE. Don't guess — describe only what you actually see. 150-200 words.
+VISION;
+
+            $analysisResult = $gemini->analyzeImageWithPrompt($base64, $analysisPrompt, [
+                'model' => 'gemini-2.5-flash',
+                'mimeType' => $mimeType,
+                'temperature' => 0.1,
+                'maxOutputTokens' => 1024,
+            ]);
+
+            if (!$analysisResult['success'] || empty($analysisResult['text'])) {
+                $this->error = __('Image analysis failed — please try again');
+                return;
+            }
+
+            $imageAnalysis = trim($analysisResult['text']);
+
+            // Step 2: Rewrite the prompt to match the image
+            $rewritePrompt = <<<REWRITE
+You are a video prompt specialist for Seedance (an AI video generator that creates video from image + text prompt).
+
+CURRENT VIDEO PROMPT:
+{$currentPrompt}
+
+ACTUAL IMAGE ANALYSIS (what's REALLY in the image right now):
+{$imageAnalysis}
+
+TASK: Rewrite the video prompt so it accurately describes the characters, objects, and environment that are ACTUALLY in the image — NOT what the old prompt says.
+
+RULES:
+1. REPLACE all character references with what's actually in the image. If the image shows a tiger but the prompt says "Rottweiler", change every mention to tiger. If the image shows long flowing hair/mane but the prompt doesn't mention it, ADD details about the hair interacting with the action (flowing, bouncing, getting cut, etc.)
+2. PRESERVE the story structure: the sequence of actions, timing, pacing, camera movements, and narrative arc must stay the same
+3. PRESERVE any dialogue in "quotes" — keep the same words but adjust character attribution if needed
+4. PRESERVE narrator lines and sound descriptions, adjusting animal sounds to match (e.g., if dog→tiger, barking→growling/roaring)
+5. ADD details about distinctive visual features you see in the image that the action would naturally interact with (e.g., if a character has long hair and is getting a haircut, describe the hair falling, being gathered, etc.)
+6. PRESERVE "Cinematic, photorealistic." at the end
+7. PRESERVE the "No music." instruction if present
+8. Keep 140-170 words total
+9. Output ONLY the rewritten prompt — no explanations, no markdown, no quotes around it
+REWRITE;
+
+            $rewriteResult = $gemini->analyzeImageWithPrompt($base64, $rewritePrompt, [
+                'model' => 'gemini-2.5-flash',
+                'mimeType' => $mimeType,
+                'temperature' => 0.3,
+                'maxOutputTokens' => 1024,
+            ]);
+
+            if (!$rewriteResult['success'] || empty($rewriteResult['text'])) {
+                $this->error = __('Prompt rewrite failed — please try again');
+                return;
+            }
+
+            $newPrompt = trim($rewriteResult['text']);
+
+            // Clean up any markdown wrapping the AI might add
+            $newPrompt = preg_replace('/^```[\w]*\n?/', '', $newPrompt);
+            $newPrompt = preg_replace('/\n?```$/', '', $newPrompt);
+            $newPrompt = trim($newPrompt, " \t\n\r\0\x0B\"");
+
+            // Ensure it ends with the style anchor
+            if (!preg_match('/Cinematic,?\s*photorealistic\.?\s*$/i', $newPrompt)) {
+                $newPrompt = rtrim($newPrompt, '. ') . '. Cinematic, photorealistic.';
+            }
+
+            // Update the shot's video prompt
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoPrompt'] = $newPrompt;
+
+            // Also update the scene description (character + situation) shown at the top
+            $this->updateSceneDescriptionFromAnalysis($imageAnalysis, $gemini, $base64, $mimeType);
+
+            $this->saveProject();
+
+            \Log::info('🎯 adjustPromptToImage: Prompt rewritten to match image', [
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+                'oldPromptPreview' => mb_substr($currentPrompt, 0, 100),
+                'newPromptPreview' => mb_substr($newPrompt, 0, 100),
+                'imageAnalysisPreview' => mb_substr($imageAnalysis, 0, 200),
+            ]);
+
+        } catch (\Throwable $e) {
+            \Log::error('adjustPromptToImage failed', ['error' => $e->getMessage()]);
+            $this->error = __('Failed to adjust prompt: ') . $e->getMessage();
+        }
+    }
+
+    /**
+     * Update the concept's character + situation descriptions to match the current image.
+     */
+    protected function updateSceneDescriptionFromAnalysis(string $imageAnalysis, $gemini, string $base64, string $mimeType): void
+    {
+        $socialContent = $this->concept['socialContent'] ?? null;
+        if (!$socialContent) {
+            return;
+        }
+
+        $oldCharacter = $socialContent['character'] ?? '';
+        $oldSituation = $socialContent['situation'] ?? '';
+
+        if (empty($oldCharacter) && empty($oldSituation)) {
+            return;
+        }
+
+        try {
+            $descPrompt = <<<DESC
+Based on this image analysis, rewrite these two text fields to match what's actually in the image.
+
+IMAGE ANALYSIS:
+{$imageAnalysis}
+
+CURRENT CHARACTER DESCRIPTION (bold text):
+{$oldCharacter}
+
+CURRENT SITUATION DESCRIPTION (regular text):
+{$oldSituation}
+
+Rewrite both to match the image. Keep the same sentence structure and length. The character line should describe who is in the scene and what they're doing (the setup). The situation line should describe what happens next (the action/payoff).
+
+Reply in EXACTLY this format (two lines, no labels):
+[character line]
+[situation line]
+DESC;
+
+            $result = $gemini->analyzeImageWithPrompt($base64, $descPrompt, [
+                'model' => 'gemini-2.5-flash',
+                'mimeType' => $mimeType,
+                'temperature' => 0.3,
+                'maxOutputTokens' => 256,
+            ]);
+
+            if ($result['success'] && !empty($result['text'])) {
+                $lines = array_values(array_filter(array_map('trim', explode("\n", trim($result['text'])))));
+                if (count($lines) >= 2) {
+                    // Clean up any markdown or label prefixes
+                    $newCharacter = preg_replace('/^\[?(character|character line)[:\]]\s*/i', '', $lines[0]);
+                    $newSituation = preg_replace('/^\[?(situation|situation line)[:\]]\s*/i', '', $lines[1]);
+                    $newCharacter = trim($newCharacter, "[] \t");
+                    $newSituation = trim($newSituation, "[] \t");
+
+                    if (strlen($newCharacter) > 10 && strlen($newSituation) > 10) {
+                        $this->concept['socialContent']['character'] = $newCharacter;
+                        $this->concept['socialContent']['situation'] = $newSituation;
+
+                        // Also update conceptVariations if used
+                        $idx = $this->selectedConceptIndex ?? 0;
+                        if (isset($this->conceptVariations[$idx])) {
+                            $this->conceptVariations[$idx]['character'] = $newCharacter;
+                            $this->conceptVariations[$idx]['situation'] = $newSituation;
+                        }
+
+                        \Log::info('🎯 Scene description updated', [
+                            'oldCharacter' => mb_substr($oldCharacter, 0, 80),
+                            'newCharacter' => mb_substr($newCharacter, 0, 80),
+                        ]);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Non-critical — log but don't fail
+            \Log::warning('updateSceneDescriptionFromAnalysis failed', ['error' => $e->getMessage()]);
+        }
+    }
+
     /**
      * Add an asset history entry for a scene or shot.
      */

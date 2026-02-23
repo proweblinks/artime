@@ -1578,7 +1578,26 @@
                 </div>
 
                 <div class="vw-social-prompt-editor">
-                    <label>{{ __('Video Prompt') }}</label>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
+                        <label style="margin-bottom: 0;">{{ __('Video Prompt') }}</label>
+                        @if($imageStatus === 'ready' && !empty($shot['videoPrompt']))
+                            <button type="button"
+                                    wire:click="adjustPromptToImage(0, 0)"
+                                    wire:loading.attr="disabled"
+                                    wire:target="adjustPromptToImage"
+                                    style="background: linear-gradient(135deg, var(--vw-primary), #6366f1); border: none; border-radius: 0.35rem; color: white; font-size: 0.7rem; font-weight: 600; cursor: pointer; padding: 0.3rem 0.6rem; display: flex; align-items: center; gap: 0.3rem; transition: opacity 0.2s;"
+                                    onmouseover="this.style.opacity='0.85'"
+                                    onmouseout="this.style.opacity='1'"
+                                    title="{{ __('AI analyzes the current image and updates the prompt to match what it sees') }}">
+                                <span wire:loading.remove wire:target="adjustPromptToImage">
+                                    <i class="fa-solid fa-eye"></i> {{ __('Adjust Prompt') }}
+                                </span>
+                                <span wire:loading wire:target="adjustPromptToImage">
+                                    <i class="fa-solid fa-spinner fa-spin"></i> {{ __('Analyzing...') }}
+                                </span>
+                            </button>
+                        @endif
+                    </div>
                     <textarea wire:model.blur="multiShotMode.decomposedScenes.0.shots.0.videoPrompt"
                               placeholder="{{ __('Describe the scene, action, dialogue (in "quotes"), and sounds...') }}">{{ $shot['videoPrompt'] ?? '' }}</textarea>
                     <small>{{ __('140-170 words ideal. Dialogue trigger → instant chaos. Continuous animal sounds + intensity qualifiers on every action. End with "Cinematic, photorealistic."') }}</small>
