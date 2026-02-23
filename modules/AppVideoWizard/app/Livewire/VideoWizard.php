@@ -38606,6 +38606,8 @@ PROMPT;
             if (isset($this->multiShotMode['decomposedScenes'][0]['shots'][0])) {
                 $this->multiShotMode['decomposedScenes'][0]['shots'][0]['imageUrl'] = $url;
             }
+            // Invalidate any in-progress video for this shot since image changed
+            $this->invalidateShotVideo(0, 0);
         } elseif ($type === 'scene' && $sceneIndex !== null) {
             if (isset($this->storyboard['scenes'][$sceneIndex])) {
                 $this->storyboard['scenes'][$sceneIndex]['imageUrl'] = $url;
@@ -38616,6 +38618,8 @@ PROMPT;
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['imageUrl'] = $url;
             }
             $this->addAssetHistoryEntry('scene', $sceneIndex, null, 'image', $action, $url, $prompt, 'gemini-3-pro');
+            // Invalidate any in-progress video for shot 0 since scene image changed
+            $this->invalidateShotVideo($sceneIndex, 0);
         } elseif ($type === 'shot' && $sceneIndex !== null && $shotIndex !== null) {
             if (isset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex])) {
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] = $url;
@@ -38625,10 +38629,51 @@ PROMPT;
                 $this->storyboard['scenes'][$sceneIndex]['imageUrl'] = $url;
             }
             $this->addAssetHistoryEntry('shot', $sceneIndex, $shotIndex, 'image', $action, $url, $prompt, 'gemini-3-pro');
+            // Invalidate any in-progress video for this shot since image changed
+            $this->invalidateShotVideo($sceneIndex, $shotIndex);
         }
 
         if ($action !== 'restored') {
             $this->saveProject();
+        }
+    }
+
+    /**
+     * Invalidate video for a shot when its source image changes.
+     * Resets video status to pending and removes any pending video job.
+     */
+    protected function invalidateShotVideo(int $sceneIndex, int $shotIndex): void
+    {
+        if (!isset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex])) {
+            return;
+        }
+
+        $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
+        $hadVideo = !empty($shot['videoUrl']) || in_array($shot['videoStatus'] ?? '', ['generating', 'processing', 'ready']);
+
+        // Reset video status — the old video is based on the old image
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'pending';
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = null;
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoTaskId'] = null;
+
+        // Remove any pending job for this shot so polling stops
+        foreach (['shot_video', 'video_extend', 'segment_regen'] as $jobType) {
+            $jobKey = "{$jobType}_{$sceneIndex}_{$shotIndex}";
+            if (isset($this->pendingJobs[$jobKey])) {
+                unset($this->pendingJobs[$jobKey]);
+                \Log::info('🎨 Image Studio: cancelled pending video job', [
+                    'jobKey' => $jobKey,
+                    'sceneIndex' => $sceneIndex,
+                    'shotIndex' => $shotIndex,
+                ]);
+            }
+        }
+
+        if ($hadVideo) {
+            \Log::info('🎨 Image Studio: invalidated shot video after image change', [
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+            ]);
         }
     }
 
