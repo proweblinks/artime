@@ -1023,11 +1023,26 @@ CLONE_RULES;
             '/\bferociously\b/i' => 'violently',
             '/\bdeftly\b/i' => 'quickly',
             '/\bnimbly\b/i' => 'quickly',
+            '/\bfrustratedly\b/i' => 'violently',
+            '/\bextremely\b/i' => 'with large amplitude',
+            '/\bhigh[\s-]pitched\b/i' => 'crazy loud',
+            '/\bflatly\b/i' => '',
+            '/\bneutrally\b/i' => '',
         ];
 
         foreach ($bannedAdverbs as $pattern => $replacement) {
             $text = preg_replace($pattern, $replacement, $text);
         }
+
+        // Phase 3b3: Fix single quotes to double quotes for dialogue
+        // Uses apostrophe-aware matching: allows 's, 't, 're etc. inside quotes
+        $text = preg_replace_callback(
+            '/\b(says?|yells?|whispers?|asks?|shouts?|screams?|murmurs?|replies?|responds?|exclaims?|mutters?)\s*,?\s*\'((?:[^\']*(?:\'[a-z])?)*)\'(?=[\s.,!?)]|$)/i',
+            function ($matches) {
+                return $matches[1] . ' "' . $matches[2] . '"';
+            },
+            $text
+        );
 
         // Phase 3c: Remove appearance/clothing descriptions
         $appearancePatterns = [

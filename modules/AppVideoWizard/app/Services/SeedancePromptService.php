@@ -261,6 +261,11 @@ RULES;
             '\\bintensely\\b' => 'powerfully',
             '\\bdesperately\\b' => 'wildly',
             '\\bangrily\\b' => 'violently',
+            '\\bfrustratedly\\b' => 'violently',
+            '\\bextremely\\b' => 'with large amplitude',
+            '\\bhigh[\\s-]pitched\\b' => 'crazy loud',
+            '\\bflatly\\b' => '',
+            '\\bneutrally\\b' => '',
         ],
         'vague_motion' => [
             '\\bfades?\\s+(?:from|out\\s+of|into)?\\s*view\\b' => 'walks into the far background',
@@ -748,10 +753,11 @@ RULES;
 
         // Phase 5d: Fix single quotes to double quotes for dialogue
         // Pattern: says/yells/whispers/asks '...' → says "..."
+        // Uses apostrophe-aware matching: allows 's, 't, 're etc. inside quotes
         $text = preg_replace_callback(
-            '/\b(says?|yells?|whispers?|asks?|shouts?|screams?|murmurs?|replies?|responds?|exclaims?|mutters?)\s*,?\s*\'([^\']+)\'/i',
+            '/\b(says?|yells?|whispers?|asks?|shouts?|screams?|murmurs?|replies?|responds?|exclaims?|mutters?)\s*,?\s*\'((?:[^\']*(?:\'[a-z])?)*)\'(?=[\s.,!?)]|$)/i',
             function ($matches) {
-                return $matches[1] . ', "' . $matches[2] . '"';
+                return $matches[1] . ' "' . $matches[2] . '"';
             },
             $text
         );
