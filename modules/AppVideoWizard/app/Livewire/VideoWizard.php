@@ -38848,7 +38848,7 @@ REWRITE;
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoPrompt'] = $newPrompt;
 
             // Also update the scene description (character + situation) shown at the top
-            $this->updateSceneDescriptionFromAnalysis($imageAnalysis, $gemini, $base64, $mimeType);
+            $this->updateSceneDescriptionFromAnalysis($imageAnalysis);
 
             $this->saveProject();
 
@@ -38869,7 +38869,7 @@ REWRITE;
     /**
      * Update the concept's character + situation descriptions to match the current image.
      */
-    protected function updateSceneDescriptionFromAnalysis(string $imageAnalysis, $gemini, string $base64, string $mimeType): void
+    protected function updateSceneDescriptionFromAnalysis(string $imageAnalysis): void
     {
         // Find character + situation from wherever they're stored
         $idx = $this->selectedConceptIndex ?? 0;
@@ -38904,21 +38904,21 @@ Reply with ONLY valid JSON, no markdown, no explanation:
 {"character": "...", "situation": "..."}
 DESC;
 
-            $result = $gemini->analyzeImageWithPrompt($base64, $descPrompt, [
+            $gemini = app(\App\Services\GeminiService::class);
+            $result = $gemini->generateText($descPrompt, 512, null, 'text', [
                 'model' => 'gemini-2.5-flash',
-                'mimeType' => $mimeType,
-                'temperature' => 0.3,
-                'maxOutputTokens' => 512,
+                'temperature' => 0.4,
             ]);
 
+            $text = $result['data'][0] ?? '';
             \Log::debug('updateSceneDescription: Gemini result', [
-                'success' => $result['success'] ?? false,
-                'textLength' => strlen($result['text'] ?? ''),
-                'textPreview' => mb_substr($result['text'] ?? '', 0, 300),
+                'hasError' => !empty($result['error']),
+                'textLength' => strlen($text),
+                'textPreview' => mb_substr($text, 0, 300),
             ]);
 
-            if ($result['success'] && !empty($result['text'])) {
-                $raw = trim($result['text']);
+            if (empty($result['error']) && !empty($text)) {
+                $raw = trim($text);
                 // Strip markdown code fences if present
                 $raw = preg_replace('/^```(?:json)?\s*/', '', $raw);
                 $raw = preg_replace('/\s*```$/', '', $raw);
