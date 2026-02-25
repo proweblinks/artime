@@ -32,6 +32,9 @@
             </div>
 
             {{-- Preview Image --}}
+            @php
+                $brandColor = $creative->campaign?->dna?->colors[0] ?? '#DA291C';
+            @endphp
             <div style="width: 100%; max-width: 360px; position: relative;">
                 @if($isFixingLayout)
                     <div style="aspect-ratio: 9/16; border-radius: var(--cs-radius-lg); overflow: hidden; position: relative;">
@@ -52,36 +55,36 @@
                         <img src="{{ $compositeImage }}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
                     </div>
                 @else
-                    {{-- Fallback: raw image + CSS text overlays --}}
+                    {{-- CSS overlay preview — same as campaign grid --}}
                     <div style="aspect-ratio: 9/16; border-radius: var(--cs-radius-lg); overflow: hidden; position: relative; background: #111;">
-                        @if($versionImage)
-                            <img src="{{ $versionImage }}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+                        @if($creative->layoutTemplate)
+                            @include('appaicontents::livewire.partials._template-css-overlay', [
+                                'creative' => $creative,
+                                'template' => $creative->layoutTemplate,
+                                'brandColor' => $brandColor,
+                            ])
                         @else
-                            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
-                                <i class="fa-light fa-image" style="font-size: 48px; color: rgba(255,255,255,0.2);"></i>
+                            {{-- Legacy fallback: raw image + simple bottom text --}}
+                            @if($versionImage)
+                                <img src="{{ $versionImage }}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+                            @else
+                                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fa-light fa-image" style="font-size: 48px; color: rgba(255,255,255,0.2);"></i>
+                                </div>
+                            @endif
+                            <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.25) 40%, transparent 65%);"></div>
+                            <div dir="auto" style="position: absolute; bottom: 0; left: 0; right: 0; padding: 16px; display: flex; flex-direction: column; gap: 6px;">
+                                @if($headerVisible && $headerText)
+                                    <div style="color: #fff; font-size: 15px; font-weight: 700; line-height: 1.2; text-shadow: 0 1px 6px rgba(0,0,0,0.5);">{{ $headerText }}</div>
+                                @endif
+                                @if($descVisible && $descriptionText)
+                                    <div style="color: rgba(255,255,255,0.85); font-size: 11px; line-height: 1.4;">{{ $descriptionText }}</div>
+                                @endif
+                                @if($ctaVisible && $ctaText)
+                                    <span style="display: inline-block; padding: 4px 14px; background: rgba(255,255,255,0.9); color: #111; border-radius: 20px; font-size: 10px; font-weight: 600; align-self: flex-start;">{{ $ctaText }}</span>
+                                @endif
                             </div>
                         @endif
-
-                        {{-- Text Overlays Preview --}}
-                        <div style="position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 24px;">
-                            @if($headerVisible && $headerText)
-                                <div dir="auto" style="font-family: '{{ $headerFont }}', sans-serif; color: {{ $headerColor }}; font-size: {{ min($headerSize * 0.6, 28) }}px; line-height: {{ $headerHeight * 0.6 }}px; font-weight: 700; text-shadow: 0 2px 8px rgba(0,0,0,0.5); margin-bottom: 8px;">
-                                    {{ $headerText }}
-                                </div>
-                            @endif
-                            @if($descVisible && $descriptionText)
-                                <div dir="auto" style="font-family: '{{ $descFont }}', sans-serif; color: {{ $descColor }}; font-size: {{ min($descSize * 0.6, 14) }}px; line-height: {{ $descHeight * 0.6 }}px; text-shadow: 0 1px 4px rgba(0,0,0,0.5); margin-bottom: 12px;">
-                                    {{ $descriptionText }}
-                                </div>
-                            @endif
-                            @if($ctaVisible && $ctaText)
-                                <div dir="auto">
-                                    <span style="display: inline-block; padding: 6px 16px; background: rgba(255,255,255,0.9); color: #111; border-radius: 20px; font-size: {{ min($ctaSize * 0.6, 12) }}px; font-weight: 600;">
-                                        {{ $ctaText }}
-                                    </span>
-                                </div>
-                            @endif
-                        </div>
                     </div>
                 @endif
             </div>
@@ -321,31 +324,31 @@
         <div x-transition.scale.95
              style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 101;
                     width: 520px; max-width: 90vw; max-height: 75vh;
-                    background: var(--cs-bg-card); border-radius: 16px;
-                    box-shadow: 0 25px 60px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.05);
+                    background: #ffffff; border-radius: 16px;
+                    box-shadow: 0 25px 60px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.08);
                     display: flex; flex-direction: column; overflow: hidden;">
 
             {{-- Header --}}
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 24px 16px; border-bottom: 1px solid var(--cs-border); flex-shrink: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 24px 16px; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; background: #ffffff;">
                 <div>
-                    <h3 style="font-size: 15px; font-weight: 700; margin: 0; letter-spacing: -0.01em;">{{ __('Choose a Template') }}</h3>
-                    <div style="font-size: 12px; color: var(--cs-text-muted); margin-top: 2px;">{{ $layoutTemplates->flatten()->count() }} {{ __('templates available') }}</div>
+                    <h3 style="font-size: 15px; font-weight: 700; margin: 0; letter-spacing: -0.01em; color: #111;">{{ __('Choose a Template') }}</h3>
+                    <div style="font-size: 12px; color: #9ca3af; margin-top: 2px;">{{ $layoutTemplates->flatten()->count() }} {{ __('templates available') }}</div>
                 </div>
                 <button @click="showTemplatePicker = false"
-                        style="width: 32px; height: 32px; border-radius: 8px; border: none; background: var(--cs-bg-muted);
-                               display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--cs-text-muted);
+                        style="width: 32px; height: 32px; border-radius: 8px; border: none; background: #f3f4f6;
+                               display: flex; align-items: center; justify-content: center; cursor: pointer; color: #6b7280;
                                transition: all 0.15s;"
-                        onmouseover="this.style.background='var(--cs-border)'"
-                        onmouseout="this.style.background='var(--cs-bg-muted)'">
+                        onmouseover="this.style.background='#e5e7eb'"
+                        onmouseout="this.style.background='#f3f4f6'">
                     <i class="fa-light fa-xmark" style="font-size: 14px;"></i>
                 </button>
             </div>
 
             {{-- Scrollable body --}}
-            <div style="overflow-y: auto; padding: 16px 24px 24px; flex: 1;">
+            <div style="overflow-y: auto; padding: 16px 24px 24px; flex: 1; background: #ffffff;">
                 @foreach($layoutTemplates as $category => $categoryTemplates)
                     <div style="margin-bottom: 20px;">
-                        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--cs-text-muted); margin-bottom: 10px;">
+                        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #9ca3af; margin-bottom: 10px;">
                             {{ ucfirst($category) }}
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
@@ -353,18 +356,18 @@
                                 @php $isActive = ($creative->layout_template_id ?? 0) === $tpl->id; @endphp
                                 <button wire:click="changeTemplate({{ $tpl->id }})" @click="showTemplatePicker = false"
                                         style="padding: 12px 10px; text-align: center; border-radius: 10px; cursor: pointer;
-                                               border: {{ $isActive ? '2px solid var(--cs-primary-text)' : '1px solid var(--cs-border)' }};
-                                               background: {{ $isActive ? 'var(--cs-primary-soft, rgba(0,200,180,0.08))' : 'var(--cs-bg-card)' }};
+                                               border: {{ $isActive ? '2px solid var(--cs-primary-text)' : '1px solid #e5e7eb' }};
+                                               background: {{ $isActive ? 'rgba(0,200,180,0.08)' : '#ffffff' }};
                                                transition: all 0.15s; font-size: 12px; line-height: 1.3; position: relative;"
-                                        onmouseover="if(!{{ $isActive ? 'true' : 'false' }})this.style.borderColor='var(--cs-primary-text)';this.style.background='var(--cs-primary-soft, rgba(0,200,180,0.06))'"
-                                        onmouseout="if(!{{ $isActive ? 'true' : 'false' }}){this.style.borderColor='var(--cs-border)';this.style.background='var(--cs-bg-card)'}">
+                                        onmouseover="if(!{{ $isActive ? 'true' : 'false' }}){this.style.borderColor='var(--cs-primary-text)';this.style.background='rgba(0,200,180,0.06)'}"
+                                        onmouseout="if(!{{ $isActive ? 'true' : 'false' }}){this.style.borderColor='#e5e7eb';this.style.background='#ffffff'}">
                                     @if($isActive)
                                         <div style="position: absolute; top: 6px; right: 6px; width: 18px; height: 18px; border-radius: 50%;
                                                     background: var(--cs-primary-text); display: flex; align-items: center; justify-content: center;">
                                             <i class="fa-solid fa-check" style="font-size: 9px; color: #fff;"></i>
                                         </div>
                                     @endif
-                                    <div style="font-weight: 600; color: {{ $isActive ? 'var(--cs-primary-text)' : 'var(--cs-text)' }};">{{ $tpl->name }}</div>
+                                    <div style="font-weight: 600; color: {{ $isActive ? 'var(--cs-primary-text)' : '#374151' }};">{{ $tpl->name }}</div>
                                 </button>
                             @endforeach
                         </div>

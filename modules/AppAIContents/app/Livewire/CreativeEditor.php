@@ -48,7 +48,7 @@ class CreativeEditor extends Component
 
     protected function loadCreative()
     {
-        $this->creative = ContentCreative::with('versions')->find($this->creativeId);
+        $this->creative = ContentCreative::with(['versions', 'layoutTemplate', 'campaign.dna'])->find($this->creativeId);
         if (!$this->creative) return;
 
         $this->currentVersion = $this->creative->current_version;
@@ -172,7 +172,7 @@ class CreativeEditor extends Component
     {
         if (!$this->isFixingLayout) return;
 
-        $this->creative = ContentCreative::with('versions')->find($this->creativeId);
+        $this->creative = ContentCreative::with(['versions', 'layoutTemplate', 'campaign.dna'])->find($this->creativeId);
         if ($this->creative && $this->creative->versions->count() >= $this->totalVersions) {
             $this->isFixingLayout = false;
             $this->loadCreative();
@@ -259,7 +259,7 @@ class CreativeEditor extends Component
     {
         if (!$this->isCompositing) return;
 
-        $this->creative = ContentCreative::with('versions')->find($this->creativeId);
+        $this->creative = ContentCreative::with(['versions', 'layoutTemplate', 'campaign.dna'])->find($this->creativeId);
         if ($this->creative && in_array($this->creative->composite_status, ['ready', 'failed'])) {
             $this->isCompositing = false;
         }
