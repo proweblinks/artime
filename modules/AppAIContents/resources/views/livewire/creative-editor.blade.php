@@ -300,7 +300,12 @@
     @endif
 
     {{-- ━━━ Template Picker Modal ━━━ --}}
-    @if($showTemplatePicker)
+    @php
+        $layoutTemplates = \Modules\AppAIContents\Models\CreativeLayoutTemplate::active()
+            ->orderBy('category')->orderBy('sort_order')->get()->groupBy('category');
+    @endphp
+
+    <div x-show="showTemplatePicker" x-cloak>
         <div class="cs-bottom-sheet open" x-transition style="z-index: 101; max-height: 70vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                 <h3 style="font-size: 16px; font-weight: 600; margin: 0;">{{ __('Choose a Template') }}</h3>
@@ -309,12 +314,7 @@
                 </button>
             </div>
 
-            @php
-                $templates = \Modules\AppAIContents\Models\CreativeLayoutTemplate::active()
-                    ->orderBy('category')->orderBy('sort_order')->get()->groupBy('category');
-            @endphp
-
-            @foreach($templates as $category => $categoryTemplates)
+            @foreach($layoutTemplates as $category => $categoryTemplates)
                 <div style="margin-bottom: 16px;">
                     <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--cs-text-muted); margin-bottom: 8px;">
                         {{ ucfirst($category) }}
@@ -322,7 +322,7 @@
                     <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
                         @foreach($categoryTemplates as $tpl)
                             <button class="cs-btn" style="padding: 10px 6px; text-align: center; border: 1px solid {{ ($creative->layout_template_id ?? 0) === $tpl->id ? 'var(--cs-primary-text)' : 'var(--cs-border)' }}; border-radius: var(--cs-radius-md); font-size: 11px; line-height: 1.3;"
-                                    wire:click="changeTemplate({{ $tpl->id }})">
+                                    wire:click="changeTemplate({{ $tpl->id }})" @click="showTemplatePicker = false">
                                 <div style="font-weight: 500;">{{ $tpl->name }}</div>
                             </button>
                         @endforeach
@@ -333,5 +333,5 @@
         <div @click="showTemplatePicker = false"
              style="position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100;"
              x-transition.opacity></div>
-    @endif
+    </div>
 </div>
