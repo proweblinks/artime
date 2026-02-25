@@ -283,8 +283,10 @@ class ShotContinuityService
         // If both shots have same type and no angle change, potential violation
         if ($prevType === $currType) {
             // Check for camera movement that could create angle change
-            $prevMovement = $prevShot['cameraMovement'] ?? '';
-            $currMovement = $currShot['cameraMovement'] ?? '';
+            $prevMovementRaw = $prevShot['cameraMovement'] ?? '';
+            $prevMovement = is_array($prevMovementRaw) ? ($prevMovementRaw['type'] ?? '') : $prevMovementRaw;
+            $currMovementRaw = $currShot['cameraMovement'] ?? '';
+            $currMovement = is_array($currMovementRaw) ? ($currMovementRaw['type'] ?? '') : $currMovementRaw;
 
             $angleChangingMovements = ['pan', 'arc', 'orbit', 'truck', 'dolly'];
             $hasAngleChange = false;
@@ -379,8 +381,10 @@ class ShotContinuityService
             // Check if there's significant change (movement, angle)
             $hasSignificantChange = false;
 
-            $prevMovement = $prevShot['cameraMovement'] ?? '';
-            $currMovement = $currShot['cameraMovement'] ?? '';
+            $prevMovementRaw2 = $prevShot['cameraMovement'] ?? '';
+            $prevMovement = is_array($prevMovementRaw2) ? ($prevMovementRaw2['type'] ?? '') : $prevMovementRaw2;
+            $currMovementRaw2 = $currShot['cameraMovement'] ?? '';
+            $currMovement = is_array($currMovementRaw2) ? ($currMovementRaw2['type'] ?? '') : $currMovementRaw2;
 
             if ($prevMovement !== $currMovement && !empty($currMovement)) {
                 $hasSignificantChange = true;
@@ -1238,8 +1242,8 @@ class ShotContinuityService
      */
     protected function inferIntensity(array $shot): string
     {
-        $movement = $shot['cameraMovement'] ?? $shot['movement'] ?? '';
-        $movement = strtolower($movement);
+        $movementRaw = $shot['cameraMovement'] ?? $shot['movement'] ?? '';
+        $movement = strtolower(is_array($movementRaw) ? ($movementRaw['type'] ?? '') : $movementRaw);
 
         if (empty($movement) || strpos($movement, 'static') !== false) {
             return 'static';

@@ -397,7 +397,8 @@ class VideoPromptBuilderService
 
         if (!$motionEnabled) {
             // Use simple movement description from shot data
-            return $shot['cameraMovement'] ?? 'static camera';
+            $cm = $shot['cameraMovement'] ?? 'static camera';
+            return is_array($cm) ? ($cm['type'] ?? 'static camera') : $cm;
         }
 
         // Use CameraMovementService for intelligent movement selection
@@ -409,7 +410,8 @@ class VideoPromptBuilderService
         $movement = $this->cameraMovementService->getRecommendedMovement($shotType, $emotion, $intensity);
 
         if (!$movement) {
-            return $shot['cameraMovement'] ?? 'smooth camera movement';
+            $cm = $shot['cameraMovement'] ?? 'smooth camera movement';
+            return is_array($cm) ? ($cm['type'] ?? 'smooth camera movement') : $cm;
         }
 
         // Check for movement stacking
@@ -577,7 +579,8 @@ class VideoPromptBuilderService
     protected function getFallbackPrompt(array $shot, array $context): string
     {
         $action = $shot['subjectAction'] ?? $shot['action'] ?? 'subject in frame';
-        $movement = $shot['cameraMovement'] ?? 'smooth camera movement';
+        $rawMovement = $shot['cameraMovement'] ?? 'smooth camera movement';
+        $movement = is_array($rawMovement) ? ($rawMovement['type'] ?? 'smooth camera movement') : $rawMovement;
 
         return "{$action}, {$movement}, cinematic quality, natural lighting, professional cinematography";
     }
@@ -1211,6 +1214,9 @@ class VideoPromptBuilderService
 
             // 3. ENHANCE CAMERA MOVEMENT WITH DURATION AND PSYCHOLOGY (VID-03)
             $cameraMovement = $shot['cameraMovement'] ?? $this->inferCameraMovement($shotType, $emotion);
+            if (is_array($cameraMovement)) {
+                $cameraMovement = $cameraMovement['type'] ?? 'static';
+            }
             $emotionalPurpose = $this->mapEmotionToPsychology($emotion);
             $movementDuration = $this->cameraMovementService->getRecommendedDuration($cameraMovement, $duration);
 
