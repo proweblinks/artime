@@ -25,34 +25,132 @@ class CreativeService
         'nature'        => ['label' => 'Nature',         'modifier' => 'Nature photography, organic elements, environmental portrait, natural world beauty'],
     ];
 
+    const CONCEPT_ARCHETYPES = [
+        'person-action'      => 'Single person actively engaged in a task directly related to the business — close-up or medium shot showing emotion and context',
+        'group-social'       => 'A small diverse group of people interacting in a business-relevant setting — conveys community, teamwork, or customer experience',
+        'product-closeup'    => 'Tight close-up or still-life arrangement of the key product, tool, or service symbol — editorial detail shot with shallow depth of field',
+        'environment-scene'  => 'Wide establishing shot of the workspace, location, or environment where the business operates — atmospheric and cinematic',
+        'conceptual-abstract'=> 'Visual metaphor or symbolic composition representing the campaign message — creative, artistic, conceptual approach',
+    ];
+
+    /**
+     * Phase 1: Plan diverse creative concepts before any image generation.
+     * Returns an array of concept briefs, each with a unique archetype, style, scene, and text angle.
+     */
+    protected function planCreativeConcepts(ContentCampaign $campaign, ContentBusinessDna $dna, int $count = 4): array
+    {
+        $archetypeKeys = array_keys(self::CONCEPT_ARCHETYPES);
+        $styleKeys = array_keys(self::STYLE_PRESETS);
+        $language = $dna->language ?? 'English';
+
+        $archetypeList = '';
+        foreach (self::CONCEPT_ARCHETYPES as $key => $desc) {
+            $archetypeList .= "- {$key}: {$desc}\n";
+        }
+
+        $styleList = implode(', ', array_map(fn($k) => $k, array_slice($styleKeys, 0, 8)));
+
+        $prompt = <<<PROMPT
+You are a creative director planning {$count} visually DIVERSE social media creatives for a campaign.
+
+Campaign: {$campaign->title}
+Brief: {$campaign->description}
+Brand: {$dna->brand_name}
+Business: {$dna->business_overview}
+Brand tone: {$this->arrayToString($dna->brand_tone)}
+Brand aesthetic: {$this->arrayToString($dna->brand_aesthetic)}
+Language for text angles: {$language}
+
+Available archetypes:
+{$archetypeList}
+Available style presets: {$styleList}
+
+Rules:
+1. Each creative MUST use a DIFFERENT archetype — no repeats
+2. Each creative MUST use a DIFFERENT style preset — no repeats
+3. Scene descriptions must be specific and vivid (30-50 words), directly related to the business
+4. Text angles must each take a DIFFERENT emotional/persuasive approach
+5. Think about visual contrast: vary shot distance, lighting, color temperature, mood
+
+Return a JSON array of {$count} objects:
+[
+  {
+    "archetype": "person-action",
+    "style_preset": "cinematic",
+    "scene": "A focused paramedic checking equipment in an ambulance bay at dawn, warm golden light streaming through the garage door, medical bags neatly arranged",
+    "text_angle": "Hero dedication angle — honor the everyday heroes"
+  }
+]
+
+Only return the JSON array, nothing else.
+PROMPT;
+
+        try {
+            $result = AI::process($prompt, 'text', ['maxResult' => 1], $campaign->team_id);
+            $text = $result['data'][0] ?? '';
+
+            if (preg_match('/\[[\s\S]*\]/', $text, $match)) {
+                $concepts = json_decode($match[0], true);
+                if (is_array($concepts) && count($concepts) >= $count) {
+                    return array_slice($concepts, 0, $count);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('CreativeService: Concept planning failed, using deterministic fallback', ['error' => $e->getMessage()]);
+        }
+
+        // Deterministic fallback: rotate through archetypes and styles
+        $fallback = [];
+        for ($i = 0; $i < $count; $i++) {
+            $archetype = $archetypeKeys[$i % count($archetypeKeys)];
+            $style = $styleKeys[($i + 1) % count($styleKeys)]; // offset by 1 to avoid always starting with 'photographic'
+            $fallback[] = [
+                'archetype' => $archetype,
+                'style_preset' => $style,
+                'scene' => null, // will use generic prompt in generatePhotorealisticImage
+                'text_angle' => null,
+            ];
+        }
+
+        return $fallback;
+    }
+
     public function generateCreatives(ContentCampaign $campaign, int $count = 4): void
     {
         $dna = $campaign->dna;
-        $sortOrder = 0;
 
-        // Slot 1: AI-generated photorealistic image
-        try {
-            $this->generateAiCreative($campaign, $dna, $sortOrder++, 'photographic');
-        } catch (\Throwable $e) {
-            Log::error("CreativeService: AI creative failed", ['error' => $e->getMessage()]);
-        }
+        // Phase 1: Plan diverse concepts before generating any images
+        $concepts = $this->planCreativeConcepts($campaign, $dna, $count);
 
-        // Slots 2-4: Brand images from DNA library
-        $brandImages = $this->selectBrandImages($dna, $campaign, $count - 1);
-
-        foreach ($brandImages as $brandImage) {
+        // Phase 2: Generate each creative from its unique concept brief
+        foreach ($concepts as $sortOrder => $concept) {
             try {
-                $this->generateBrandImageCreative($campaign, $dna, $brandImage, $sortOrder++);
+                $stylePreset = $concept['style_preset'] ?? null;
+
+                // Validate style preset exists, fallback to cycling through presets
+                if (!$stylePreset || !isset(self::STYLE_PRESETS[$stylePreset])) {
+                    $styleKeys = array_keys(self::STYLE_PRESETS);
+                    $stylePreset = $styleKeys[$sortOrder % count($styleKeys)];
+                    $concept['style_preset'] = $stylePreset;
+                }
+
+                $this->generateAiCreative($campaign, $dna, $sortOrder, $stylePreset, $concept);
             } catch (\Throwable $e) {
-                Log::error("CreativeService: Brand image creative failed", ['error' => $e->getMessage()]);
+                Log::error("CreativeService: Concept-based creative #{$sortOrder} failed", [
+                    'archetype' => $concept['archetype'] ?? 'unknown',
+                    'error' => $e->getMessage(),
+                ]);
             }
         }
 
-        // Fallback: if fewer than 3 brand images available, fill remaining with AI
+        // Fallback: fill any remaining slots if some concepts failed
         $created = ContentCreative::where('campaign_id', $campaign->id)->count();
+        $sortOrder = $created;
         while ($created < $count) {
             try {
-                $this->generateAiCreative($campaign, $dna, $sortOrder++);
+                $styleKeys = array_keys(self::STYLE_PRESETS);
+                $fallbackStyle = $styleKeys[$created % count($styleKeys)];
+                $this->generateAiCreative($campaign, $dna, $sortOrder++, $fallbackStyle);
                 $created++;
             } catch (\Throwable $e) {
                 Log::error("CreativeService: Fallback AI creative failed", ['error' => $e->getMessage()]);
@@ -63,10 +161,10 @@ class CreativeService
         $campaign->update(['status' => 'ready']);
     }
 
-    protected function generateAiCreative(ContentCampaign $campaign, ContentBusinessDna $dna, int $sortOrder, ?string $stylePreset = null): ?ContentCreative
+    protected function generateAiCreative(ContentCampaign $campaign, ContentBusinessDna $dna, int $sortOrder, ?string $stylePreset = null, ?array $concept = null): ?ContentCreative
     {
-        $imageResult = $this->generatePhotorealisticImage($campaign, $dna, $stylePreset);
-        $textContent = $this->generateTextContent($campaign, $dna, $sortOrder);
+        $imageResult = $this->generatePhotorealisticImage($campaign, $dna, $stylePreset, $concept);
+        $textContent = $this->generateTextContent($campaign, $dna, $sortOrder, $concept);
 
         $creative = ContentCreative::create([
             'campaign_id' => $campaign->id,
@@ -145,7 +243,7 @@ class CreativeService
         return $creative;
     }
 
-    protected function generatePhotorealisticImage(ContentCampaign $campaign, ContentBusinessDna $dna, ?string $stylePreset = null): array
+    protected function generatePhotorealisticImage(ContentCampaign $campaign, ContentBusinessDna $dna, ?string $stylePreset = null, ?array $concept = null): array
     {
         $brandColors = implode(', ', $dna->colors ?? ['#03fcf4', '#1a1a2e']);
         $aesthetic = implode(', ', $dna->brand_aesthetic ?? ['modern-clean']);
@@ -161,12 +259,25 @@ class CreativeService
             default => 'vertical story composition (9:16)',
         };
 
-        $prompt = "Create a premium photorealistic social media image for the campaign '{$campaign->title}'. "
-            . "Business: {$dna->brand_name} — {$overview}. "
-            . "Visual style: {$aesthetic}. {$styleModifier}. "
-            . "Use brand colors ({$brandColors}) as inspiration. The image should feel {$tone}. "
-            . "{$aspectLabel}. MUST be a photorealistic photograph, NOT an illustration, NOT a cartoon, NOT a 3D render. "
-            . "Professional quality, editorial grade. Do NOT include any text or words in the image.";
+        // When a concept brief is provided, build a specific scene-based prompt
+        if ($concept && !empty($concept['scene'])) {
+            $archetypeHint = self::CONCEPT_ARCHETYPES[$concept['archetype'] ?? ''] ?? '';
+            $prompt = "Create a premium photorealistic social media image. "
+                . "Scene: {$concept['scene']}. "
+                . ($archetypeHint ? "Shot type: {$archetypeHint}. " : '')
+                . "Business context: {$dna->brand_name} — {$overview}. "
+                . "{$styleModifier}. "
+                . "Color palette inspiration: {$brandColors}. Mood: {$tone}. "
+                . "{$aspectLabel}. MUST be a photorealistic photograph, NOT an illustration, NOT a cartoon, NOT a 3D render. "
+                . "Professional quality, editorial grade. Do NOT include any text or words in the image.";
+        } else {
+            $prompt = "Create a premium photorealistic social media image for the campaign '{$campaign->title}'. "
+                . "Business: {$dna->brand_name} — {$overview}. "
+                . "Visual style: {$aesthetic}. {$styleModifier}. "
+                . "Use brand colors ({$brandColors}) as inspiration. The image should feel {$tone}. "
+                . "{$aspectLabel}. MUST be a photorealistic photograph, NOT an illustration, NOT a cartoon, NOT a 3D render. "
+                . "Professional quality, editorial grade. Do NOT include any text or words in the image.";
+        }
 
         $dimensions = $this->getAspectDimensions($campaign->aspect_ratio);
 
@@ -358,9 +469,16 @@ class CreativeService
         };
     }
 
-    protected function generateTextContent(ContentCampaign $campaign, ContentBusinessDna $dna, int $index): array
+    protected function generateTextContent(ContentCampaign $campaign, ContentBusinessDna $dna, int $index, ?array $concept = null): array
     {
         $language = $dna->language ?? 'English';
+
+        $conceptContext = '';
+        if ($concept) {
+            $conceptContext = "\nVisual concept: {$concept['archetype']} — {$concept['scene']}"
+                . ($concept['text_angle'] ? "\nCopywriting angle: {$concept['text_angle']}" : '')
+                . "\nIMPORTANT: The text must align with this specific visual scene and angle.\n";
+        }
 
         $prompt = <<<PROMPT
 You are a copywriter creating text overlays for a social media marketing creative (variation #{$index}).
@@ -371,7 +489,7 @@ Brand: {$dna->brand_name}
 Brand tone: {$this->arrayToString($dna->brand_tone)}
 Brand values: {$this->arrayToString($dna->brand_values)}
 Language: {$language}
-
+{$conceptContext}
 Requirements:
 - header: A bold, attention-grabbing headline (max 8 words). Should stop the scroll.
 - description: Supporting copy that expands on the headline (max 20 words). Concise and compelling.
@@ -575,7 +693,27 @@ PROMPT;
 
         $sortOrder = ContentCreative::where('campaign_id', $campaign->id)->max('sort_order') + 1;
 
-        $this->generateAiCreative($campaign, $dna, $sortOrder, 'photographic');
+        // Pick a style preset not already used by existing creatives
+        $usedPresets = ContentCreative::where('campaign_id', $campaign->id)
+            ->pluck('style_preset')
+            ->filter()
+            ->toArray();
+        $availablePresets = array_diff(array_keys(self::STYLE_PRESETS), $usedPresets);
+
+        if (empty($availablePresets)) {
+            $availablePresets = array_keys(self::STYLE_PRESETS);
+        }
+        $stylePreset = $availablePresets[array_rand($availablePresets)];
+
+        // Plan a single concept for diversity
+        $concepts = $this->planCreativeConcepts($campaign, $dna, 1);
+        $concept = $concepts[0] ?? null;
+
+        if ($concept) {
+            $concept['style_preset'] = $stylePreset;
+        }
+
+        $this->generateAiCreative($campaign, $dna, $sortOrder, $stylePreset, $concept);
 
         $campaign->update(['status' => 'ready']);
     }
