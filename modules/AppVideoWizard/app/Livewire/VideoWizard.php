@@ -158,9 +158,7 @@ class VideoWizard extends Component
         ],
     ];
 
-    // Genre presets for UI display (populated in mount)
-    public array $genrePresets = [];
-    public array $genreModifiers = [];
+    // Genre presets are #[Computed] — see genrePresets() / genreModifiers() methods
 
     /**
      * AI Engines - Direct engine selection for all text generation.
@@ -1178,7 +1176,7 @@ class VideoWizard extends Component
     public ?string $conceptVideoUrl = null;        // URL for video import (YouTube, Instagram, TikTok, etc.)
     public ?string $urlDownloadStage = null;       // 'downloading'|null
     public string $cloneTemplate = 'adaptive';     // Video prompt template for clone & generate
-    public array $userTemplates = [];              // User/team templates from DB
+    // userTemplates is now a #[Computed] property — see userTemplates() method
 
     // Script generation options
     public string $scriptTone = 'engaging';
@@ -2076,17 +2074,64 @@ class VideoWizard extends Component
             $this->resetToDefaults();
         }
 
-        // Load user/team prompt templates
-        $this->loadUserTemplates();
+        // genrePresets, genreModifiers, userTemplates are now #[Computed] — loaded on-demand
+    }
 
-        // Load genre presets for UI
+    /**
+     * Genre presets for UI display (Computed — NOT serialized in Livewire snapshot).
+     */
+    #[Computed]
+    public function genrePresets(): array
+    {
         try {
-            $cinematography = app(CinematographyService::class);
-            $this->genrePresets = $cinematography->getPrimaryPresets();
-            $this->genreModifiers = $cinematography->getModifierPresets();
+            return app(CinematographyService::class)->getPrimaryPresets();
         } catch (\Exception $e) {
-            $this->genrePresets = [];
-            $this->genreModifiers = [];
+            return [];
+        }
+    }
+
+    /**
+     * Genre modifier presets for UI display (Computed — NOT serialized in Livewire snapshot).
+     */
+    #[Computed]
+    public function genreModifiers(): array
+    {
+        try {
+            return app(CinematographyService::class)->getModifierPresets();
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * User/team prompt templates from DB (Computed — NOT serialized in Livewire snapshot).
+     * Invalidate with: unset($this->userTemplates)
+     */
+    #[Computed]
+    public function userTemplates(): array
+    {
+        try {
+            $userId = auth()->id();
+            $teamId = session('current_team_id');
+
+            if (!$userId) {
+                return [];
+            }
+
+            return VwUserTemplate::visibleTo($userId, $teamId)
+                ->orderBy('name')
+                ->get(['id', 'name', 'description', 'icon', 'is_shared', 'user_id'])
+                ->map(fn($t) => [
+                    'id' => 'user-' . $t->id,
+                    'name' => $t->name,
+                    'description' => $t->description,
+                    'icon' => $t->icon,
+                    'is_shared' => $t->is_shared,
+                    'is_own' => $t->user_id === $userId,
+                ])
+                ->toArray();
+        } catch (\Throwable $e) {
+            return [];
         }
     }
 
@@ -2648,35 +2693,6 @@ class VideoWizard extends Component
     /**
      * Load user-created and team-shared prompt templates from DB.
      */
-    protected function loadUserTemplates(): void
-    {
-        try {
-            $userId = auth()->id();
-            $teamId = session('current_team_id');
-
-            if (!$userId) {
-                $this->userTemplates = [];
-                return;
-            }
-
-            $this->userTemplates = VwUserTemplate::visibleTo($userId, $teamId)
-                ->orderBy('name')
-                ->get(['id', 'name', 'description', 'icon', 'is_shared', 'user_id'])
-                ->map(fn($t) => [
-                    'id' => 'user-' . $t->id,
-                    'name' => $t->name,
-                    'description' => $t->description,
-                    'icon' => $t->icon,
-                    'is_shared' => $t->is_shared,
-                    'is_own' => $t->user_id === $userId,
-                ])
-                ->toArray();
-        } catch (\Throwable $e) {
-            // Table may not exist yet (pre-migration)
-            $this->userTemplates = [];
-        }
-    }
-
     /**
      * Save the current project's video prompt as a reusable template.
      */
@@ -2724,7 +2740,7 @@ class VideoWizard extends Component
             'seedance_settings' => $seedanceSettings,
         ]);
 
-        $this->loadUserTemplates();
+        unset($this->userTemplates); // Invalidate computed cache
     }
 
     /**
@@ -2736,7 +2752,7 @@ class VideoWizard extends Component
             ->where('user_id', auth()->id())
             ->delete();
 
-        $this->loadUserTemplates();
+        unset($this->userTemplates); // Invalidate computed cache
     }
 
     /**
@@ -9552,7 +9568,11 @@ PROMPT;
                     $this->storyboard['scenes'][$index]['status'] = 'error';
                     $this->storyboard['scenes'][$index]['error'] = $e->getMessage();
                     $this->saveProject();
-                    Log::warning("Failed to generate image for scene {$index}: " . $e->getMessage());
+                    Log::warning("Failed to generate image for scene {$index}: " . $e->getMessage(), [
+                        'trace' => $e->getTraceAsString(),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                    ]);
                 }
             }
 
