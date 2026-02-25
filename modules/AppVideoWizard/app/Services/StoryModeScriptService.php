@@ -255,7 +255,21 @@ PROMPT;
             ];
         }
 
-        // If JSON parsing fails, treat the entire response as the transcript
+        // If JSON parsing fails, try to extract transcript via regex
+        if (preg_match('/"transcript"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $content, $m)) {
+            $transcript = stripcslashes($m[1]);
+            $title = 'Untitled Story';
+            if (preg_match('/"title"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $content, $tm)) {
+                $title = stripcslashes($tm[1]);
+            }
+            return [
+                'title' => $title,
+                'transcript' => $transcript,
+                'segments' => [],
+            ];
+        }
+
+        // Last resort: treat the entire response as the transcript
         return [
             'title' => 'Untitled Story',
             'transcript' => trim($content),
@@ -312,21 +326,46 @@ PROMPT;
     }
 
     /**
-     * Parse JSON from AI response (handles markdown code blocks).
+     * Parse JSON from AI response (handles markdown code blocks, BOM, etc.).
      */
     protected function parseJsonResponse(string $content): ?array
     {
         $content = trim($content);
 
-        // Remove markdown code blocks if present
+        // Remove UTF-8 BOM if present
+        $content = preg_replace('/^\xEF\xBB\xBF/', '', $content);
+
+        // Remove markdown code blocks if present (various formats)
         if (preg_match('/```(?:json)?\s*([\s\S]*?)\s*```/', $content, $matches)) {
-            $content = $matches[1];
+            $content = trim($matches[1]);
         }
 
+        // Try direct decode
         $decoded = json_decode($content, true);
-        if (json_last_error() === JSON_ERROR_NONE) {
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
             return $decoded;
         }
+
+        // Try extracting JSON object from mixed content
+        if (preg_match('/\{[\s\S]*"transcript"[\s\S]*\}/', $content, $matches)) {
+            $decoded = json_decode($matches[0], true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        // Try extracting JSON array from mixed content
+        if (preg_match('/\[[\s\S]*\]/', $content, $matches)) {
+            $decoded = json_decode($matches[0], true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        Log::warning('StoryModeScriptService: JSON parsing failed', [
+            'error' => json_last_error_msg(),
+            'content_preview' => substr($content, 0, 200),
+        ]);
 
         return null;
     }
