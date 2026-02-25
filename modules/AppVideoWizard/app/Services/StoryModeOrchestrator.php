@@ -311,38 +311,71 @@ class StoryModeOrchestrator
         try {
             $project->updateProgress('assembling', 90, 'Rendering final video');
 
-            $result = $this->renderService->processExport($manifest, function ($progress, $stage) use ($project) {
-                $mappedProgress = 85 + (int) (($progress / 100) * 15);
-                $project->updateProgress('assembling', min(99, $mappedProgress), $stage);
-            });
+            // Submit to Cloud Run video processor
+            $jobId = \Illuminate\Support\Str::uuid()->toString();
+            $manifest['userId'] = $project->user_id;
+            $manifest['projectId'] = $project->id;
 
-            if (!empty($result['videoUrl']) || !empty($result['video_url'])) {
-                $videoUrl = $result['videoUrl'] ?? $result['video_url'];
-                $totalDuration = 0;
-                foreach ($scenes as $scene) {
-                    $totalDuration += $scene['audio_duration'] ?? $scene['estimated_duration'] ?? 6;
+            $submitResult = $this->renderService->processExportViaCloudRun($manifest, $jobId);
+            Log::info('StoryModeOrchestrator: Cloud Run job submitted', [
+                'project_id' => $project->id,
+                'job_id' => $jobId,
+                'result' => $submitResult,
+            ]);
+
+            // Poll for completion (max 10 minutes)
+            $maxAttempts = 120; // 120 * 5s = 10 minutes
+            $videoUrl = null;
+            $videoPath = null;
+
+            for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
+                sleep(5);
+
+                $status = $this->renderService->getCloudRunExportStatus($jobId);
+                $state = $status['status'] ?? $status['state'] ?? 'unknown';
+
+                $progressPct = $status['progress'] ?? 0;
+                $mappedProgress = 90 + (int) (($progressPct / 100) * 9);
+                $project->updateProgress('assembling', min(99, $mappedProgress), $status['stage'] ?? 'Rendering...');
+
+                if ($state === 'completed' || $state === 'done') {
+                    $videoUrl = $status['videoUrl'] ?? $status['video_url'] ?? $status['url'] ?? null;
+                    $videoPath = $status['videoPath'] ?? $status['video_path'] ?? null;
+                    break;
                 }
 
-                $project->update([
-                    'status' => 'ready',
-                    'progress_percent' => 100,
-                    'current_stage' => 'Complete',
-                    'video_url' => $videoUrl,
-                    'video_path' => $result['videoPath'] ?? $result['video_path'] ?? null,
-                    'video_duration' => (int) round($totalDuration),
-                    'metadata' => array_merge($project->metadata ?? [], [
-                        'completed_at' => now()->toIso8601String(),
-                        'export_quality' => $exportQuality,
-                        'export_resolution' => $exportResolution,
-                    ]),
-                ]);
-
-                // Increment style usage counter
-                if ($project->style) {
-                    $project->style->incrementUsage();
+                if ($state === 'failed' || $state === 'error') {
+                    throw new \Exception('Cloud Run export failed: ' . ($status['error'] ?? 'Unknown error'));
                 }
-            } else {
-                throw new \Exception('Video render did not return a video URL');
+            }
+
+            if (empty($videoUrl)) {
+                throw new \Exception('Video render timed out or did not return a video URL');
+            }
+
+            $totalDuration = 0;
+            foreach ($scenes as $scene) {
+                $totalDuration += $scene['audio_duration'] ?? $scene['estimated_duration'] ?? 6;
+            }
+
+            $project->update([
+                'status' => 'ready',
+                'progress_percent' => 100,
+                'current_stage' => 'Complete',
+                'video_url' => $videoUrl,
+                'video_path' => $videoPath,
+                'video_duration' => (int) round($totalDuration),
+                'metadata' => array_merge($project->metadata ?? [], [
+                    'completed_at' => now()->toIso8601String(),
+                    'export_quality' => $exportQuality,
+                    'export_resolution' => $exportResolution,
+                    'cloud_run_job_id' => $jobId,
+                ]),
+            ]);
+
+            // Increment style usage counter
+            if ($project->style) {
+                $project->style->incrementUsage();
             }
         } catch (\Exception $e) {
             Log::error('StoryModeOrchestrator: Assembly failed', [
