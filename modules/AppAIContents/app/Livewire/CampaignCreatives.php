@@ -22,7 +22,7 @@ class CampaignCreatives extends Component
     public function mount(int $campaignId)
     {
         $this->campaignId = $campaignId;
-        $this->campaign = ContentCampaign::with('creatives')->find($campaignId);
+        $this->campaign = ContentCampaign::with(['creatives.layoutTemplate'])->find($campaignId);
 
         if ($this->campaign && $this->campaign->status === 'generating') {
             $this->isGenerating = true;
@@ -33,7 +33,7 @@ class CampaignCreatives extends Component
     {
         if (!$this->isGenerating && !$this->animatingId) return;
 
-        $this->campaign = ContentCampaign::with('creatives')->find($this->campaignId);
+        $this->campaign = ContentCampaign::with(['creatives.layoutTemplate'])->find($this->campaignId);
 
         if ($this->campaign && $this->campaign->status === 'ready') {
             $this->isGenerating = false;
@@ -74,7 +74,7 @@ class CampaignCreatives extends Component
         $service = new CreativeService();
         $service->duplicateCreative($creative, $aspectRatio);
         $this->menuOpenId = null;
-        $this->campaign = ContentCampaign::with('creatives')->find($this->campaignId);
+        $this->campaign = ContentCampaign::with(['creatives.layoutTemplate'])->find($this->campaignId);
     }
 
     public function deleteCreative(int $creativeId)
@@ -84,15 +84,21 @@ class CampaignCreatives extends Component
             ->delete();
 
         $this->menuOpenId = null;
-        $this->campaign = ContentCampaign::with('creatives')->find($this->campaignId);
+        $this->campaign = ContentCampaign::with(['creatives.layoutTemplate'])->find($this->campaignId);
     }
 
     public function downloadCreative(int $creativeId)
     {
         $creative = ContentCreative::find($creativeId);
-        if (!$creative || !$creative->image_url) return;
+        if (!$creative) return;
 
-        $this->dispatch('download-file', url: $creative->image_url);
+        $url = ($creative->composite_status === 'ready' && $creative->composite_image_url)
+            ? $creative->composite_image_url
+            : $creative->image_url;
+
+        if (!$url) return;
+
+        $this->dispatch('download-file', url: $url);
     }
 
     public function toggleMenu(int $creativeId)

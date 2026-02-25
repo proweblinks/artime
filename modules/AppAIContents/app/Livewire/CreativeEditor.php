@@ -5,6 +5,7 @@ namespace Modules\AppAIContents\Livewire;
 use Livewire\Component;
 use Modules\AppAIContents\Models\ContentCreative;
 use Modules\AppAIContents\Models\ContentCreativeVersion;
+use Modules\AppAIContents\Models\CreativeLayoutTemplate;
 use Modules\AppAIContents\Services\CreativeService;
 
 class CreativeEditor extends Component
@@ -14,6 +15,8 @@ class CreativeEditor extends Component
     public int $currentVersion = 1;
     public int $totalVersions = 1;
     public bool $isFixingLayout = false;
+    public bool $isCompositing = false;
+    public bool $showTemplatePicker = false;
     public ?string $expandedSection = 'header';
 
     // Editable fields
@@ -86,6 +89,14 @@ class CreativeEditor extends Component
 
         if (!empty($updates)) {
             $this->creative->update($updates);
+
+            // Trigger re-composition if template is assigned
+            if ($this->creative->layout_template_id) {
+                $this->creative->update(['composite_status' => 'pending']);
+                $this->isCompositing = true;
+                $service = new CreativeService();
+                $service->triggerCompositeRender($this->creative);
+            }
         }
     }
 
@@ -214,8 +225,44 @@ class CreativeEditor extends Component
 
     public function download()
     {
-        if (!$this->creative || !$this->creative->image_url) return;
-        $this->dispatch('download-file', url: $this->creative->image_url);
+        if (!$this->creative) return;
+
+        $url = ($this->creative->composite_status === 'ready' && $this->creative->composite_image_url)
+            ? $this->creative->composite_image_url
+            : $this->creative->image_url;
+
+        if (!$url) return;
+        $this->dispatch('download-file', url: $url);
+    }
+
+    public function changeTemplate(int $templateId)
+    {
+        if (!$this->creative) return;
+
+        $template = CreativeLayoutTemplate::find($templateId);
+        if (!$template) return;
+
+        $this->creative->update([
+            'layout_template_id' => $template->id,
+            'composite_status' => 'pending',
+            'metadata' => array_merge($this->creative->metadata ?? [], ['layout_template' => $template->slug]),
+        ]);
+
+        $this->showTemplatePicker = false;
+        $this->isCompositing = true;
+
+        $service = new CreativeService();
+        $service->triggerCompositeRender($this->creative, $template);
+    }
+
+    public function pollComposite()
+    {
+        if (!$this->isCompositing) return;
+
+        $this->creative = ContentCreative::with('versions')->find($this->creativeId);
+        if ($this->creative && in_array($this->creative->composite_status, ['ready', 'failed'])) {
+            $this->isCompositing = false;
+        }
     }
 
     public function goBack()

@@ -81,7 +81,17 @@
                             {{-- Layout-aware creative card with text overlays --}}
                             <div wire:click="openEditor({{ $creative->id }})" style="cursor: pointer; position: relative; width: 100%; aspect-ratio: 9/16; border-radius: var(--cs-radius-lg); overflow: hidden; background: #111;">
 
-                                @if($layout === 'bottom-overlay')
+                                @if($creative->composite_status === 'ready' && $creative->composite_image_url)
+                                    {{-- Show pre-rendered composite image --}}
+                                    <img src="{{ $creative->composite_image_url }}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                                @elseif($creative->layoutTemplate)
+                                    {{-- Template-driven CSS overlay --}}
+                                    @include('appaicontents::livewire.partials._template-css-overlay', [
+                                        'creative' => $creative,
+                                        'template' => $creative->layoutTemplate,
+                                        'brandColor' => $brandColor,
+                                    ])
+                                @elseif($layout === 'bottom-overlay')
                                     {{-- BOTTOM OVERLAY: Full-bleed image, gradient from bottom, text pinned to bottom --}}
                                     @if($creative->image_url)
                                         <img src="{{ $creative->image_url }}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;">
@@ -104,7 +114,6 @@
                                     </div>
 
                                 @elseif($layout === 'center-hero')
-                                    {{-- CENTER HERO: Full-bleed image, centered large header, desc below --}}
                                     @if($creative->image_url)
                                         <img src="{{ $creative->image_url }}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;">
                                     @else
@@ -126,7 +135,6 @@
                                     @endif
 
                                 @elseif($layout === 'split-bottom')
-                                    {{-- SPLIT BOTTOM: Image top ~55%, solid brand-color block bottom ~45% --}}
                                     <div style="width: 100%; height: 55%; overflow: hidden;">
                                         @if($creative->image_url)
                                             <img src="{{ $creative->image_url }}" alt="" style="width: 100%; height: 100%; object-fit: cover; object-position: top; display: block;">
@@ -149,7 +157,6 @@
                                     </div>
 
                                 @elseif($layout === 'magazine')
-                                    {{-- MAGAZINE: White bg, image left ~60%, text stacked right --}}
                                     <div style="width: 100%; height: 100%; background: #f8f8f8; display: flex; flex-direction: column;">
                                         <div style="width: 100%; height: 55%; overflow: hidden;">
                                             @if($creative->image_url)
@@ -174,7 +181,6 @@
                                     </div>
 
                                 @elseif($layout === 'top-header')
-                                    {{-- TOP HEADER: Bold header at top over brand-color bar, image below, desc at bottom --}}
                                     <div style="width: 100%; height: 100%; display: flex; flex-direction: column;">
                                         <div dir="auto" style="background: {{ $brandColor }}; padding: 14px 16px; display: flex; align-items: center; min-height: 22%;">
                                             @if($headerText)
@@ -203,7 +209,7 @@
                                     </div>
 
                                 @else
-                                    {{-- FALLBACK: bottom-overlay (same as first layout) --}}
+                                    {{-- FALLBACK --}}
                                     @if($creative->image_url)
                                         <img src="{{ $creative->image_url }}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;">
                                     @else

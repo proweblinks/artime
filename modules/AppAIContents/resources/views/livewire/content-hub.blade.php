@@ -1,4 +1,18 @@
-<div class="cs-app" x-data @dna-ready.window="$wire.onDnaReady($event.detail.dnaId)">
+<div class="cs-app"
+     x-data
+     @dna-ready.window="$wire.onDnaReady($event.detail.dnaId)"
+     x-on:download-file.window="
+        const url = $event.detail.url;
+        if (url) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = url.split('/').pop() || 'creative.jpg';
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+     ">
     @include('appaicontents::livewire.partials._design-system')
 
     {{-- Gradient Mesh Background --}}

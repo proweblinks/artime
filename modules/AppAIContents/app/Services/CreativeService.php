@@ -9,6 +9,7 @@ use Modules\AppAIContents\Models\ContentBusinessDna;
 use Modules\AppAIContents\Models\ContentCampaign;
 use Modules\AppAIContents\Models\ContentCreative;
 use Modules\AppAIContents\Models\ContentCreativeVersion;
+use Modules\AppAIContents\Models\CreativeLayoutTemplate;
 
 class CreativeService
 {
@@ -166,12 +167,17 @@ PROMPT;
         $imageResult = $this->generatePhotorealisticImage($campaign, $dna, $stylePreset, $concept);
         $textContent = $this->generateTextContent($campaign, $dna, $sortOrder, $concept);
 
+        $template = $this->pickLayoutTemplate($sortOrder, $campaign);
+        $templateSlug = $template?->slug ?? $this->pickLayoutTemplateLegacy($sortOrder);
+
         $creative = ContentCreative::create([
             'campaign_id' => $campaign->id,
             'team_id' => $campaign->team_id,
             'type' => 'image',
             'source_type' => 'ai',
             'style_preset' => $stylePreset ?? 'photographic',
+            'layout_template_id' => $template?->id,
+            'composite_status' => 'pending',
             'image_path' => $imageResult['path'] ?? null,
             'image_url' => $imageResult['url'] ?? null,
             'header_text' => $textContent['header'] ?? '',
@@ -181,7 +187,7 @@ PROMPT;
             'metadata' => [
                 'generation_prompt' => $imageResult['prompt'] ?? '',
                 'variation_index' => $sortOrder,
-                'layout_template' => $this->pickLayoutTemplate($sortOrder),
+                'layout_template' => $templateSlug,
             ],
         ]);
 
@@ -196,6 +202,11 @@ PROMPT;
             'metadata' => $creative->metadata,
             'created_at' => now(),
         ]);
+
+        // Trigger async composite rendering
+        if ($template && $creative->image_path) {
+            $this->triggerCompositeRender($creative, $template, $dna);
+        }
 
         return $creative;
     }
@@ -739,9 +750,54 @@ PROMPT;
         return implode(', ', $arr ?? []);
     }
 
-    protected function pickLayoutTemplate(int $index): string
+    protected function pickLayoutTemplate(int $index, ContentCampaign $campaign): ?CreativeLayoutTemplate
+    {
+        $aspectRatio = $campaign->aspect_ratio ?? '9:16';
+
+        // Get template IDs already used in this campaign to avoid repeats
+        $usedIds = ContentCreative::where('campaign_id', $campaign->id)
+            ->whereNotNull('layout_template_id')
+            ->pluck('layout_template_id')
+            ->toArray();
+
+        $query = CreativeLayoutTemplate::active()->forAspect($aspectRatio);
+
+        if (!empty($usedIds)) {
+            $query->whereNotIn('id', $usedIds);
+        }
+
+        $template = $query->inRandomOrder()->first();
+
+        // If all templates are used, allow repeats
+        if (!$template) {
+            $template = CreativeLayoutTemplate::active()->forAspect($aspectRatio)->inRandomOrder()->first();
+        }
+
+        return $template;
+    }
+
+    protected function pickLayoutTemplateLegacy(int $index): string
     {
         $layouts = ['bottom-overlay', 'center-hero', 'split-bottom', 'magazine', 'top-header'];
         return $layouts[$index % count($layouts)];
+    }
+
+    public function triggerCompositeRender(ContentCreative $creative, ?CreativeLayoutTemplate $template = null, ?ContentBusinessDna $dna = null): void
+    {
+        if (!$template) {
+            $template = $creative->layoutTemplate;
+        }
+        if (!$template) return;
+
+        if (!$dna) {
+            $dna = $creative->campaign?->dna;
+        }
+
+        $brandColors = $dna?->colors ?? ['#DA291C'];
+
+        dispatch(function () use ($creative, $template, $brandColors) {
+            $renderer = new CompositeRenderer();
+            $renderer->renderAndSave($creative, $template, $brandColors);
+        })->afterResponse();
     }
 }

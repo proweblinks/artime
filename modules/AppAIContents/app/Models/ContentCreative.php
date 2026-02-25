@@ -17,10 +17,14 @@ class ContentCreative extends Model
         'source_type',
         'source_image_path',
         'style_preset',
+        'layout_template_id',
         'image_path',
         'image_url',
         'video_path',
         'video_url',
+        'composite_image_path',
+        'composite_image_url',
+        'composite_status',
         'header_text',
         'header_font',
         'header_color',
@@ -53,6 +57,11 @@ class ContentCreative extends Model
     public function campaign(): BelongsTo
     {
         return $this->belongsTo(ContentCampaign::class, 'campaign_id');
+    }
+
+    public function layoutTemplate(): BelongsTo
+    {
+        return $this->belongsTo(CreativeLayoutTemplate::class, 'layout_template_id');
     }
 
     public function versions(): HasMany

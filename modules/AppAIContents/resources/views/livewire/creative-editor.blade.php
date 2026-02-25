@@ -1,6 +1,9 @@
-<div>
+<div x-data="{ showTemplatePicker: @entangle('showTemplatePicker') }">
     @if($isFixingLayout)
         <div wire:poll.3s="pollFixLayout" style="display:none;"></div>
+    @endif
+    @if($isCompositing)
+        <div wire:poll.3s="pollComposite" style="display:none;"></div>
     @endif
 
     {{-- Back Breadcrumb --}}
@@ -77,6 +80,14 @@
                 @endif
             </div>
 
+            {{-- Compositing Indicator --}}
+            @if($isCompositing)
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 12px; width: 100%; max-width: 400px; padding: 8px 12px; background: rgba(139,92,246,0.1); border-radius: var(--cs-radius-md); font-size: 12px; color: rgb(139,92,246);">
+                    <i class="fa-light fa-spinner-third fa-spin"></i>
+                    {{ __('Rendering composite image...') }}
+                </div>
+            @endif
+
             {{-- Bottom Buttons --}}
             <div style="display: flex; gap: 8px; margin-top: 16px; width: 100%; max-width: 400px;">
                 <button class="cs-btn cs-btn-ai" style="flex: 1;"
@@ -88,6 +99,9 @@
                     @else
                         {{ __('Fix Layout') }}
                     @endif
+                </button>
+                <button class="cs-btn cs-btn-secondary cs-btn-icon" @click="showTemplatePicker = true" title="{{ __('Change Template') }}">
+                    <i class="fa-light fa-grid-2"></i>
                 </button>
                 <button class="cs-btn cs-btn-secondary cs-btn-icon" wire:click="download" title="{{ __('Download') }}">
                     <i class="fa-light fa-download"></i>
@@ -283,5 +297,41 @@
             </div>
         </div>
     </div>
+    @endif
+
+    {{-- ━━━ Template Picker Modal ━━━ --}}
+    @if($showTemplatePicker)
+        <div class="cs-bottom-sheet open" x-transition style="z-index: 101; max-height: 70vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="font-size: 16px; font-weight: 600; margin: 0;">{{ __('Choose a Template') }}</h3>
+                <button class="cs-modal-close" @click="showTemplatePicker = false">
+                    <i class="fa-light fa-xmark"></i>
+                </button>
+            </div>
+
+            @php
+                $templates = \Modules\AppAIContents\Models\CreativeLayoutTemplate::active()
+                    ->orderBy('category')->orderBy('sort_order')->get()->groupBy('category');
+            @endphp
+
+            @foreach($templates as $category => $categoryTemplates)
+                <div style="margin-bottom: 16px;">
+                    <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--cs-text-muted); margin-bottom: 8px;">
+                        {{ ucfirst($category) }}
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
+                        @foreach($categoryTemplates as $tpl)
+                            <button class="cs-btn" style="padding: 10px 6px; text-align: center; border: 1px solid {{ ($creative->layout_template_id ?? 0) === $tpl->id ? 'var(--cs-primary-text)' : 'var(--cs-border)' }}; border-radius: var(--cs-radius-md); font-size: 11px; line-height: 1.3;"
+                                    wire:click="changeTemplate({{ $tpl->id }})">
+                                <div style="font-weight: 500;">{{ $tpl->name }}</div>
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
+        </div>
+        <div @click="showTemplatePicker = false"
+             style="position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100;"
+             x-transition.opacity></div>
     @endif
 </div>
