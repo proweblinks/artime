@@ -11,14 +11,16 @@ class FontManager
     ];
 
     // System fonts for RTL languages (Hebrew, Arabic)
+    // DejaVuSans is preferred: it has Hebrew + Latin + numbers + punctuation
+    // DroidSansHebrew only has Hebrew script (numbers/punctuation render as □)
     protected static array $systemRtlFonts = [
         'regular' => [
-            '/usr/share/fonts/google-droid-sans-fonts/DroidSansHebrew-Regular.ttf',
             '/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf',
+            '/usr/share/fonts/google-droid-sans-fonts/DroidSansHebrew-Regular.ttf',
         ],
         'bold' => [
-            '/usr/share/fonts/google-droid-sans-fonts/DroidSansHebrew-Bold.ttf',
             '/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Bold.ttf',
+            '/usr/share/fonts/google-droid-sans-fonts/DroidSansHebrew-Bold.ttf',
         ],
     ];
 
