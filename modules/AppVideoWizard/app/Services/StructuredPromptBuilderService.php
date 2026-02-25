@@ -1448,19 +1448,24 @@ class StructuredPromptBuilderService
 
         if ($style) {
             if (!empty($style['visualStyle'])) {
-                $parts[] = "VISUAL STYLE: " . $style['visualStyle'];
+                $vs = $style['visualStyle'];
+                $parts[] = "VISUAL STYLE: " . (is_array($vs) ? implode(', ', array_filter($vs)) : $vs);
             }
             if (!empty($style['colorPalette'])) {
-                $parts[] = "COLOR GRADE (CONSISTENT): " . $style['colorPalette'];
+                $cp = $style['colorPalette'];
+                $parts[] = "COLOR GRADE (CONSISTENT): " . (is_array($cp) ? implode(', ', array_filter($cp)) : $cp);
             }
             if (!empty($style['lightingStyle'])) {
-                $parts[] = "LIGHTING (CONSISTENT): " . $style['lightingStyle'];
+                $ls = $style['lightingStyle'];
+                $parts[] = "LIGHTING (CONSISTENT): " . (is_array($ls) ? implode(', ', array_filter($ls)) : $ls);
             }
             if (!empty($style['mood'])) {
-                $parts[] = "ATMOSPHERE: " . $style['mood'];
+                $m = $style['mood'];
+                $parts[] = "ATMOSPHERE: " . (is_array($m) ? implode(', ', array_filter($m)) : $m);
             }
             if (!empty($style['era'])) {
-                $parts[] = "ERA/PERIOD: " . $style['era'];
+                $e = $style['era'];
+                $parts[] = "ERA/PERIOD: " . (is_array($e) ? implode(', ', array_filter($e)) : $e);
             }
         }
 

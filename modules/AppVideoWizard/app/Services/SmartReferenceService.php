@@ -123,7 +123,7 @@ class SmartReferenceService
 
         try {
             $result = $this->geminiService->generateImageFromImage($sceneBase64, $extractionPrompt, [
-                'model' => 'gemini-2.5-flash-preview-05-20', // Best available model for image generation
+                'model' => 'gemini-2.5-flash-image', // Best available model for image generation
                 'aspectRatio' => '1:1', // Portrait format
                 'resolution' => '2K',
             ]);
@@ -179,7 +179,7 @@ class SmartReferenceService
 
         try {
             $result = $this->geminiService->generateImageFromImage($sceneBase64, $prompt, [
-                'model' => 'gemini-2.5-flash-preview-05-20',
+                'model' => 'gemini-2.5-flash-image',
                 'aspectRatio' => '16:9', // Widescreen for establishing shots
                 'resolution' => '2K',
             ]);
