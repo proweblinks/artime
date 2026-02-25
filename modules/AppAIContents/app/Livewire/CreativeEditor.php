@@ -273,15 +273,23 @@ class CreativeEditor extends Component
     public function render()
     {
         $versionImage = null;
+        $compositeImage = null;
+
         if ($this->creative) {
             $version = ContentCreativeVersion::where('creative_id', $this->creativeId)
                 ->where('version_number', $this->currentVersion)
                 ->first();
             $versionImage = $version?->image_url ?? $this->creative->image_url;
+
+            // Use composite image when ready
+            if ($this->creative->composite_status === 'ready' && $this->creative->composite_image_url) {
+                $compositeImage = $this->creative->composite_image_url;
+            }
         }
 
         return view('appaicontents::livewire.creative-editor', [
             'versionImage' => $versionImage,
+            'compositeImage' => $compositeImage,
         ]);
     }
 }

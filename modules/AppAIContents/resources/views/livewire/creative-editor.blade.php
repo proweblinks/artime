@@ -46,7 +46,13 @@
                             <span style="font-size: 13px; color: var(--cs-text-muted); margin-top: 8px;">{{ __('About 2 minutes left') }}</span>
                         </div>
                     </div>
+                @elseif($compositeImage)
+                    {{-- Show composite image (text baked in server-side) --}}
+                    <div style="aspect-ratio: 9/16; border-radius: var(--cs-radius-lg); overflow: hidden; background: #111;">
+                        <img src="{{ $compositeImage }}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
                 @else
+                    {{-- Fallback: raw image + CSS text overlays --}}
                     <div style="aspect-ratio: 9/16; border-radius: var(--cs-radius-lg); overflow: hidden; position: relative; background: #111;">
                         @if($versionImage)
                             <img src="{{ $versionImage }}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
