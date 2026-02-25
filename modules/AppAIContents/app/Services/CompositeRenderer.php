@@ -578,6 +578,7 @@ class CompositeRenderer
 
     protected function drawWrappedText(string $text, int $fontSize, string $fontPath, int $color, int $x, int $y, int $maxWidth, string $alignment, float $lineHeightScale): void
     {
+        $isRtl = FontManager::isRtl($text);
         $lines = $this->wrapText($text, $fontSize, $fontPath, $maxWidth);
         $lineHeight = (int) round($fontSize * $lineHeightScale);
 
@@ -585,26 +586,82 @@ class CompositeRenderer
             $lineY = $y + ($i + 1) * $lineHeight;
             $lineX = $x;
 
-            if ($alignment === 'center' || $alignment === 'right') {
-                $bbox = imagettfbbox($fontSize, 0, $fontPath, $line);
-                $lineW = abs($bbox[2] - $bbox[0]);
+            // For RTL text, reverse for GD rendering (GD renders L→R only)
+            $renderLine = $isRtl ? $this->reverseRtlText($line) : $line;
 
-                if ($alignment === 'center') {
-                    $lineX = $x + (int) round(($maxWidth - $lineW) / 2);
-                } elseif ($alignment === 'right') {
-                    $lineX = $x + $maxWidth - $lineW;
-                }
-            }
+            $bbox = imagettfbbox($fontSize, 0, $fontPath, $renderLine);
+            $lineW = abs($bbox[2] - $bbox[0]);
 
-            // Handle RTL text
-            if (FontManager::isRtl($line)) {
-                $bbox = imagettfbbox($fontSize, 0, $fontPath, $line);
-                $lineW = abs($bbox[2] - $bbox[0]);
+            if ($isRtl) {
+                // RTL: always right-align
+                $lineX = $x + $maxWidth - $lineW;
+            } elseif ($alignment === 'center') {
+                $lineX = $x + (int) round(($maxWidth - $lineW) / 2);
+            } elseif ($alignment === 'right') {
                 $lineX = $x + $maxWidth - $lineW;
             }
 
-            imagettftext($this->canvas, $fontSize, 0, $lineX, $lineY, $color, $fontPath, $line);
+            imagettftext($this->canvas, $fontSize, 0, $lineX, $lineY, $color, $fontPath, $renderLine);
         }
+    }
+
+    /**
+     * Reverse RTL text for GD rendering. GD's imagettftext() always renders
+     * left-to-right, so we must reverse Hebrew/Arabic text to visual order.
+     * Preserves embedded LTR runs (numbers, Latin) in correct order.
+     */
+    protected function reverseRtlText(string $text): string
+    {
+        // Split into grapheme clusters
+        $chars = mb_str_split($text);
+
+        // Simple approach: identify runs of RTL vs LTR characters
+        $runs = [];
+        $currentRun = '';
+        $currentIsRtl = null;
+
+        foreach ($chars as $char) {
+            $charIsRtl = (bool) preg_match('/[\x{0590}-\x{05FF}\x{0600}-\x{06FF}\x{0750}-\x{077F}\x{FB50}-\x{FDFF}\x{FE70}-\x{FEFF}]/u', $char);
+            $isSpace = $char === ' ';
+
+            // Spaces inherit the direction of surrounding text
+            if ($isSpace) {
+                $currentRun .= $char;
+                continue;
+            }
+
+            if ($currentIsRtl === null) {
+                $currentIsRtl = $charIsRtl;
+                $currentRun = $char;
+            } elseif ($charIsRtl === $currentIsRtl) {
+                $currentRun .= $char;
+            } else {
+                $runs[] = ['text' => $currentRun, 'rtl' => $currentIsRtl];
+                $currentIsRtl = $charIsRtl;
+                $currentRun = $char;
+            }
+        }
+
+        if ($currentRun !== '') {
+            $runs[] = ['text' => $currentRun, 'rtl' => $currentIsRtl ?? true];
+        }
+
+        // Reverse the order of runs (RTL paragraph direction)
+        $runs = array_reverse($runs);
+
+        // Within each RTL run, reverse the characters
+        $result = '';
+        foreach ($runs as $run) {
+            if ($run['rtl']) {
+                $runChars = mb_str_split($run['text']);
+                $result .= implode('', array_reverse($runChars));
+            } else {
+                // LTR runs (numbers, Latin) keep their order
+                $result .= $run['text'];
+            }
+        }
+
+        return $result;
     }
 
     protected function wrapText(string $text, int $fontSize, string $fontPath, int $maxWidth): array
@@ -637,7 +694,10 @@ class CompositeRenderer
 
     protected function renderCtaPill(string $text, array $region, int $fontSize, string $fontPath, int $x, int $y, int $maxWidth, float $scale): void
     {
-        $bbox = imagettfbbox($fontSize, 0, $fontPath, $text);
+        $isRtl = FontManager::isRtl($text);
+        $renderText = $isRtl ? $this->reverseRtlText($text) : $text;
+
+        $bbox = imagettfbbox($fontSize, 0, $fontPath, $renderText);
         $textW = abs($bbox[2] - $bbox[0]);
         $textH = abs($bbox[7] - $bbox[1]);
 
@@ -650,22 +710,21 @@ class CompositeRenderer
             ? (int) round($pillH * ($region['pill_border_radius_pct'] / 100))
             : (int) round($pillH / 2);
 
+        // For RTL, position the pill from the right side
+        $pillX = $isRtl ? $x + $maxWidth - $pillW : $x;
+
         $bgColorMode = $region['pill_bg_color_mode'] ?? 'light';
         $bgColor = $this->colors->gdAllocate($this->canvas, $bgColorMode);
 
-        $this->drawRoundedRect($x, $y, $x + $pillW, $y + $pillH, $pillRadius, $bgColor);
+        $this->drawRoundedRect($pillX, $y, $pillX + $pillW, $y + $pillH, $pillRadius, $bgColor);
 
         $textColorMode = $region['pill_text_color_mode'] ?? 'brand_color';
         $textColor = $this->colors->gdAllocate($this->canvas, $textColorMode);
 
-        $textX = $x + $paddingH;
+        $textX = $pillX + $paddingH;
         $textY = $y + $paddingV + $textH;
 
-        if (FontManager::isRtl($text)) {
-            $textX = $x + $pillW - $paddingH - $textW;
-        }
-
-        imagettftext($this->canvas, $fontSize, 0, $textX, $textY, $textColor, $fontPath, $text);
+        imagettftext($this->canvas, $fontSize, 0, $textX, $textY, $textColor, $fontPath, $renderText);
     }
 
     // ─── Helpers ───

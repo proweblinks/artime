@@ -306,37 +306,65 @@
     @endphp
 
     <div x-show="showTemplatePicker" x-cloak>
-        <div @click.outside="showTemplatePicker = false"
-             x-transition
+        {{-- Backdrop --}}
+        <div @click="showTemplatePicker = false"
+             style="position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; backdrop-filter: blur(4px);"
+             x-transition.opacity></div>
+
+        {{-- Modal --}}
+        <div x-transition.scale.95
              style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 101;
-                    width: 90vw; max-width: 640px; max-height: 70vh; overflow-y: auto;
-                    background: var(--cs-bg-card); border-radius: var(--cs-radius-lg);
-                    box-shadow: 0 20px 60px rgba(0,0,0,0.3); padding: 24px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h3 style="font-size: 16px; font-weight: 600; margin: 0;">{{ __('Choose a Template') }}</h3>
-                <button class="cs-modal-close" @click="showTemplatePicker = false">
-                    <i class="fa-light fa-xmark"></i>
+                    width: 520px; max-width: 90vw; max-height: 75vh;
+                    background: var(--cs-bg-card); border-radius: 16px;
+                    box-shadow: 0 25px 60px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.05);
+                    display: flex; flex-direction: column; overflow: hidden;">
+
+            {{-- Header --}}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 24px 16px; border-bottom: 1px solid var(--cs-border); flex-shrink: 0;">
+                <div>
+                    <h3 style="font-size: 15px; font-weight: 700; margin: 0; letter-spacing: -0.01em;">{{ __('Choose a Template') }}</h3>
+                    <div style="font-size: 12px; color: var(--cs-text-muted); margin-top: 2px;">{{ $layoutTemplates->flatten()->count() }} {{ __('templates available') }}</div>
+                </div>
+                <button @click="showTemplatePicker = false"
+                        style="width: 32px; height: 32px; border-radius: 8px; border: none; background: var(--cs-bg-muted);
+                               display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--cs-text-muted);
+                               transition: all 0.15s;"
+                        onmouseover="this.style.background='var(--cs-border)'"
+                        onmouseout="this.style.background='var(--cs-bg-muted)'">
+                    <i class="fa-light fa-xmark" style="font-size: 14px;"></i>
                 </button>
             </div>
 
-            @foreach($layoutTemplates as $category => $categoryTemplates)
-                <div style="margin-bottom: 16px;">
-                    <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--cs-text-muted); margin-bottom: 8px;">
-                        {{ ucfirst($category) }}
+            {{-- Scrollable body --}}
+            <div style="overflow-y: auto; padding: 16px 24px 24px; flex: 1;">
+                @foreach($layoutTemplates as $category => $categoryTemplates)
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--cs-text-muted); margin-bottom: 10px;">
+                            {{ ucfirst($category) }}
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                            @foreach($categoryTemplates as $tpl)
+                                @php $isActive = ($creative->layout_template_id ?? 0) === $tpl->id; @endphp
+                                <button wire:click="changeTemplate({{ $tpl->id }})" @click="showTemplatePicker = false"
+                                        style="padding: 12px 10px; text-align: center; border-radius: 10px; cursor: pointer;
+                                               border: {{ $isActive ? '2px solid var(--cs-primary-text)' : '1px solid var(--cs-border)' }};
+                                               background: {{ $isActive ? 'var(--cs-primary-soft, rgba(0,200,180,0.08))' : 'var(--cs-bg-card)' }};
+                                               transition: all 0.15s; font-size: 12px; line-height: 1.3; position: relative;"
+                                        onmouseover="if(!{{ $isActive ? 'true' : 'false' }})this.style.borderColor='var(--cs-primary-text)';this.style.background='var(--cs-primary-soft, rgba(0,200,180,0.06))'"
+                                        onmouseout="if(!{{ $isActive ? 'true' : 'false' }}){this.style.borderColor='var(--cs-border)';this.style.background='var(--cs-bg-card)'}">
+                                    @if($isActive)
+                                        <div style="position: absolute; top: 6px; right: 6px; width: 18px; height: 18px; border-radius: 50%;
+                                                    background: var(--cs-primary-text); display: flex; align-items: center; justify-content: center;">
+                                            <i class="fa-solid fa-check" style="font-size: 9px; color: #fff;"></i>
+                                        </div>
+                                    @endif
+                                    <div style="font-weight: 600; color: {{ $isActive ? 'var(--cs-primary-text)' : 'var(--cs-text)' }};">{{ $tpl->name }}</div>
+                                </button>
+                            @endforeach
+                        </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px;">
-                        @foreach($categoryTemplates as $tpl)
-                            <button class="cs-btn" style="padding: 10px 6px; text-align: center; border: 1px solid {{ ($creative->layout_template_id ?? 0) === $tpl->id ? 'var(--cs-primary-text)' : 'var(--cs-border)' }}; border-radius: var(--cs-radius-md); font-size: 11px; line-height: 1.3;"
-                                    wire:click="changeTemplate({{ $tpl->id }})" @click="showTemplatePicker = false">
-                                <div style="font-weight: 500;">{{ $tpl->name }}</div>
-                            </button>
-                        @endforeach
-                    </div>
-                </div>
-            @endforeach
+                @endforeach
+            </div>
         </div>
-        <div @click="showTemplatePicker = false"
-             style="position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100;"
-             x-transition.opacity></div>
     </div>
 </div>
