@@ -480,16 +480,31 @@ class CompositeRenderer
 
     // ─── Text Rendering ───
 
+    /**
+     * Render text with auto-flow: description and CTA positions are calculated
+     * relative to the actual rendered header height, not from hardcoded y_pct.
+     * This ensures tight, professional spacing regardless of text content.
+     */
     protected function renderTextRegions(ContentCreative $creative): void
     {
         $regions = $this->config['text_regions'] ?? [];
         $typography = $this->config['typography'] ?? [];
-        $baseSize = $typography['base_size_1080'] ?? 48;
+        $baseSize = $typography['base_size_1080'] ?? 72;
 
         // Scale base size for current canvas width
         $scale = $this->canvasW / 1080;
 
-        foreach ($regions as $key => $region) {
+        // Gap between text blocks (professional standard: ~40px at 1080p)
+        $blockGap = (int) round(40 * $scale);
+
+        // Ordered rendering: header first, then description flows below, then CTA
+        $orderedKeys = ['header', 'description', 'cta'];
+        $nextY = null; // Track the bottom of the previous text block
+
+        foreach ($orderedKeys as $key) {
+            $region = $regions[$key] ?? null;
+            if (!$region) continue;
+
             $text = match ($key) {
                 'header' => $creative->header_text ?? '',
                 'description' => $creative->description_text ?? '',
@@ -532,11 +547,17 @@ class CompositeRenderer
             $textColor = $this->colors->gdAllocate($this->canvas, $colorMode);
 
             $x = $this->pctToX($region['x_pct'] ?? 5);
-            $y = $this->pctToY($region['y_pct'] ?? 50);
             $maxWidth = $this->pctToW($region['width_pct'] ?? 90);
 
+            // Auto-flow: use previous block's bottom + gap, or template's y_pct for first element
+            if ($key === 'header' || $nextY === null) {
+                $y = $this->pctToY($region['y_pct'] ?? 50);
+            } else {
+                $y = $nextY + $blockGap;
+            }
+
             $alignment = $region['alignment'] ?? 'left';
-            $lineHeightScale = $region['line_height_scale'] ?? 1.2;
+            $lineHeightScale = $region['line_height_scale'] ?? ($key === 'header' ? 1.15 : 1.4);
             $transform = $region['transform'] ?? null;
 
             if ($transform === 'uppercase') {
@@ -546,6 +567,7 @@ class CompositeRenderer
             // CTA pill style
             if (($region['style'] ?? null) === 'pill') {
                 $this->renderCtaPill($text, $region, $fontSize, $fontPath, $x, $y, $maxWidth, $scale);
+                $nextY = $y + $fontSize + (int) round(24 * $scale);
                 continue;
             }
 
@@ -567,16 +589,22 @@ class CompositeRenderer
                 );
             }
 
-            // Draw main text
-            $this->drawWrappedText(
+            // Draw main text and get the rendered height
+            $renderedHeight = $this->drawWrappedText(
                 $text, $fontSize, $fontPath, $textColor,
                 $x, $y, $maxWidth,
                 $alignment, $lineHeightScale
             );
+
+            // Track the bottom of this text block for auto-flow
+            $nextY = $y + $renderedHeight;
         }
     }
 
-    protected function drawWrappedText(string $text, int $fontSize, string $fontPath, int $color, int $x, int $y, int $maxWidth, string $alignment, float $lineHeightScale): void
+    /**
+     * Draw word-wrapped text and return the total rendered height in pixels.
+     */
+    protected function drawWrappedText(string $text, int $fontSize, string $fontPath, int $color, int $x, int $y, int $maxWidth, string $alignment, float $lineHeightScale): int
     {
         $isRtl = FontManager::isRtl($text);
         $lines = $this->wrapText($text, $fontSize, $fontPath, $maxWidth);
@@ -603,6 +631,8 @@ class CompositeRenderer
 
             imagettftext($this->canvas, $fontSize, 0, $lineX, $lineY, $color, $fontPath, $renderLine);
         }
+
+        return count($lines) * $lineHeight;
     }
 
     /**

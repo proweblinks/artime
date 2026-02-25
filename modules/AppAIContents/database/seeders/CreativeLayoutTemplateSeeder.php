@@ -40,7 +40,7 @@ class CreativeLayoutTemplateSeeder extends Seeder
             'background_blocks' => $bgBlocks,
             'decorations' => $decorations,
             'text_regions' => $textRegions,
-            'typography' => array_merge(['header_font_preference' => 'bold_sans', 'body_font_preference' => 'regular_sans', 'base_size_1080' => 48, 'rtl_size_adjust' => 1.05], $typo),
+            'typography' => array_merge(['header_font_preference' => 'bold_sans', 'body_font_preference' => 'regular_sans', 'base_size_1080' => 72, 'rtl_size_adjust' => 1.05], $typo),
         ];
     }
 
@@ -54,21 +54,21 @@ class CreativeLayoutTemplateSeeder extends Seeder
 
     private function headerRegion(float $x, float $y, float $w, string $align = 'left', float $size = 1.0, string $weight = 'bold', string $color = 'light', ?string $transform = null, ?array $shadow = null): array
     {
-        $r = ['x_pct' => $x, 'y_pct' => $y, 'width_pct' => $w, 'alignment' => $align, 'size_scale' => $size, 'weight' => $weight, 'color_mode' => $color, 'line_height_scale' => 1.2];
+        $r = ['x_pct' => $x, 'y_pct' => $y, 'width_pct' => $w, 'alignment' => $align, 'size_scale' => $size, 'weight' => $weight, 'color_mode' => $color, 'line_height_scale' => 1.15];
         if ($transform) $r['transform'] = $transform;
         if ($shadow) $r['shadow'] = $shadow;
         else $r['shadow'] = ['x' => 0, 'y' => 2, 'blur' => 8, 'color' => '#000', 'opacity' => 50];
         return $r;
     }
 
-    private function descRegion(float $x, float $y, float $w, string $align = 'left', string $color = 'light', float $size = 0.55): array
+    private function descRegion(float $x, float $y, float $w, string $align = 'left', string $color = 'light', float $size = 0.44): array
     {
-        return ['x_pct' => $x, 'y_pct' => $y, 'width_pct' => $w, 'alignment' => $align, 'size_scale' => $size, 'weight' => 'normal', 'color_mode' => $color, 'line_height_scale' => 1.45];
+        return ['x_pct' => $x, 'y_pct' => $y, 'width_pct' => $w, 'alignment' => $align, 'size_scale' => $size, 'weight' => 'normal', 'color_mode' => $color, 'line_height_scale' => 1.4];
     }
 
     private function ctaRegion(float $x, float $y, float $w = 50, string $align = 'left', string $pillBg = 'light', string $pillText = 'brand_color'): array
     {
-        return ['x_pct' => $x, 'y_pct' => $y, 'width_pct' => $w, 'alignment' => $align, 'size_scale' => 0.45, 'weight' => 'semibold', 'style' => 'pill', 'pill_bg_color_mode' => $pillBg, 'pill_text_color_mode' => $pillText, 'pill_border_radius_pct' => 50];
+        return ['x_pct' => $x, 'y_pct' => $y, 'width_pct' => $w, 'alignment' => $align, 'size_scale' => 0.39, 'weight' => 'semibold', 'style' => 'pill', 'pill_bg_color_mode' => $pillBg, 'pill_text_color_mode' => $pillText, 'pill_border_radius_pct' => 50];
     }
 
     // ─── OVERLAY category (7 templates, first = backward-compat "bottom-overlay") ───
