@@ -730,7 +730,7 @@
                 <div class="aith-enterprise-label">
                     <i class="fa-light fa-sparkles"></i> Premium Suite
                 </div>
-                <div class="aith-enterprise-title">Unlock <span>15 Enterprise AI Tools</span></div>
+                <div class="aith-enterprise-title">Unlock <span>{{ count(config('appaitools.enterprise_tools', [])) }} Enterprise AI Tools</span></div>
                 <div class="aith-enterprise-desc">{{ __($tools['enterprise_suite']['description']) }}</div>
                 <div class="aith-enterprise-tags">
                     <span class="aith-enterprise-tag">&#128176; Monetization</span>

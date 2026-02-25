@@ -533,13 +533,16 @@
         {{-- Platform Navigation --}}
         <div class="aith-e-platforms">
             @foreach($platforms as $pKey => $platform)
+            @php
+                $pToolCount = count(array_filter($tools, fn($t) => ($t['platform'] ?? 'youtube') === $pKey));
+            @endphp
             <div class="aith-e-platform-btn {{ $activePlatform === $pKey ? 'active' : '' }}"
                  wire:click="setPlatform('{{ $pKey }}')"
                  style="{{ $activePlatform === $pKey ? 'border-color:' . $platform['color'] . '40;' : '' }}">
                 <i class="{{ $platform['icon'] }}"></i>
                 {{ $platform['name'] }}
                 @if($platform['status'] === 'active')
-                    <span class="aith-e-platform-count">{{ count($platformTools ?? []) }}</span>
+                    <span class="aith-e-platform-count">{{ $pToolCount }}</span>
                 @else
                     <span class="aith-e-coming-badge">Soon</span>
                 @endif

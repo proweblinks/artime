@@ -141,7 +141,7 @@ return [
         ],
         'enterprise_suite' => [
             'name' => 'Enterprise Suite',
-            'description' => '15 premium AI tools for monetization, analytics, brand deals, audience profiling, revenue automation and more.',
+            'description' => '51 premium AI tools across YouTube, TikTok, Instagram & Facebook for monetization, analytics, brand deals, audience profiling, revenue automation and more.',
             'icon' => 'fa-light fa-crown',
             'emoji' => "\xF0\x9F\x91\x91",
             'color' => 'from-amber-500 to-yellow-600',
