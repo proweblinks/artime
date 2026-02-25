@@ -13,7 +13,7 @@
 
         {{-- Active Project Progress --}}
         @if($this->activeProject && $this->activeProject->isGenerating())
-            <div class="card border-0 mb-4" style="background: #1a1a1a; border-radius: 12px;">
+            <div wire:poll.5s class="card border-0 mb-4" style="background: #1a1a1a; border-radius: 12px;">
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <div>

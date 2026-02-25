@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Modules\AppVideoWizard\Models\StoryModeProject;
 use Modules\AppVideoWizard\Models\StoryModeStyle;
 use Modules\AppVideoWizard\Services\StoryModeScriptService;
-use Modules\AppVideoWizard\Services\StoryModeOrchestrator;
+use Modules\AppVideoWizard\Jobs\StoryModeGenerationJob;
 
 class StoryMode extends Component
 {
@@ -155,11 +155,13 @@ class StoryMode extends Component
             $this->activeProjectId = $project->id;
             $this->detailProjectId = $project->id;
 
-            // Dispatch the pipeline (runs synchronously for now, can be queued later)
-            $orchestrator = new StoryModeOrchestrator();
-            $orchestrator->generate($project);
+            // Dispatch the pipeline as a background job
+            StoryModeGenerationJob::dispatch($project->id)
+                ->onQueue('video-wizard-images');
+
+            Log::info('StoryMode: Generation job dispatched', ['project_id' => $project->id]);
         } catch (\Exception $e) {
-            Log::error('StoryMode: Pipeline failed', ['error' => $e->getMessage()]);
+            Log::error('StoryMode: Pipeline dispatch failed', ['error' => $e->getMessage()]);
             session()->flash('error', 'Video generation failed: ' . $e->getMessage());
         } finally {
             $this->isGenerating = false;
