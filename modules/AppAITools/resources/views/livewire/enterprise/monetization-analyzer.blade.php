@@ -95,7 +95,7 @@
                 </div>
                 <div class="aith-e-summary-card aith-e-summary-card-purple">
                     <div class="aith-e-summary-label">Estimated CPM</div>
-                    <div class="aith-e-summary-value" style="color:#c4b5fd;">{{ $result['channel_overview']['estimated_cpm'] ?? 'N/A' }}</div>
+                    <div class="aith-e-summary-value" style="color:#FBBF24;">{{ $result['channel_overview']['estimated_cpm'] ?? 'N/A' }}</div>
                 </div>
             </div>
             @endif

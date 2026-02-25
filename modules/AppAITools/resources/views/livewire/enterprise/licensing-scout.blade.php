@@ -147,7 +147,7 @@
                     <ul style="list-style:none;padding:0;margin:0.5rem 0 0;">
                         @foreach($opp['action_steps'] as $step)
                         <li style="font-size:0.75rem;color:rgba(255,255,255,0.4);padding:0.125rem 0;padding-left:0.75rem;position:relative;">
-                            <span style="position:absolute;left:0;color:#7c3aed;">&#8226;</span> {{ $step }}
+                            <span style="position:absolute;left:0;color:#CA8A04;">&#8226;</span> {{ $step }}
                         </li>
                         @endforeach
                     </ul>

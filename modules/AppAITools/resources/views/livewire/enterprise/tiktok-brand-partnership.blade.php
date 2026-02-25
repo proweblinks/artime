@@ -189,7 +189,7 @@
                     @if(isset($result['rate_card']['brand_integration']))
                     <div class="aith-e-summary-card aith-e-summary-card-purple">
                         <div class="aith-e-summary-label">Brand Integration</div>
-                        <div class="aith-e-summary-value" style="color:#c4b5fd;">{{ $result['rate_card']['brand_integration'] }}</div>
+                        <div class="aith-e-summary-value" style="color:#FBBF24;">{{ $result['rate_card']['brand_integration'] }}</div>
                     </div>
                     @endif
                     @if(isset($result['rate_card']['series_deal']))

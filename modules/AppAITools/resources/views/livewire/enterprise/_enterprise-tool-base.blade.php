@@ -5,12 +5,14 @@
 <style>
     /* Dark theme overrides for enterprise tools */
     .aith-card {
-        background: rgba(255,255,255,0.04) !important;
-        border-color: rgba(255,255,255,0.08) !important;
+        background: rgba(28,25,23,0.6) !important;
+        backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        border-color: rgba(202,138,4,0.1) !important;
         box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
     }
     .aith-card:hover {
         box-shadow: 0 8px 30px rgba(0,0,0,0.4) !important;
+        border-color: rgba(202,138,4,0.2) !important;
     }
     .aith-label {
         color: rgba(255,255,255,0.7) !important;
@@ -28,8 +30,8 @@
     .aith-input:focus,
     .aith-select:focus,
     .aith-textarea:focus {
-        border-color: rgba(139,92,246,0.5) !important;
-        box-shadow: 0 4px 16px rgba(139,92,246,0.2) !important;
+        border-color: rgba(202,138,4,0.5) !important;
+        box-shadow: 0 4px 16px rgba(202,138,4,0.15) !important;
     }
     .aith-input::placeholder,
     .aith-textarea::placeholder {
@@ -47,7 +49,7 @@
     }
 
     /* Enterprise Tool Specific Overrides */
-    .main { background: #0f0a1e !important; }
+    .main { background: #0C0A09 !important; }
     .aith-nav-btn {
         background: rgba(255,255,255,0.06) !important;
         border-color: rgba(255,255,255,0.1) !important;
@@ -77,9 +79,9 @@
     .aith-e-badge-enterprise {
         margin-left: auto;
         padding: 0.25rem 0.75rem; border-radius: 9999px;
-        background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(236,72,153,0.2));
-        border: 1px solid rgba(139,92,246,0.3);
-        color: #c4b5fd; font-size: 0.7rem; font-weight: 600;
+        background: linear-gradient(135deg, rgba(202,138,4,0.2), rgba(146,64,14,0.2));
+        border: 1px solid rgba(202,138,4,0.3);
+        color: #FBBF24; font-size: 0.7rem; font-weight: 600;
     }
 
     /* Loading Steps */
@@ -102,9 +104,9 @@
         flex-shrink: 0;
     }
     .aith-e-loading-step.active .step-icon {
-        background: rgba(139,92,246,0.2);
-        border-color: rgba(139,92,246,0.5);
-        color: #c4b5fd;
+        background: rgba(202,138,4,0.2);
+        border-color: rgba(202,138,4,0.5);
+        color: #FBBF24;
         animation: aith-e-pulse 1.5s infinite;
     }
     .aith-e-loading-step.done .step-icon {
@@ -124,7 +126,7 @@
     }
     .aith-e-progress-fill {
         height: 100%; border-radius: 2px;
-        background: linear-gradient(90deg, #7c3aed, #ec4899);
+        background: linear-gradient(90deg, #92400E, #CA8A04, #FBBF24);
         transition: width 0.5s ease;
     }
 
@@ -139,8 +141,9 @@
     .aith-e-score-card {
         display: flex; align-items: center; gap: 1rem;
         padding: 1.25rem; border-radius: 0.75rem;
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(28,25,23,0.6);
+        backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(202,138,4,0.1);
         margin-bottom: 1.5rem;
     }
     .aith-e-score-circle {
@@ -158,8 +161,9 @@
 
     .aith-e-section-card {
         padding: 1.25rem; border-radius: 0.75rem;
-        background: rgba(255,255,255,0.03);
-        border: 1px solid rgba(255,255,255,0.06);
+        background: rgba(28,25,23,0.6);
+        backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(202,138,4,0.08);
         margin-bottom: 1rem;
     }
     .aith-e-section-card-title {
@@ -198,7 +202,7 @@
         border-bottom: 1px solid rgba(255,255,255,0.03);
     }
     .aith-e-list li:last-child { border-bottom: none; }
-    .aith-e-list li .bullet { color: #7c3aed; flex-shrink: 0; }
+    .aith-e-list li .bullet { color: #CA8A04; flex-shrink: 0; }
 
     .aith-e-tag {
         display: inline-flex; padding: 0.2rem 0.5rem; border-radius: 9999px;
@@ -253,12 +257,12 @@
     .aith-e-btn-copy {
         display: inline-flex; align-items: center; gap: 0.375rem;
         padding: 0.375rem 0.75rem; border-radius: 0.5rem;
-        background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.2);
-        color: #c4b5fd; font-size: 0.75rem; font-weight: 500;
+        background: rgba(202,138,4,0.1); border: 1px solid rgba(202,138,4,0.2);
+        color: #FBBF24; font-size: 0.75rem; font-weight: 500;
         cursor: pointer; transition: all 0.2s;
     }
     .aith-e-btn-copy:hover {
-        background: rgba(139,92,246,0.2); border-color: rgba(139,92,246,0.3);
+        background: rgba(202,138,4,0.2); border-color: rgba(202,138,4,0.3);
     }
 
     /* Gradient summary cards */
@@ -279,8 +283,8 @@
         border-color: rgba(20,184,166,0.2);
     }
     .aith-e-summary-card-purple {
-        background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(168,85,247,0.08));
-        border-color: rgba(139,92,246,0.2);
+        background: linear-gradient(135deg, rgba(202,138,4,0.15), rgba(251,191,36,0.08));
+        border-color: rgba(202,138,4,0.2);
     }
     .aith-e-summary-card-orange {
         background: linear-gradient(135deg, rgba(249,115,22,0.15), rgba(234,88,12,0.08));
@@ -308,7 +312,7 @@
     }
     .aith-e-progress-green { background: linear-gradient(90deg, #22c55e, #10b981); }
     .aith-e-progress-blue { background: linear-gradient(90deg, #3b82f6, #06b6d4); }
-    .aith-e-progress-purple { background: linear-gradient(90deg, #7c3aed, #a855f7); }
+    .aith-e-progress-purple { background: linear-gradient(90deg, #92400E, #CA8A04); }
     .aith-e-progress-orange { background: linear-gradient(90deg, #f97316, #eab308); }
 
     /* Keyword/program pills */
@@ -322,8 +326,8 @@
         border: 1px solid rgba(34,197,94,0.2);
     }
     .aith-e-pill-purple {
-        background: rgba(139,92,246,0.12); color: #c4b5fd;
-        border: 1px solid rgba(139,92,246,0.2);
+        background: rgba(202,138,4,0.12); color: #FBBF24;
+        border: 1px solid rgba(202,138,4,0.2);
     }
     .aith-e-pill-blue {
         background: rgba(59,130,246,0.12); color: #93c5fd;
@@ -339,9 +343,9 @@
         width: 28px; height: 28px; border-radius: 50%;
         display: inline-flex; align-items: center; justify-content: center;
         font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
-        background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(168,85,247,0.15));
-        border: 1px solid rgba(139,92,246,0.3);
-        color: #c4b5fd;
+        background: linear-gradient(135deg, rgba(202,138,4,0.3), rgba(251,191,36,0.15));
+        border: 1px solid rgba(202,138,4,0.3);
+        color: #FBBF24;
     }
 
     /* Alert/warning cards */
@@ -416,7 +420,7 @@
         var btn = event.currentTarget;
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner-third fa-spin"></i> Exporting...';
-        html2canvas(el, { backgroundColor: '#1a1a2e', scale: 2, useCORS: true }).then(function(canvas) {
+        html2canvas(el, { backgroundColor: '#0C0A09', scale: 2, useCORS: true }).then(function(canvas) {
             var pdf = new jspdf.jsPDF('p', 'mm', 'a4');
             var imgData = canvas.toDataURL('image/png');
             var ratio = canvas.width / canvas.height;

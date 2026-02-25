@@ -10,7 +10,7 @@
 
         <div class="aith-card">
             <div class="aith-e-tool-header">
-                <div class="aith-e-tool-icon" style="background:linear-gradient(135deg,#a855f7,#7c3aed);">
+                <div class="aith-e-tool-icon" style="background:linear-gradient(135deg,#a855f7,#CA8A04);">
                     <i class="fa-light fa-crystal-ball" style="color:#fff;font-size:1.1rem;"></i>
                 </div>
                 <div class="aith-e-tool-info">
@@ -118,7 +118,7 @@
                 <div class="aith-e-grid-3">
                     <div class="aith-e-summary-card aith-e-summary-card-purple">
                         <div class="aith-e-summary-label">Estimated Views</div>
-                        <div class="aith-e-summary-value" style="color:#c4b5fd;">{{ $result['prediction']['estimated_views'] ?? '-' }}</div>
+                        <div class="aith-e-summary-value" style="color:#FBBF24;">{{ $result['prediction']['estimated_views'] ?? '-' }}</div>
                     </div>
                     <div class="aith-e-summary-card aith-e-summary-card-blue">
                         <div class="aith-e-summary-label">Confidence</div>
@@ -142,7 +142,7 @@
                         <tbody>
                         @foreach($result['viral_signals'] as $signal)
                         <tr>
-                            <td style="font-weight:600;color:#c4b5fd;">{{ $signal['signal'] ?? '' }}</td>
+                            <td style="font-weight:600;color:#FBBF24;">{{ $signal['signal'] ?? '' }}</td>
                             <td>
                                 @php $ss = intval($signal['score'] ?? 0); @endphp
                                 <span class="aith-e-tag {{ $ss >= 80 ? 'aith-e-tag-high' : ($ss >= 50 ? 'aith-e-tag-medium' : 'aith-e-tag-low') }}">{{ $ss }}/100</span>
@@ -190,7 +190,7 @@
                         <tbody>
                         @foreach($result['optimization_suggestions'] as $suggestion)
                         <tr>
-                            <td style="font-weight:600;color:#c4b5fd;">{{ $suggestion['area'] ?? '' }}</td>
+                            <td style="font-weight:600;color:#FBBF24;">{{ $suggestion['area'] ?? '' }}</td>
                             <td style="font-size:0.8rem;color:rgba(255,255,255,0.5);">{{ $suggestion['current'] ?? '' }}</td>
                             <td style="font-size:0.8rem;color:rgba(255,255,255,0.7);">{{ $suggestion['suggested'] ?? '' }}</td>
                             <td>

@@ -152,7 +152,7 @@
                     @if(!empty($stream['tools_needed']))
                     <div style="display:flex;flex-wrap:wrap;gap:0.375rem;margin-top:0.375rem;">
                         @foreach((is_array($stream['tools_needed']) ? $stream['tools_needed'] : [$stream['tools_needed']]) as $tool)
-                        <span class="aith-e-tag" style="background:rgba(139,92,246,0.15);color:#c4b5fd;">{{ $tool }}</span>
+                        <span class="aith-e-tag" style="background:rgba(202,138,4,0.15);color:#FBBF24;">{{ $tool }}</span>
                         @endforeach
                     </div>
                     @endif
@@ -176,7 +176,7 @@
                     </div>
                     <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:0.375rem;">{{ $tool['purpose'] ?? '' }}</div>
                     @if(isset($tool['category']))
-                    <span class="aith-e-tag" style="background:rgba(139,92,246,0.15);color:#c4b5fd;">{{ $tool['category'] }}</span>
+                    <span class="aith-e-tag" style="background:rgba(202,138,4,0.15);color:#FBBF24;">{{ $tool['category'] }}</span>
                     @endif
                 </div>
                 @endforeach
@@ -205,7 +205,7 @@
                         <ul style="list-style:none;padding:0;margin:0.25rem 0 0;">
                             @foreach($workflow['actions'] as $action)
                             <li style="padding:0.125rem 0;padding-left:0.75rem;position:relative;">
-                                <span style="position:absolute;left:0;color:#7c3aed;">&#8226;</span> {{ $action }}
+                                <span style="position:absolute;left:0;color:#CA8A04;">&#8226;</span> {{ $action }}
                             </li>
                             @endforeach
                         </ul>
@@ -235,7 +235,7 @@
                         <ul style="list-style:none;padding:0;margin:0.25rem 0 0;">
                             @foreach($phase['tasks'] as $task)
                             <li style="font-size:0.75rem;color:rgba(255,255,255,0.4);padding:0.125rem 0;padding-left:0.75rem;position:relative;">
-                                <span style="position:absolute;left:0;color:#7c3aed;">&#8226;</span> {{ $task }}
+                                <span style="position:absolute;left:0;color:#CA8A04;">&#8226;</span> {{ $task }}
                             </li>
                             @endforeach
                         </ul>

@@ -64,8 +64,8 @@
     }
     .aith-eh-count {
         padding: 0.15rem 0.5rem; border-radius: 9999px;
-        background: rgba(139,92,246,0.15);
-        color: #c4b5fd; font-size: 0.7rem; font-weight: 600;
+        background: rgba(202,138,4,0.15);
+        color: #FBBF24; font-size: 0.7rem; font-weight: 600;
     }
     .aith-eh-list {
         display: flex; flex-direction: column; gap: 0.25rem;
@@ -79,7 +79,7 @@
         gap: 0.75rem;
     }
     .aith-eh-item:hover {
-        background: rgba(139,92,246,0.08);
+        background: rgba(202,138,4,0.06);
     }
     .aith-eh-item-left {
         display: flex; align-items: center; gap: 0.75rem;
@@ -128,7 +128,7 @@
         transition: all 0.15s;
     }
     .aith-eh-load { color: rgba(255,255,255,0.3); }
-    .aith-eh-load:hover { background: rgba(139,92,246,0.2); color: #c4b5fd; }
+    .aith-eh-load:hover { background: rgba(202,138,4,0.2); color: #FBBF24; }
     .aith-eh-delete { color: rgba(255,255,255,0.2); }
     .aith-eh-delete:hover { background: rgba(239,68,68,0.15); color: #fca5a5; }
 

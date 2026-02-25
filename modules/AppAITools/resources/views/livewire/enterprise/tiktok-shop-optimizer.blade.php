@@ -131,7 +131,7 @@
                     </div>
                     <div class="aith-e-summary-card aith-e-summary-card-purple">
                         <div class="aith-e-summary-label">Conversion Rate</div>
-                        <div class="aith-e-summary-value" style="color:#c4b5fd;">{{ $result['shop_overview']['conversion_rate'] ?? '-' }}</div>
+                        <div class="aith-e-summary-value" style="color:#FBBF24;">{{ $result['shop_overview']['conversion_rate'] ?? '-' }}</div>
                     </div>
                 </div>
             </div>

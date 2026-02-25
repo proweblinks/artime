@@ -141,7 +141,7 @@
                     </div>
                     <div class="aith-e-summary-card aith-e-summary-card-purple">
                         <div class="aith-e-summary-label">Avg Views</div>
-                        <div class="aith-e-summary-value" style="color:#c4b5fd;font-size:0.9rem;">{{ $result['youtube_overview']['avg_views'] ?? '-' }}</div>
+                        <div class="aith-e-summary-value" style="color:#FBBF24;font-size:0.9rem;">{{ $result['youtube_overview']['avg_views'] ?? '-' }}</div>
                     </div>
                     <div class="aith-e-summary-card aith-e-summary-card-green">
                         <div class="aith-e-summary-label">Posting Freq</div>
@@ -206,7 +206,7 @@
                     </div>
                     <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.375rem;">
                         @if(isset($opp['format']))
-                        <span style="font-size:0.75rem;padding:0.125rem 0.375rem;border-radius:0.25rem;background:rgba(139,92,246,0.1);color:#c4b5fd;">{{ $opp['format'] }}</span>
+                        <span style="font-size:0.75rem;padding:0.125rem 0.375rem;border-radius:0.25rem;background:rgba(202,138,4,0.1);color:#FBBF24;">{{ $opp['format'] }}</span>
                         @endif
                         @if(isset($opp['estimated_reach']))
                         <span style="font-size:0.75rem;padding:0.125rem 0.375rem;border-radius:0.25rem;background:rgba(34,197,94,0.1);color:#86efac;">{{ $opp['estimated_reach'] }}</span>
@@ -230,7 +230,7 @@
                 <div class="aith-e-grid-2">
                     <div class="aith-e-summary-card aith-e-summary-card-purple">
                         <div class="aith-e-summary-label">Estimated Overlap</div>
-                        <div class="aith-e-summary-value" style="color:#c4b5fd;font-size:0.9rem;">{{ $result['audience_overlap']['estimated_overlap'] ?? '-' }}</div>
+                        <div class="aith-e-summary-value" style="color:#FBBF24;font-size:0.9rem;">{{ $result['audience_overlap']['estimated_overlap'] ?? '-' }}</div>
                     </div>
                     <div class="aith-e-summary-card aith-e-summary-card-green">
                         <div class="aith-e-summary-label">TikTok Growth Potential</div>
@@ -274,7 +274,7 @@
                     @if(isset($result['cross_platform_strategy']['repurpose_ratio']))
                     <div class="aith-e-summary-card aith-e-summary-card-purple">
                         <div class="aith-e-summary-label">Repurpose Ratio</div>
-                        <div class="aith-e-summary-value" style="color:#c4b5fd;font-size:0.85rem;">{{ $result['cross_platform_strategy']['repurpose_ratio'] }}</div>
+                        <div class="aith-e-summary-value" style="color:#FBBF24;font-size:0.85rem;">{{ $result['cross_platform_strategy']['repurpose_ratio'] }}</div>
                     </div>
                     @endif
                     @if(isset($result['cross_platform_strategy']['growth_timeline']))
@@ -324,8 +324,8 @@
                     @foreach($nextSteps as $ns)
                     @php $nsTool = $allTools[$ns['tool']] ?? null; @endphp
                     @if($nsTool)
-                    <a href="{{ route($nsTool['route']) }}" class="aith-e-section-card" style="margin-bottom:0;text-decoration:none;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='rgba(139,92,246,0.3)'" onmouseout="this.style.borderColor=''">
-                        <div style="font-weight:600;color:#c4b5fd;font-size:0.875rem;margin-bottom:0.25rem;">{{ $nsTool['name'] }}</div>
+                    <a href="{{ route($nsTool['route']) }}" class="aith-e-section-card" style="margin-bottom:0;text-decoration:none;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='rgba(202,138,4,0.3)'" onmouseout="this.style.borderColor=''">
+                        <div style="font-weight:600;color:#FBBF24;font-size:0.875rem;margin-bottom:0.25rem;">{{ $nsTool['name'] }}</div>
                         <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">{{ $ns['reason'] }}</div>
                     </a>
                     @endif

@@ -254,8 +254,8 @@
                 linear-gradient(135deg,
                     rgba(251,191,36,0.12) 0%,
                     rgba(245,158,11,0.08) 30%,
-                    rgba(3,252,244,0.06) 70%,
-                    rgba(14,165,233,0.05) 100%);
+                    rgba(202,138,4,0.06) 70%,
+                    rgba(146,64,14,0.05) 100%);
             border: 1px solid rgba(251,191,36,0.2);
             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
             box-shadow: 0 8px 32px rgba(0,0,0,0.06);

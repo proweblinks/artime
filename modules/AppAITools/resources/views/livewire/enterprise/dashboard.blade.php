@@ -6,7 +6,7 @@
             position: relative;
             overflow: hidden;
             padding: 2rem 1.5rem 3rem;
-            background: #0f0a1e;
+            background: #0C0A09;
         }
 
         /* Aurora Background */
@@ -18,20 +18,20 @@
         }
         .aith-e-aurora-blob--1 {
             top: -10rem; right: -10rem; width: 20rem; height: 20rem;
-            background: radial-gradient(circle, #7c3aed, transparent 70%);
-            opacity: 0.18;
+            background: radial-gradient(circle, #CA8A04, transparent 70%);
+            opacity: 0.12;
             animation: aithEAurora1 8s ease-in-out infinite;
         }
         .aith-e-aurora-blob--2 {
             top: 40%; left: -5rem; width: 15rem; height: 15rem;
-            background: radial-gradient(circle, #06b6d4, transparent 70%);
-            opacity: 0.12;
+            background: radial-gradient(circle, #92400E, transparent 70%);
+            opacity: 0.08;
             animation: aithEAurora2 12s ease-in-out infinite;
         }
         .aith-e-aurora-blob--3 {
             bottom: 5rem; right: 20%; width: 18rem; height: 18rem;
-            background: radial-gradient(circle, #ec4899, transparent 70%);
-            opacity: 0.08;
+            background: radial-gradient(circle, #FBBF24, transparent 70%);
+            opacity: 0.06;
             animation: aithEAurora3 10s ease-in-out infinite;
         }
         @keyframes aithEAurora1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,20px) scale(1.1)} }
@@ -57,10 +57,13 @@
         .aith-e-back:hover { background: rgba(255,255,255,0.1); color: #fff; }
         .aith-e-title {
             font-size: 1.75rem; font-weight: 800; color: #fff; margin: 0;
-            background: linear-gradient(135deg, #fff, #c4b5fd);
+            background: linear-gradient(135deg, #FEF3C7, #CA8A04, #FBBF24, #CA8A04);
+            background-size: 200% 100%;
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             background-clip: text;
+            animation: aithGoldShimmer 4s ease-in-out infinite;
         }
+        @keyframes aithGoldShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         .aith-e-subtitle { color: rgba(255,255,255,0.4); font-size: 0.875rem; margin-top: 0.25rem; }
 
         /* Search Trigger */
@@ -94,8 +97,9 @@
             margin-bottom: 1.25rem;
         }
         .aith-e-section-title {
-            font-size: 1rem; font-weight: 600; color: rgba(255,255,255,0.7);
+            font-size: 1rem; font-weight: 600; color: rgba(251,191,36,0.7);
             display: flex; align-items: center; gap: 0.5rem;
+            letter-spacing: 0.08em;
         }
         .aith-e-section-action {
             font-size: 0.8rem; color: rgba(255,255,255,0.3);
@@ -116,25 +120,39 @@
         .aith-e-dash-card {
             display: flex; flex-direction: column; align-items: center;
             padding: 1.25rem 1rem; border-radius: 0.75rem;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(28,25,23,0.6);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(202,138,4,0.1);
             cursor: pointer;
             transition: all 0.3s;
             text-align: center;
             text-decoration: none !important;
         }
         .aith-e-dash-card:hover {
-            background: rgba(255,255,255,0.08);
-            border-color: rgba(139,92,246,0.3);
+            background: rgba(28,25,23,0.8);
+            border-color: rgba(202,138,4,0.3);
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(139,92,246,0.1);
+            box-shadow: 0 8px 24px rgba(202,138,4,0.1);
         }
         .aith-e-dash-card-emoji { font-size: 2rem; margin-bottom: 0.5rem; }
         .aith-e-dash-card-name { font-size: 0.875rem; font-weight: 600; color: #fff; }
         .aith-e-dash-card-desc { font-size: 0.75rem; color: rgba(255,255,255,0.35); margin-top: 0.25rem; line-height: 1.4; }
         .aith-e-dash-card.recommended {
-            background: rgba(139,92,246,0.08);
-            border-color: rgba(139,92,246,0.2);
+            background: rgba(202,138,4,0.06);
+            border-color: rgba(202,138,4,0.15);
+            position: relative;
+        }
+        .aith-e-dash-card.recommended::before {
+            content: '';
+            position: absolute; inset: -1px;
+            border-radius: 0.75rem;
+            background: linear-gradient(135deg, rgba(202,138,4,0.3), transparent 50%, rgba(251,191,36,0.3));
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .aith-e-dash-card.recommended:hover::before {
+            opacity: 1;
         }
 
         /* Browse All Button */
@@ -142,16 +160,16 @@
             display: flex; align-items: center; justify-content: center; gap: 0.5rem;
             width: 100%; padding: 0.875rem;
             border-radius: 0.75rem;
-            background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.15));
-            border: 1px solid rgba(139,92,246,0.3);
-            color: #c4b5fd;
+            background: linear-gradient(135deg, rgba(202,138,4,0.15), rgba(146,64,14,0.15));
+            border: 1px solid rgba(202,138,4,0.3);
+            color: #FBBF24;
             font-size: 0.95rem; font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
         }
         .aith-e-browse-all:hover {
-            background: linear-gradient(135deg, rgba(139,92,246,0.25), rgba(236,72,153,0.25));
-            border-color: rgba(139,92,246,0.5);
+            background: linear-gradient(135deg, rgba(202,138,4,0.25), rgba(146,64,14,0.25));
+            border-color: rgba(202,138,4,0.5);
             transform: translateY(-1px);
         }
 
@@ -178,9 +196,9 @@
             color: rgba(255,255,255,0.7);
         }
         .aith-e-tab.active {
-            background: rgba(139,92,246,0.2);
-            border-color: rgba(139,92,246,0.4);
-            color: #c4b5fd;
+            background: rgba(202,138,4,0.2);
+            border-color: rgba(202,138,4,0.4);
+            color: #FBBF24;
         }
         .aith-e-tab-count {
             padding: 0.125rem 0.375rem; border-radius: 9999px;
@@ -188,7 +206,7 @@
             font-size: 0.7rem;
         }
         .aith-e-tab.active .aith-e-tab-count {
-            background: rgba(139,92,246,0.3);
+            background: rgba(202,138,4,0.3);
         }
 
         /* Tool Cards - Grid (full) */
@@ -219,8 +237,9 @@
         .aith-e-card {
             display: flex !important; flex-direction: column !important;
             padding: 1.5rem; border-radius: 1rem;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(28,25,23,0.6);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(202,138,4,0.1);
             transition: all 0.3s;
             text-decoration: none !important;
             height: 100%;
@@ -229,10 +248,10 @@
             box-sizing: border-box !important;
         }
         .aith-e-card:hover {
-            background: rgba(255,255,255,0.06);
-            border-color: rgba(255,255,255,0.15);
+            background: rgba(28,25,23,0.8);
+            border-color: rgba(202,138,4,0.25);
             transform: scale(1.02);
-            box-shadow: 0 8px 32px rgba(124,58,237,0.08);
+            box-shadow: 0 8px 32px rgba(202,138,4,0.08), 0 0 20px rgba(202,138,4,0.04);
         }
         .aith-e-card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 0.75rem; }
         .aith-e-card-icon {
@@ -256,36 +275,19 @@
         .aith-e-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.06); }
         .aith-e-card-credits { font-size: 0.75rem; color: rgba(255,255,255,0.3); display: flex; align-items: center; gap: 0.25rem; }
         .aith-e-card-launch {
-            font-size: 0.8rem; font-weight: 600; color: #c4b5fd;
+            font-size: 0.8rem; font-weight: 600; color: #FBBF24;
             display: flex; align-items: center; gap: 0.25rem;
             transition: transform 0.2s;
         }
         .aith-e-card:hover .aith-e-card-launch { transform: translateX(4px); }
 
-        /* Color classes for card icons */
-        .aith-e-icon-blue-indigo { background: linear-gradient(135deg, #3b82f6, #4f46e5); }
-        .aith-e-icon-purple-violet { background: linear-gradient(135deg, #a855f7, #7c3aed); }
-        .aith-e-icon-pink-rose { background: linear-gradient(135deg, #ec4899, #e11d48); }
-        .aith-e-icon-green-emerald { background: linear-gradient(135deg, #22c55e, #059669); }
-        .aith-e-icon-amber-orange { background: linear-gradient(135deg, #f59e0b, #ea580c); }
-        .aith-e-icon-purple-pink { background: linear-gradient(135deg, #a855f7, #ec4899); }
-        .aith-e-icon-blue-cyan { background: linear-gradient(135deg, #3b82f6, #06b6d4); }
-        .aith-e-icon-orange-red { background: linear-gradient(135deg, #f97316, #ef4444); }
-        .aith-e-icon-indigo-purple { background: linear-gradient(135deg, #6366f1, #a855f7); }
-        .aith-e-icon-yellow-orange { background: linear-gradient(135deg, #eab308, #f97316); }
-        .aith-e-icon-teal-cyan { background: linear-gradient(135deg, #14b8a6, #06b6d4); }
-        .aith-e-icon-rose-pink { background: linear-gradient(135deg, #f43f5e, #ec4899); }
-        .aith-e-icon-cyan-teal { background: linear-gradient(135deg, #06b6d4, #0d9488); }
-        .aith-e-icon-yellow-amber { background: linear-gradient(135deg, #eab308, #d97706); }
-        .aith-e-icon-red-cyan { background: linear-gradient(135deg, #ef4444, #06b6d4); }
-        .aith-e-icon-violet-cyan { background: linear-gradient(135deg, #8b5cf6, #06b6d4); }
-        .aith-e-icon-red-pink { background: linear-gradient(135deg, #ef4444, #ec4899); }
-        .aith-e-icon-violet-pink { background: linear-gradient(135deg, #8b5cf6, #ec4899); }
-        .aith-e-icon-purple-fuchsia { background: linear-gradient(135deg, #a855f7, #d946ef); }
-        .aith-e-icon-indigo-violet { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
-        .aith-e-icon-red-blue { background: linear-gradient(135deg, #ef4444, #3b82f6); }
-        .aith-e-icon-violet-blue { background: linear-gradient(135deg, #8b5cf6, #3b82f6); }
-        .aith-e-icon-cyan-blue { background: linear-gradient(135deg, #06b6d4, #3b82f6); }
+        /* Color classes for card icons — Gold-toned palette */
+        .aith-e-icon-gold { background: linear-gradient(135deg, #CA8A04, #A16207); }
+        .aith-e-icon-amber { background: linear-gradient(135deg, #D97706, #92400E); }
+        .aith-e-icon-champagne { background: linear-gradient(135deg, #FBBF24, #CA8A04); }
+        .aith-e-icon-rose-gold { background: linear-gradient(135deg, #CA8A04, #B45309); }
+        .aith-e-icon-platinum { background: linear-gradient(135deg, #A8A29E, #78716C); }
+        .aith-e-icon-bronze { background: linear-gradient(135deg, #92400E, #78350F); }
 
         /* Command Palette */
         .aith-e-palette-overlay {
@@ -298,8 +300,8 @@
         }
         .aith-e-palette {
             width: 100%; max-width: 580px; height: fit-content;
-            background: rgba(30,27,75,0.95);
-            border: 1px solid rgba(139,92,246,0.3);
+            background: rgba(12,10,9,0.95);
+            border: 1px solid rgba(202,138,4,0.2);
             border-radius: 1rem;
             box-shadow: 0 25px 60px rgba(0,0,0,0.5);
             overflow: hidden;
@@ -340,13 +342,13 @@
             cursor: pointer;
             transition: background 0.15s;
         }
-        .aith-e-palette-item:hover { background: rgba(139,92,246,0.15); }
+        .aith-e-palette-item:hover { background: rgba(202,138,4,0.15); }
         .aith-e-palette-item-icon { font-size: 1.25rem; width: 2rem; text-align: center; }
         .aith-e-palette-item-content { flex: 1; min-width: 0; }
         .aith-e-palette-item-name { font-size: 0.875rem; font-weight: 600; color: #fff; }
         .aith-e-palette-item-desc { font-size: 0.75rem; color: rgba(255,255,255,0.35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .aith-e-palette-item-hint { font-size: 0.7rem; color: rgba(255,255,255,0.2); }
-        .aith-e-palette-item.recent { border-left: 2px solid rgba(139,92,246,0.4); }
+        .aith-e-palette-item.recent { border-left: 2px solid rgba(202,138,4,0.4); }
         .aith-e-palette-footer {
             display: flex; align-items: center; gap: 1.5rem;
             padding: 0.75rem 1.25rem;
@@ -371,7 +373,7 @@
         .aith-e-activity-item:last-child { border-bottom: none; }
         .aith-e-activity-item:hover { background: rgba(255,255,255,0.06); }
         .aith-e-activity-left { display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1; }
-        .aith-e-activity-dot { width: 8px; height: 8px; border-radius: 50%; background: #7c3aed; flex-shrink: 0; }
+        .aith-e-activity-dot { width: 8px; height: 8px; border-radius: 50%; background: #CA8A04; flex-shrink: 0; }
         .aith-e-activity-info { min-width: 0; flex: 1; }
         .aith-e-activity-label { color: rgba(255,255,255,0.6); font-size: 0.8rem; font-weight: 500; }
         .aith-e-activity-title { color: rgba(255,255,255,0.35); font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -397,8 +399,8 @@
         }
         .aith-e-view-btn:hover { color: rgba(255,255,255,0.6); }
         .aith-e-view-btn.active {
-            background: rgba(139,92,246,0.2);
-            color: #c4b5fd;
+            background: rgba(202,138,4,0.2);
+            color: #FBBF24;
         }
 
         @media (min-width: 768px) {
@@ -412,7 +414,7 @@
             background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); color:rgba(255,255,255,0.4);
             display:inline-flex; align-items:center; gap:0.25rem; }
         .aith-e-tier-chip i { font-size:0.6rem; }
-        .aith-e-tier-chip.standard { background:rgba(139,92,246,0.1); border-color:rgba(139,92,246,0.2); color:#c4b5fd; }
+        .aith-e-tier-chip.standard { background:rgba(202,138,4,0.1); border-color:rgba(202,138,4,0.2); color:#FBBF24; }
 
         /* Time estimate badge */
         .aith-e-card-time { font-size:0.7rem; color:rgba(255,255,255,0.25); display:flex; align-items:center; gap:0.25rem; }
@@ -431,7 +433,7 @@
 
         /* Result sections preview */
         .aith-e-card-sections { display:flex; gap:0.25rem; margin-top:0.375rem; flex-wrap:wrap; }
-        .aith-e-section-dot { width:0.375rem; height:0.375rem; border-radius:50%; background:rgba(139,92,246,0.4); }
+        .aith-e-section-dot { width:0.375rem; height:0.375rem; border-radius:50%; background:rgba(202,138,4,0.4); }
 
         /* Platform navigation bar */
         .aith-e-platforms { display:flex; gap:0.5rem; margin-bottom:1.5rem; flex-wrap:wrap; }
@@ -443,13 +445,13 @@
             cursor:pointer; transition:all 0.2s; white-space:nowrap;
         }
         .aith-e-platform-btn:hover { background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.6); }
-        .aith-e-platform-btn.active { background:rgba(139,92,246,0.15); border-color:rgba(139,92,246,0.3); color:#c4b5fd; }
+        .aith-e-platform-btn.active { background:rgba(202,138,4,0.15); border-color:rgba(202,138,4,0.3); color:#FBBF24; }
         .aith-e-platform-btn .aith-e-platform-count {
             font-size:0.65rem; padding:0.1rem 0.4rem; border-radius:9999px;
             background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.3);
         }
         .aith-e-platform-btn.active .aith-e-platform-count {
-            background:rgba(139,92,246,0.2); color:#c4b5fd;
+            background:rgba(202,138,4,0.2); color:#FBBF24;
         }
         .aith-e-platform-btn .aith-e-coming-badge {
             font-size:0.55rem; padding:0.05rem 0.35rem; border-radius:9999px;
@@ -674,60 +676,63 @@
             <div class="aith-e-grid" wire:key="enterprise-tools-grid" style="display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 1.25rem !important; width: 100% !important;">
                 @php
                     $iconClasses = [
-                        'bulk-optimizer'          => 'aith-e-icon-blue-indigo',
-                        'placement-finder'        => 'aith-e-icon-purple-violet',
-                        'viral-predictor'         => 'aith-e-icon-pink-rose',
-                        'monetization-analyzer'   => 'aith-e-icon-green-emerald',
-                        'script-writer'           => 'aith-e-icon-amber-orange',
-                        'sponsorship-calculator'  => 'aith-e-icon-purple-pink',
-                        'revenue-diversification' => 'aith-e-icon-blue-cyan',
-                        'cpm-booster'             => 'aith-e-icon-green-emerald',
-                        'audience-profiler'       => 'aith-e-icon-orange-red',
-                        'digital-product-architect' => 'aith-e-icon-indigo-purple',
-                        'affiliate-finder'        => 'aith-e-icon-yellow-orange',
-                        'multi-income-converter'  => 'aith-e-icon-teal-cyan',
-                        'brand-deal-matchmaker'   => 'aith-e-icon-rose-pink',
-                        'licensing-scout'         => 'aith-e-icon-teal-cyan',
-                        'revenue-automation'      => 'aith-e-icon-orange-red',
+                        // YouTube — Optimization
+                        'bulk-optimizer'          => 'aith-e-icon-gold',
+                        'placement-finder'        => 'aith-e-icon-amber',
+                        'viral-predictor'         => 'aith-e-icon-champagne',
+                        // YouTube — Monetization
+                        'monetization-analyzer'   => 'aith-e-icon-gold',
+                        'sponsorship-calculator'  => 'aith-e-icon-rose-gold',
+                        'revenue-diversification' => 'aith-e-icon-amber',
+                        'cpm-booster'             => 'aith-e-icon-champagne',
+                        'affiliate-finder'        => 'aith-e-icon-bronze',
+                        'multi-income-converter'  => 'aith-e-icon-gold',
+                        'brand-deal-matchmaker'   => 'aith-e-icon-rose-gold',
+                        'licensing-scout'         => 'aith-e-icon-platinum',
+                        'revenue-automation'      => 'aith-e-icon-amber',
+                        // YouTube — Content & Analytics
+                        'script-writer'           => 'aith-e-icon-champagne',
+                        'audience-profiler'       => 'aith-e-icon-platinum',
+                        'digital-product-architect' => 'aith-e-icon-bronze',
                         // TikTok
-                        'tiktok-yt-converter'       => 'aith-e-icon-red-cyan',
-                        'tiktok-yt-arbitrage'       => 'aith-e-icon-violet-cyan',
-                        'tiktok-hashtag-strategy'   => 'aith-e-icon-cyan-teal',
-                        'tiktok-seo-analyzer'       => 'aith-e-icon-blue-indigo',
-                        'tiktok-posting-time'       => 'aith-e-icon-amber-orange',
-                        'tiktok-hook-analyzer'      => 'aith-e-icon-yellow-amber',
-                        'tiktok-sound-trends'       => 'aith-e-icon-pink-rose',
-                        'tiktok-viral-predictor'    => 'aith-e-icon-purple-violet',
-                        'tiktok-creator-fund'       => 'aith-e-icon-green-emerald',
-                        'tiktok-duet-stitch'        => 'aith-e-icon-indigo-purple',
-                        'tiktok-brand-partnership'  => 'aith-e-icon-rose-pink',
-                        'tiktok-shop-optimizer'     => 'aith-e-icon-orange-red',
+                        'tiktok-yt-converter'       => 'aith-e-icon-gold',
+                        'tiktok-yt-arbitrage'       => 'aith-e-icon-amber',
+                        'tiktok-hashtag-strategy'   => 'aith-e-icon-champagne',
+                        'tiktok-seo-analyzer'       => 'aith-e-icon-platinum',
+                        'tiktok-posting-time'       => 'aith-e-icon-rose-gold',
+                        'tiktok-hook-analyzer'      => 'aith-e-icon-gold',
+                        'tiktok-sound-trends'       => 'aith-e-icon-champagne',
+                        'tiktok-viral-predictor'    => 'aith-e-icon-amber',
+                        'tiktok-creator-fund'       => 'aith-e-icon-bronze',
+                        'tiktok-duet-stitch'        => 'aith-e-icon-rose-gold',
+                        'tiktok-brand-partnership'  => 'aith-e-icon-gold',
+                        'tiktok-shop-optimizer'     => 'aith-e-icon-amber',
                         // Instagram
-                        'ig-yt-reels-converter'     => 'aith-e-icon-red-pink',
-                        'ig-yt-arbitrage'           => 'aith-e-icon-violet-pink',
-                        'ig-reels-monetization'     => 'aith-e-icon-green-emerald',
-                        'ig-seo-optimizer'          => 'aith-e-icon-blue-indigo',
-                        'ig-story-planner'          => 'aith-e-icon-purple-fuchsia',
-                        'ig-carousel-builder'       => 'aith-e-icon-amber-orange',
-                        'ig-collab-matcher'         => 'aith-e-icon-teal-cyan',
-                        'ig-link-bio'               => 'aith-e-icon-rose-pink',
-                        'ig-dm-automation'          => 'aith-e-icon-indigo-violet',
-                        'ig-hashtag-tracker'        => 'aith-e-icon-cyan-teal',
-                        'ig-aesthetic-analyzer'     => 'aith-e-icon-pink-rose',
-                        'ig-shopping-optimizer'     => 'aith-e-icon-orange-red',
+                        'ig-yt-reels-converter'     => 'aith-e-icon-gold',
+                        'ig-yt-arbitrage'           => 'aith-e-icon-amber',
+                        'ig-reels-monetization'     => 'aith-e-icon-champagne',
+                        'ig-seo-optimizer'          => 'aith-e-icon-platinum',
+                        'ig-story-planner'          => 'aith-e-icon-rose-gold',
+                        'ig-carousel-builder'       => 'aith-e-icon-gold',
+                        'ig-collab-matcher'         => 'aith-e-icon-amber',
+                        'ig-link-bio'               => 'aith-e-icon-champagne',
+                        'ig-dm-automation'          => 'aith-e-icon-bronze',
+                        'ig-hashtag-tracker'        => 'aith-e-icon-rose-gold',
+                        'ig-aesthetic-analyzer'     => 'aith-e-icon-gold',
+                        'ig-shopping-optimizer'     => 'aith-e-icon-amber',
                         // Facebook
-                        'fb-yt-reels-converter'     => 'aith-e-icon-red-blue',
-                        'fb-yt-arbitrage'           => 'aith-e-icon-violet-blue',
-                        'fb-reels-bonus'            => 'aith-e-icon-green-emerald',
-                        'fb-group-monetization'     => 'aith-e-icon-blue-indigo',
-                        'fb-ad-breaks'              => 'aith-e-icon-amber-orange',
-                        'fb-page-growth'            => 'aith-e-icon-cyan-blue',
-                        'fb-shop-optimizer'         => 'aith-e-icon-orange-red',
-                        'fb-content-recycler'       => 'aith-e-icon-teal-cyan',
-                        'fb-live-monetization'      => 'aith-e-icon-rose-pink',
-                        'fb-engagement-optimizer'   => 'aith-e-icon-purple-fuchsia',
-                        'fb-audience-insights'      => 'aith-e-icon-indigo-violet',
-                        'fb-posting-scheduler'      => 'aith-e-icon-yellow-amber',
+                        'fb-yt-reels-converter'     => 'aith-e-icon-gold',
+                        'fb-yt-arbitrage'           => 'aith-e-icon-amber',
+                        'fb-reels-bonus'            => 'aith-e-icon-champagne',
+                        'fb-group-monetization'     => 'aith-e-icon-bronze',
+                        'fb-ad-breaks'              => 'aith-e-icon-rose-gold',
+                        'fb-page-growth'            => 'aith-e-icon-gold',
+                        'fb-shop-optimizer'         => 'aith-e-icon-amber',
+                        'fb-content-recycler'       => 'aith-e-icon-platinum',
+                        'fb-live-monetization'      => 'aith-e-icon-champagne',
+                        'fb-engagement-optimizer'   => 'aith-e-icon-rose-gold',
+                        'fb-audience-insights'      => 'aith-e-icon-gold',
+                        'fb-posting-scheduler'      => 'aith-e-icon-amber',
                     ];
                     $badgeClasses = [
                         'optimization'  => 'aith-e-badge-optimization',

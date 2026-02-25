@@ -19,17 +19,17 @@
             margin-bottom: 0.625rem; transition: border-color 0.2s;
         }
         .aith-pf-channel-card:hover {
-            border-color: rgba(139,92,246,0.25);
+            border-color: rgba(202,138,4,0.25);
         }
         .aith-pf-find-more {
             width: 100%; padding: 1rem; border-radius: 0.75rem;
-            background: rgba(139,92,246,0.06); border: 2px dashed rgba(139,92,246,0.2);
-            color: #c4b5fd; font-size: 0.9rem; font-weight: 600;
+            background: rgba(202,138,4,0.06); border: 2px dashed rgba(202,138,4,0.2);
+            color: #FBBF24; font-size: 0.9rem; font-weight: 600;
             cursor: pointer; transition: all 0.2s;
             display: flex; align-items: center; justify-content: center; gap: 0.5rem;
         }
         .aith-pf-find-more:hover {
-            background: rgba(139,92,246,0.12); border-color: rgba(139,92,246,0.35);
+            background: rgba(202,138,4,0.12); border-color: rgba(202,138,4,0.35);
         }
         .aith-pf-find-more:disabled {
             opacity: 0.5; cursor: not-allowed;
@@ -45,7 +45,7 @@
 
         <div class="aith-card">
             <div class="aith-e-tool-header">
-                <div class="aith-e-tool-icon" style="background:linear-gradient(135deg,#a855f7,#7c3aed);">
+                <div class="aith-e-tool-icon" style="background:linear-gradient(135deg,#a855f7,#CA8A04);">
                     <i class="fa-light fa-bullseye-pointer" style="color:#fff;font-size:1.1rem;"></i>
                 </div>
                 <div class="aith-e-tool-info">
@@ -136,15 +136,15 @@
             {{-- Channel Info Card --}}
             @if(isset($result['channel_info']))
             @php $ci = $result['channel_info']; @endphp
-            <div style="display:flex;align-items:center;gap:1rem;padding:1.25rem;border-radius:0.75rem;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);margin-bottom:1rem;">
+            <div style="display:flex;align-items:center;gap:1rem;padding:1.25rem;border-radius:0.75rem;background:rgba(202,138,4,0.08);border:1px solid rgba(202,138,4,0.2);margin-bottom:1rem;">
                 @if(!empty($ci['thumbnail_url']))
-                <img src="{{ $ci['thumbnail_url'] }}" alt="{{ $ci['name'] ?? '' }}" style="width:3.5rem;height:3.5rem;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(139,92,246,0.3);">
+                <img src="{{ $ci['thumbnail_url'] }}" alt="{{ $ci['name'] ?? '' }}" style="width:3.5rem;height:3.5rem;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(202,138,4,0.3);">
                 @else
                 @php
                     $channelInitial = strtoupper(substr($ci['name'] ?? 'Y', 0, 1));
                     $avatarGradients = ['A'=>'#e91e63,#9c27b0','B'=>'#2196f3,#00bcd4','C'=>'#ff9800,#f44336','D'=>'#4caf50,#009688','E'=>'#673ab7,#3f51b5','F'=>'#ff5722,#e91e63','G'=>'#00bcd4,#4caf50','H'=>'#9c27b0,#e91e63','I'=>'#3f51b5,#2196f3','J'=>'#f44336,#ff9800','K'=>'#009688,#00bcd4','L'=>'#e91e63,#ff5722','M'=>'#2196f3,#673ab7','N'=>'#ff9800,#4caf50','O'=>'#4caf50,#2196f3','P'=>'#673ab7,#e91e63','Q'=>'#00bcd4,#3f51b5','R'=>'#f44336,#673ab7','S'=>'#3f51b5,#00bcd4','T'=>'#ff5722,#ff9800','U'=>'#9c27b0,#2196f3','V'=>'#e91e63,#673ab7','W'=>'#4caf50,#ff9800','X'=>'#2196f3,#e91e63','Y'=>'#ff9800,#9c27b0','Z'=>'#00bcd4,#f44336'];
                 @endphp
-                <div class="aith-pf-avatar" style="background:linear-gradient(135deg,{{ $avatarGradients[$channelInitial] ?? '#7c3aed,#a855f7' }});width:3.5rem;height:3.5rem;font-size:1.4rem;">
+                <div class="aith-pf-avatar" style="background:linear-gradient(135deg,{{ $avatarGradients[$channelInitial] ?? '#CA8A04,#a855f7' }});width:3.5rem;height:3.5rem;font-size:1.4rem;">
                     {{ $channelInitial }}
                 </div>
                 @endif
@@ -168,7 +168,7 @@
             <div class="aith-e-grid-3" style="margin-bottom:1rem;">
                 <div class="aith-e-summary-card aith-e-summary-card-purple">
                     <div class="aith-e-summary-label">Subscribers</div>
-                    <div class="aith-e-summary-value" style="color:#c4b5fd;">{{ $ci['estimated_subscribers'] ?? '-' }}</div>
+                    <div class="aith-e-summary-value" style="color:#FBBF24;">{{ $ci['estimated_subscribers'] ?? '-' }}</div>
                     <div class="aith-e-summary-sub">{{ $ci['content_style'] ?? '' }}</div>
                 </div>
                 <div class="aith-e-summary-card aith-e-summary-card-blue">
@@ -247,9 +247,9 @@
                         <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.375rem;">
                             <span style="font-size:0.7rem;color:rgba(255,255,255,0.5);width:3rem;text-align:right;flex-shrink:0;">{{ $age['range'] ?? '' }}</span>
                             <div style="flex:1;height:0.5rem;border-radius:0.25rem;background:rgba(255,255,255,0.06);overflow:hidden;">
-                                <div style="height:100%;border-radius:0.25rem;background:linear-gradient(90deg,#7c3aed,#a855f7);width:{{ min(($age['pct'] ?? 0) / 40 * 100, 100) }}%;"></div>
+                                <div style="height:100%;border-radius:0.25rem;background:linear-gradient(90deg,#CA8A04,#a855f7);width:{{ min(($age['pct'] ?? 0) / 40 * 100, 100) }}%;"></div>
                             </div>
-                            <span style="font-size:0.7rem;color:#c4b5fd;font-weight:600;width:2.25rem;text-align:right;flex-shrink:0;">{{ $age['pct'] ?? 0 }}%</span>
+                            <span style="font-size:0.7rem;color:#FBBF24;font-weight:600;width:2.25rem;text-align:right;flex-shrink:0;">{{ $age['pct'] ?? 0 }}%</span>
                         </div>
                         @endforeach
                     </div>
@@ -350,7 +350,7 @@
                         <span style="font-size:0.65rem;color:rgba(255,255,255,0.35);text-transform:uppercase;display:block;margin-bottom:0.375rem;"><i class="fa-light fa-rectangle-ad" style="margin-right:0.25rem;"></i>Best Ad Formats</span>
                         <div style="display:flex;flex-wrap:wrap;gap:0.25rem;">
                             @foreach((is_array($ni['best_ad_formats']) ? $ni['best_ad_formats'] : [$ni['best_ad_formats']]) as $fmt)
-                            <span class="aith-e-tag" style="background:rgba(139,92,246,0.15);color:#c4b5fd;font-size:0.7rem;">{{ $fmt }}</span>
+                            <span class="aith-e-tag" style="background:rgba(202,138,4,0.15);color:#FBBF24;font-size:0.7rem;">{{ $fmt }}</span>
                             @endforeach
                         </div>
                     </div>
@@ -422,7 +422,7 @@
                             $pInitial = strtoupper(substr($p['channel_name'] ?? '?', 0, 1));
                             $pGradients = ['A'=>'#e91e63,#9c27b0','B'=>'#2196f3,#00bcd4','C'=>'#ff9800,#f44336','D'=>'#4caf50,#009688','E'=>'#673ab7,#3f51b5','F'=>'#ff5722,#e91e63','G'=>'#00bcd4,#4caf50','H'=>'#9c27b0,#e91e63','I'=>'#3f51b5,#2196f3','J'=>'#f44336,#ff9800','K'=>'#009688,#00bcd4','L'=>'#e91e63,#ff5722','M'=>'#2196f3,#673ab7','N'=>'#ff9800,#4caf50','O'=>'#4caf50,#2196f3','P'=>'#673ab7,#e91e63','Q'=>'#00bcd4,#3f51b5','R'=>'#f44336,#673ab7','S'=>'#3f51b5,#00bcd4','T'=>'#ff5722,#ff9800','U'=>'#9c27b0,#2196f3','V'=>'#e91e63,#673ab7','W'=>'#4caf50,#ff9800','X'=>'#2196f3,#e91e63','Y'=>'#ff9800,#9c27b0','Z'=>'#00bcd4,#f44336'];
                         @endphp
-                        <div class="aith-pf-avatar aith-pf-avatar-sm" style="background:linear-gradient(135deg,{{ $pGradients[$pInitial] ?? '#7c3aed,#a855f7' }});">
+                        <div class="aith-pf-avatar aith-pf-avatar-sm" style="background:linear-gradient(135deg,{{ $pGradients[$pInitial] ?? '#CA8A04,#a855f7' }});">
                             {{ $pInitial }}
                         </div>
                         @endif
@@ -501,7 +501,7 @@
                     </div>
                     <div style="text-align:center;padding:0.75rem;border-radius:0.5rem;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.15);">
                         <div style="font-size:0.65rem;color:rgba(255,255,255,0.4);text-transform:uppercase;margin-bottom:0.25rem;">Expected CTR</div>
-                        <div style="font-size:1.1rem;font-weight:700;color:#c4b5fd;">{{ $cs['expected_ctr'] ?? '-' }}</div>
+                        <div style="font-size:1.1rem;font-weight:700;color:#FBBF24;">{{ $cs['expected_ctr'] ?? '-' }}</div>
                     </div>
                 </div>
 
@@ -523,7 +523,7 @@
                     @if(!empty($ag['channels']))
                     <div style="display:flex;flex-wrap:wrap;gap:0.375rem;margin-bottom:0.375rem;padding-left:2.25rem;">
                         @foreach($ag['channels'] as $agHandle)
-                        <span class="aith-e-pill" style="background:rgba(139,92,246,0.12);color:#c4b5fd;font-size:0.7rem;padding:0.15rem 0.5rem;">{{ $agHandle }}</span>
+                        <span class="aith-e-pill" style="background:rgba(202,138,4,0.12);color:#FBBF24;font-size:0.7rem;padding:0.15rem 0.5rem;">{{ $agHandle }}</span>
                         @endforeach
                     </div>
                     @endif
@@ -550,7 +550,7 @@
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:0.375rem;">
                     @foreach($result['google_ads_keywords'] as $kw)
-                    <span class="aith-e-pill" style="background:rgba(139,92,246,0.12);color:#c4b5fd;">{{ $kw }}</span>
+                    <span class="aith-e-pill" style="background:rgba(202,138,4,0.12);color:#FBBF24;">{{ $kw }}</span>
                     @endforeach
                 </div>
             </div>
@@ -569,13 +569,13 @@
             @endif
 
             {{-- How to Use --}}
-            <div class="aith-e-section-card" style="background:rgba(139,92,246,0.05);border-color:rgba(139,92,246,0.15);">
+            <div class="aith-e-section-card" style="background:rgba(202,138,4,0.05);border-color:rgba(202,138,4,0.15);">
                 <div class="aith-e-section-card-title"><i class="fa-light fa-circle-info"></i> How to Use These Results</div>
                 <ul class="aith-e-list" style="font-size:0.8rem;">
-                    <li><span class="bullet" style="color:#c4b5fd;"><strong>1.</strong></span> Click <strong style="color:rgba(255,255,255,0.8);">Copy All URLs</strong> above to copy all channel URLs at once</li>
-                    <li><span class="bullet" style="color:#c4b5fd;"><strong>2.</strong></span> In <strong style="color:rgba(255,255,255,0.8);">Google Ads</strong>, create a new Video campaign → Ad Group → Placements</li>
-                    <li><span class="bullet" style="color:#c4b5fd;"><strong>3.</strong></span> Paste the channel URLs into the <strong style="color:rgba(255,255,255,0.8);">YouTube channels</strong> placement field</li>
-                    <li><span class="bullet" style="color:#c4b5fd;"><strong>4.</strong></span> Start with the <strong style="color:rgba(255,255,255,0.8);">highest relevance</strong> channels and expand based on performance</li>
+                    <li><span class="bullet" style="color:#FBBF24;"><strong>1.</strong></span> Click <strong style="color:rgba(255,255,255,0.8);">Copy All URLs</strong> above to copy all channel URLs at once</li>
+                    <li><span class="bullet" style="color:#FBBF24;"><strong>2.</strong></span> In <strong style="color:rgba(255,255,255,0.8);">Google Ads</strong>, create a new Video campaign → Ad Group → Placements</li>
+                    <li><span class="bullet" style="color:#FBBF24;"><strong>3.</strong></span> Paste the channel URLs into the <strong style="color:rgba(255,255,255,0.8);">YouTube channels</strong> placement field</li>
+                    <li><span class="bullet" style="color:#FBBF24;"><strong>4.</strong></span> Start with the <strong style="color:rgba(255,255,255,0.8);">highest relevance</strong> channels and expand based on performance</li>
                 </ul>
             </div>
 

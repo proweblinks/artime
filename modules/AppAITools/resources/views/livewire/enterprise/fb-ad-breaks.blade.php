@@ -204,7 +204,7 @@
                     </div>
                     <div class="aith-e-summary-card aith-e-summary-card-purple">
                         <div class="aith-e-summary-label">Yearly</div>
-                        <div class="aith-e-summary-value" style="color:#c4b5fd;">{{ $result['revenue_estimates']['yearly'] ?? '-' }}</div>
+                        <div class="aith-e-summary-value" style="color:#FBBF24;">{{ $result['revenue_estimates']['yearly'] ?? '-' }}</div>
                     </div>
                     @if(isset($result['revenue_estimates']['compared_to_youtube']))
                     <div class="aith-e-summary-card aith-e-summary-card-orange">
@@ -291,8 +291,8 @@
                     @foreach($nextSteps as $ns)
                     @php $nsTool = $allTools[$ns['tool']] ?? null; @endphp
                     @if($nsTool)
-                    <a href="{{ route($nsTool['route']) }}" class="aith-e-section-card" style="margin-bottom:0;text-decoration:none;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='rgba(139,92,246,0.3)'" onmouseout="this.style.borderColor=''">
-                        <div style="font-weight:600;color:#c4b5fd;font-size:0.875rem;margin-bottom:0.25rem;">{{ $nsTool['name'] }}</div>
+                    <a href="{{ route($nsTool['route']) }}" class="aith-e-section-card" style="margin-bottom:0;text-decoration:none;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='rgba(202,138,4,0.3)'" onmouseout="this.style.borderColor=''">
+                        <div style="font-weight:600;color:#FBBF24;font-size:0.875rem;margin-bottom:0.25rem;">{{ $nsTool['name'] }}</div>
                         <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">{{ $ns['reason'] }}</div>
                     </a>
                     @endif

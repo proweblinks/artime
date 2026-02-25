@@ -124,7 +124,7 @@
                     @if(isset($result['stars_earnings']['avg_stars_per_stream']))
                     <div class="aith-e-summary-card aith-e-summary-card-purple">
                         <div class="aith-e-summary-label">Avg Stars/Stream</div>
-                        <div class="aith-e-summary-value" style="color:#c4b5fd;">{{ $result['stars_earnings']['avg_stars_per_stream'] }}</div>
+                        <div class="aith-e-summary-value" style="color:#FBBF24;">{{ $result['stars_earnings']['avg_stars_per_stream'] }}</div>
                     </div>
                     @endif
                     @if(isset($result['stars_earnings']['estimated_monthly']))
@@ -251,7 +251,7 @@
                     @if(isset($result['revenue_estimate']['stars_monthly']))
                     <div class="aith-e-summary-card aith-e-summary-card-purple">
                         <div class="aith-e-summary-label">Stars Monthly</div>
-                        <div class="aith-e-summary-value" style="color:#c4b5fd;">{{ $result['revenue_estimate']['stars_monthly'] }}</div>
+                        <div class="aith-e-summary-value" style="color:#FBBF24;">{{ $result['revenue_estimate']['stars_monthly'] }}</div>
                     </div>
                     @endif
                     @if(isset($result['revenue_estimate']['subscriptions_monthly']))
@@ -293,8 +293,8 @@
                     @foreach($nextSteps as $ns)
                     @php $nsTool = $allTools[$ns['tool']] ?? null; @endphp
                     @if($nsTool)
-                    <a href="{{ route($nsTool['route']) }}" class="aith-e-section-card" style="margin-bottom:0;text-decoration:none;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='rgba(139,92,246,0.3)'" onmouseout="this.style.borderColor=''">
-                        <div style="font-weight:600;color:#c4b5fd;font-size:0.875rem;margin-bottom:0.25rem;">{{ $nsTool['name'] }}</div>
+                    <a href="{{ route($nsTool['route']) }}" class="aith-e-section-card" style="margin-bottom:0;text-decoration:none;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='rgba(202,138,4,0.3)'" onmouseout="this.style.borderColor=''">
+                        <div style="font-weight:600;color:#FBBF24;font-size:0.875rem;margin-bottom:0.25rem;">{{ $nsTool['name'] }}</div>
                         <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">{{ $ns['reason'] }}</div>
                     </a>
                     @endif
