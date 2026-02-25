@@ -204,24 +204,20 @@ class StoryModeOrchestrator
 
     /**
      * Step 4: Generate video clips from images.
+     * Submits all Seedance jobs, then polls until all complete.
      */
     protected function stepGenerateVideoClips(StoryModeProject $project): void
     {
-        $project->updateProgress('generating_video', 70, 'Generating video clips');
+        $project->updateProgress('generating_video', 70, 'Submitting video generation jobs');
 
         $scenes = $project->scenes ?? [];
         $wizardProject = $this->createTempWizardProject($project);
 
-        $updatedScenes = [];
-
+        // Phase 1: Submit all video generation jobs
+        $pendingTasks = []; // index => taskId
         foreach ($scenes as $i => $scene) {
-            $progress = 70 + (int) (($i / count($scenes)) * 15);
-            $project->updateProgress('generating_video', $progress, "Generating video clip ({$i}/{" . count($scenes) . "})");
-
             $imageUrl = $scene['image_url'] ?? null;
             if (empty($imageUrl)) {
-                $scene['video_url'] = null;
-                $updatedScenes[] = $scene;
                 continue;
             }
 
@@ -235,22 +231,82 @@ class StoryModeOrchestrator
                     'sceneIndex' => $i,
                 ]);
 
-                if (!empty($result['success'])) {
-                    $scene['video_url'] = $result['videoUrl'] ?? $result['video_url'] ?? null;
-                    // Handle async results (taskId for polling)
-                    $scene['video_task_id'] = $result['taskId'] ?? null;
+                if (!empty($result['success']) && !empty($result['taskId'])) {
+                    $pendingTasks[$i] = $result['taskId'];
+                    $scenes[$i]['video_task_id'] = $result['taskId'];
+                    Log::info("StoryModeOrchestrator: Video job submitted for scene {$i}", [
+                        'taskId' => $result['taskId'],
+                    ]);
+                } elseif (!empty($result['videoUrl'])) {
+                    // Immediate result (unlikely with Seedance)
+                    $scenes[$i]['video_url'] = $result['videoUrl'];
                 }
             } catch (\Exception $e) {
-                Log::warning("StoryModeOrchestrator: Video generation failed for segment {$i}", [
+                Log::warning("StoryModeOrchestrator: Video submission failed for segment {$i}", [
                     'error' => $e->getMessage(),
                 ]);
-                $scene['video_url'] = null;
             }
-
-            $updatedScenes[] = $scene;
         }
 
-        $project->update(['scenes' => $updatedScenes]);
+        $project->update(['scenes' => $scenes]);
+
+        // Phase 2: Poll all pending tasks until complete (max 8 minutes)
+        if (!empty($pendingTasks)) {
+            $project->updateProgress('generating_video', 72, 'Waiting for video clips (' . count($pendingTasks) . ' jobs)');
+
+            $maxAttempts = 96; // 96 * 5s = 8 minutes
+            for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
+                sleep(5);
+
+                $stillPending = 0;
+                $completedCount = 0;
+
+                foreach ($pendingTasks as $sceneIndex => $taskId) {
+                    // Skip already completed
+                    if (!empty($scenes[$sceneIndex]['video_url'])) {
+                        $completedCount++;
+                        continue;
+                    }
+
+                    try {
+                        $status = $this->animationService->getTaskStatus($taskId);
+                        $state = $status['status'] ?? 'unknown';
+
+                        if ($state === 'completed' && !empty($status['videoUrl'])) {
+                            $scenes[$sceneIndex]['video_url'] = $status['videoUrl'];
+                            $completedCount++;
+                            Log::info("StoryModeOrchestrator: Video clip completed for scene {$sceneIndex}", [
+                                'videoUrl' => substr($status['videoUrl'], 0, 80),
+                            ]);
+                        } elseif ($state === 'failed') {
+                            Log::warning("StoryModeOrchestrator: Video clip failed for scene {$sceneIndex}", [
+                                'error' => $status['error'] ?? 'Unknown',
+                            ]);
+                            unset($pendingTasks[$sceneIndex]);
+                        } else {
+                            $stillPending++;
+                        }
+                    } catch (\Exception $e) {
+                        $stillPending++;
+                    }
+                }
+
+                $totalTasks = count($pendingTasks);
+                $progress = 72 + (int) (($completedCount / max(1, $totalTasks)) * 13);
+                $project->updateProgress('generating_video', min(85, $progress),
+                    "Video clips: {$completedCount}/{$totalTasks} complete"
+                );
+
+                // Save progress
+                $project->update(['scenes' => $scenes]);
+
+                if ($stillPending === 0) {
+                    break;
+                }
+            }
+        }
+
+        $project->update(['scenes' => $scenes]);
         $wizardProject->delete();
     }
 
