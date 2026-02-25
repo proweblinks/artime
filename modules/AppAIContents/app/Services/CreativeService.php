@@ -181,6 +181,7 @@ PROMPT;
             'metadata' => [
                 'generation_prompt' => $imageResult['prompt'] ?? '',
                 'variation_index' => $sortOrder,
+                'layout_template' => $this->pickLayoutTemplate($sortOrder),
             ],
         ]);
 
@@ -736,5 +737,11 @@ PROMPT;
     protected function arrayToString(?array $arr): string
     {
         return implode(', ', $arr ?? []);
+    }
+
+    protected function pickLayoutTemplate(int $index): string
+    {
+        $layouts = ['bottom-overlay', 'center-hero', 'split-bottom', 'magazine', 'top-header'];
+        return $layouts[$index % count($layouts)];
     }
 }

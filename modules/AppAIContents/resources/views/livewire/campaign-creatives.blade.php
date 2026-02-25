@@ -50,7 +50,15 @@
                             @endif
                         </div>
 
-                        {{-- Image / Video --}}
+                        {{-- Image / Video with Text Overlay Layouts --}}
+                        @php
+                            $layout = $creative->metadata['layout_template'] ?? ['bottom-overlay','center-hero','split-bottom','magazine','top-header'][$loop->index % 5];
+                            $headerText = $creative->header_text ?? '';
+                            $descText = $creative->description_text ?? '';
+                            $ctaText = $creative->cta_text ?? '';
+                            $brandColor = $creative->campaign?->dna?->colors[0] ?? '#DA291C';
+                        @endphp
+
                         @if($creative->type === 'video' && $creative->video_url)
                             <div style="position: relative;" x-data="{ playing: false }">
                                 <video
@@ -69,10 +77,155 @@
                                     </div>
                                 </div>
                             </div>
-                        @elseif($creative->image_url)
-                            <img src="{{ $creative->image_url }}" alt="" class="cs-creative-image" wire:click="openEditor({{ $creative->id }})" style="cursor: pointer;">
                         @else
-                            <div class="cs-creative-image cs-skeleton" wire:click="openEditor({{ $creative->id }})" style="cursor: pointer;"></div>
+                            {{-- Layout-aware creative card with text overlays --}}
+                            <div wire:click="openEditor({{ $creative->id }})" style="cursor: pointer; position: relative; width: 100%; aspect-ratio: 9/16; border-radius: var(--cs-radius-lg); overflow: hidden; background: #111;">
+
+                                @if($layout === 'bottom-overlay')
+                                    {{-- BOTTOM OVERLAY: Full-bleed image, gradient from bottom, text pinned to bottom --}}
+                                    @if($creative->image_url)
+                                        <img src="{{ $creative->image_url }}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                                    @else
+                                        <div class="cs-skeleton" style="width: 100%; height: 100%;"></div>
+                                    @endif
+                                    <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.25) 40%, transparent 65%);"></div>
+                                    <div dir="auto" style="position: absolute; bottom: 0; left: 0; right: 0; padding: 16px; display: flex; flex-direction: column; gap: 6px;">
+                                        @if($headerText)
+                                            <div style="color: #fff; font-size: 15px; font-weight: 700; line-height: 1.2; text-shadow: 0 1px 6px rgba(0,0,0,0.5);">{{ $headerText }}</div>
+                                        @endif
+                                        @if($descText)
+                                            <div style="color: rgba(255,255,255,0.85); font-size: 11px; line-height: 1.4; text-shadow: 0 1px 4px rgba(0,0,0,0.4);">{{ $descText }}</div>
+                                        @endif
+                                        @if($ctaText)
+                                            <div style="margin-top: 4px;">
+                                                <span style="display: inline-block; padding: 4px 14px; background: rgba(255,255,255,0.92); color: #111; border-radius: 20px; font-size: 10px; font-weight: 600;">{{ $ctaText }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                @elseif($layout === 'center-hero')
+                                    {{-- CENTER HERO: Full-bleed image, centered large header, desc below --}}
+                                    @if($creative->image_url)
+                                        <img src="{{ $creative->image_url }}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                                    @else
+                                        <div class="cs-skeleton" style="width: 100%; height: 100%;"></div>
+                                    @endif
+                                    <div style="position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.55) 100%);"></div>
+                                    <div dir="auto" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; gap: 8px;">
+                                        @if($headerText)
+                                            <div style="color: #fff; font-size: 18px; font-weight: 800; line-height: 1.15; text-transform: uppercase; text-shadow: 0 2px 12px rgba(0,0,0,0.6); letter-spacing: 0.5px;">{{ $headerText }}</div>
+                                        @endif
+                                        @if($descText)
+                                            <div style="color: rgba(255,255,255,0.9); font-size: 11px; line-height: 1.4; text-shadow: 0 1px 6px rgba(0,0,0,0.5); max-width: 85%;">{{ $descText }}</div>
+                                        @endif
+                                    </div>
+                                    @if($ctaText)
+                                        <div dir="auto" style="position: absolute; bottom: 16px; left: 0; right: 0; text-align: center;">
+                                            <span style="display: inline-block; padding: 5px 18px; background: rgba(255,255,255,0.92); color: #111; border-radius: 20px; font-size: 10px; font-weight: 600;">{{ $ctaText }}</span>
+                                        </div>
+                                    @endif
+
+                                @elseif($layout === 'split-bottom')
+                                    {{-- SPLIT BOTTOM: Image top ~55%, solid brand-color block bottom ~45% --}}
+                                    <div style="width: 100%; height: 55%; overflow: hidden;">
+                                        @if($creative->image_url)
+                                            <img src="{{ $creative->image_url }}" alt="" style="width: 100%; height: 100%; object-fit: cover; object-position: top; display: block;">
+                                        @else
+                                            <div class="cs-skeleton" style="width: 100%; height: 100%;"></div>
+                                        @endif
+                                    </div>
+                                    <div dir="auto" style="width: 100%; height: 45%; background: {{ $brandColor }}; display: flex; flex-direction: column; justify-content: center; padding: 14px 16px; gap: 6px;">
+                                        @if($headerText)
+                                            <div style="color: #fff; font-size: 14px; font-weight: 700; line-height: 1.2;">{{ $headerText }}</div>
+                                        @endif
+                                        @if($descText)
+                                            <div style="color: rgba(255,255,255,0.85); font-size: 11px; line-height: 1.4;">{{ $descText }}</div>
+                                        @endif
+                                        @if($ctaText)
+                                            <div style="margin-top: 4px;">
+                                                <span style="display: inline-block; padding: 4px 14px; background: rgba(255,255,255,0.92); color: {{ $brandColor }}; border-radius: 20px; font-size: 10px; font-weight: 600;">{{ $ctaText }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                @elseif($layout === 'magazine')
+                                    {{-- MAGAZINE: White bg, image left ~60%, text stacked right --}}
+                                    <div style="width: 100%; height: 100%; background: #f8f8f8; display: flex; flex-direction: column;">
+                                        <div style="width: 100%; height: 55%; overflow: hidden;">
+                                            @if($creative->image_url)
+                                                <img src="{{ $creative->image_url }}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 0 0 12px 12px;">
+                                            @else
+                                                <div class="cs-skeleton" style="width: 100%; height: 100%;"></div>
+                                            @endif
+                                        </div>
+                                        <div dir="auto" style="flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 14px 16px; gap: 6px;">
+                                            @if($headerText)
+                                                <div style="color: #111; font-size: 14px; font-weight: 700; line-height: 1.2;">{{ $headerText }}</div>
+                                            @endif
+                                            @if($descText)
+                                                <div style="color: #555; font-size: 11px; line-height: 1.4;">{{ $descText }}</div>
+                                            @endif
+                                            @if($ctaText)
+                                                <div style="margin-top: 4px;">
+                                                    <span style="display: inline-block; padding: 4px 14px; background: {{ $brandColor }}; color: #fff; border-radius: 20px; font-size: 10px; font-weight: 600;">{{ $ctaText }}</span>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+
+                                @elseif($layout === 'top-header')
+                                    {{-- TOP HEADER: Bold header at top over brand-color bar, image below, desc at bottom --}}
+                                    <div style="width: 100%; height: 100%; display: flex; flex-direction: column;">
+                                        <div dir="auto" style="background: {{ $brandColor }}; padding: 14px 16px; display: flex; align-items: center; min-height: 22%;">
+                                            @if($headerText)
+                                                <div style="color: #fff; font-size: 14px; font-weight: 800; line-height: 1.2; text-transform: uppercase; letter-spacing: 0.3px;">{{ $headerText }}</div>
+                                            @endif
+                                        </div>
+                                        <div style="flex: 1; position: relative; overflow: hidden;">
+                                            @if($creative->image_url)
+                                                <img src="{{ $creative->image_url }}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                                            @else
+                                                <div class="cs-skeleton" style="width: 100%; height: 100%;"></div>
+                                            @endif
+                                            <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%); padding: 14px 16px;">
+                                                <div dir="auto" style="display: flex; flex-direction: column; gap: 4px;">
+                                                    @if($descText)
+                                                        <div style="color: rgba(255,255,255,0.9); font-size: 11px; line-height: 1.4; text-shadow: 0 1px 4px rgba(0,0,0,0.4);">{{ $descText }}</div>
+                                                    @endif
+                                                    @if($ctaText)
+                                                        <div style="margin-top: 2px;">
+                                                            <span style="display: inline-block; padding: 4px 14px; background: rgba(255,255,255,0.92); color: #111; border-radius: 20px; font-size: 10px; font-weight: 600;">{{ $ctaText }}</span>
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                @else
+                                    {{-- FALLBACK: bottom-overlay (same as first layout) --}}
+                                    @if($creative->image_url)
+                                        <img src="{{ $creative->image_url }}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                                    @else
+                                        <div class="cs-skeleton" style="width: 100%; height: 100%;"></div>
+                                    @endif
+                                    <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.25) 40%, transparent 65%);"></div>
+                                    <div dir="auto" style="position: absolute; bottom: 0; left: 0; right: 0; padding: 16px; display: flex; flex-direction: column; gap: 6px;">
+                                        @if($headerText)
+                                            <div style="color: #fff; font-size: 15px; font-weight: 700; line-height: 1.2; text-shadow: 0 1px 6px rgba(0,0,0,0.5);">{{ $headerText }}</div>
+                                        @endif
+                                        @if($descText)
+                                            <div style="color: rgba(255,255,255,0.85); font-size: 11px; line-height: 1.4; text-shadow: 0 1px 4px rgba(0,0,0,0.4);">{{ $descText }}</div>
+                                        @endif
+                                        @if($ctaText)
+                                            <div style="margin-top: 4px;">
+                                                <span style="display: inline-block; padding: 4px 14px; background: rgba(255,255,255,0.92); color: #111; border-radius: 20px; font-size: 10px; font-weight: 600;">{{ $ctaText }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
+
+                            </div>
                         @endif
 
                         {{-- More Menu (top-right) --}}
