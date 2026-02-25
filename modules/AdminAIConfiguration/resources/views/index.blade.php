@@ -453,6 +453,178 @@
             </div>
         </div>
 
+        {{-- Story Mode Configuration --}}
+        <div class="card shadow-none border-gray-300 mb-4">
+            <div class="card-header fw-6">
+                <i class="fa-light fa-book-sparkles me-2"></i>{{ __('Story Mode Configuration') }}
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-4">
+                    {{ __('Configure the one-click Story Mode video generation pipeline. Story Mode creates short narrated videos from a single text prompt.') }}
+                </p>
+
+                <div class="row">
+                    {{-- Enable/Disable --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('Story Mode Status') }}</label>
+                        <select class="form-select" name="story_mode_enabled">
+                            <option value="1" {{ get_option('story_mode_enabled', 1) == 1 ? 'selected' : '' }}>{{ __('Enable') }}</option>
+                            <option value="0" {{ get_option('story_mode_enabled', 1) == 0 ? 'selected' : '' }}>{{ __('Disable') }}</option>
+                        </select>
+                    </div>
+
+                    {{-- AI Engine --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('AI Engine (Script Generation)') }}</label>
+                        <select class="form-select" name="story_mode_ai_engine">
+                            <option value="gemini" {{ get_option('story_mode_ai_engine', 'gemini') == 'gemini' ? 'selected' : '' }}>Gemini</option>
+                            <option value="claude" {{ get_option('story_mode_ai_engine', 'gemini') == 'claude' ? 'selected' : '' }}>Claude</option>
+                            <option value="openai" {{ get_option('story_mode_ai_engine', 'gemini') == 'openai' ? 'selected' : '' }}>OpenAI</option>
+                            <option value="grok" {{ get_option('story_mode_ai_engine', 'gemini') == 'grok' ? 'selected' : '' }}>Grok</option>
+                        </select>
+                    </div>
+
+                    {{-- AI Model --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('AI Model') }}</label>
+                        <input type="text" class="form-control" name="story_mode_ai_model"
+                               value="{{ get_option('story_mode_ai_model', 'gemini-2.5-flash') }}"
+                               placeholder="gemini-2.5-flash">
+                        <small class="text-muted">{{ __('Model for script and visual script generation') }}</small>
+                    </div>
+
+                    {{-- Image Model --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('Image Generation Model') }}</label>
+                        <select class="form-select" name="story_mode_image_model">
+                            <option value="nanobanana-pro" {{ get_option('story_mode_image_model', 'nanobanana-pro') == 'nanobanana-pro' ? 'selected' : '' }}>NanoBanana Pro (Best Quality)</option>
+                            <option value="nanobanana" {{ get_option('story_mode_image_model', 'nanobanana-pro') == 'nanobanana' ? 'selected' : '' }}>NanoBanana (Fast)</option>
+                            <option value="hidream" {{ get_option('story_mode_image_model', 'nanobanana-pro') == 'hidream' ? 'selected' : '' }}>HiDream (Artistic)</option>
+                        </select>
+                    </div>
+
+                    {{-- Video Model --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('Video Animation Model') }}</label>
+                        <select class="form-select" name="story_mode_video_model">
+                            <option value="seedance-1.5-pro" {{ get_option('story_mode_video_model', 'seedance-1.5-pro') == 'seedance-1.5-pro' ? 'selected' : '' }}>Seedance v1.5 Pro</option>
+                            <option value="seedance-1.5-fast" {{ get_option('story_mode_video_model', 'seedance-1.5-pro') == 'seedance-1.5-fast' ? 'selected' : '' }}>Seedance v1.5 Fast</option>
+                        </select>
+                    </div>
+
+                    {{-- TTS Provider --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('TTS Provider') }}</label>
+                        <select class="form-select" name="story_mode_tts_provider">
+                            <option value="auto" {{ get_option('story_mode_tts_provider', 'auto') == 'auto' ? 'selected' : '' }}>{{ __('Auto Select') }}</option>
+                            <option value="openai" {{ get_option('story_mode_tts_provider', 'auto') == 'openai' ? 'selected' : '' }}>OpenAI TTS</option>
+                            <option value="kokoro" {{ get_option('story_mode_tts_provider', 'auto') == 'kokoro' ? 'selected' : '' }}>Kokoro TTS</option>
+                            <option value="qwen3tts" {{ get_option('story_mode_tts_provider', 'auto') == 'qwen3tts' ? 'selected' : '' }}>Qwen3 TTS</option>
+                        </select>
+                    </div>
+                </div>
+
+                <hr class="my-3">
+                <h6 class="fw-bold mb-3">{{ __('Default Settings') }}</h6>
+
+                <div class="row">
+                    {{-- Default Voice --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('Default Voice') }}</label>
+                        <input type="text" class="form-control" name="story_mode_default_voice"
+                               value="{{ get_option('story_mode_default_voice', 'nova') }}"
+                               placeholder="nova">
+                    </div>
+
+                    {{-- Default Aspect Ratio --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('Default Aspect Ratio') }}</label>
+                        <select class="form-select" name="story_mode_default_aspect">
+                            <option value="9:16" {{ get_option('story_mode_default_aspect', '9:16') == '9:16' ? 'selected' : '' }}>9:16 (Portrait)</option>
+                            <option value="16:9" {{ get_option('story_mode_default_aspect', '9:16') == '16:9' ? 'selected' : '' }}>16:9 (Landscape)</option>
+                            <option value="1:1" {{ get_option('story_mode_default_aspect', '9:16') == '1:1' ? 'selected' : '' }}>1:1 (Square)</option>
+                        </select>
+                    </div>
+
+                    {{-- Default Duration --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('Default Duration (seconds)') }}</label>
+                        <input type="number" class="form-control" name="story_mode_default_duration"
+                               value="{{ get_option('story_mode_default_duration', 35) }}"
+                               min="10" max="120">
+                    </div>
+
+                    {{-- Max Duration --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('Max Duration (seconds)') }}</label>
+                        <input type="number" class="form-control" name="story_mode_max_duration"
+                               value="{{ get_option('story_mode_max_duration', 60) }}"
+                               min="15" max="300">
+                    </div>
+
+                    {{-- Max Words --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('Max Transcript Words') }}</label>
+                        <input type="number" class="form-control" name="story_mode_max_words"
+                               value="{{ get_option('story_mode_max_words', 450) }}"
+                               min="50" max="1000">
+                    </div>
+                </div>
+
+                <hr class="my-3">
+                <h6 class="fw-bold mb-3">{{ __('Output Settings') }}</h6>
+
+                <div class="row">
+                    {{-- Captions --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('Captions') }}</label>
+                        <select class="form-select" name="story_mode_captions_enabled">
+                            <option value="1" {{ get_option('story_mode_captions_enabled', 1) == 1 ? 'selected' : '' }}>{{ __('Enable') }}</option>
+                            <option value="0" {{ get_option('story_mode_captions_enabled', 1) == 0 ? 'selected' : '' }}>{{ __('Disable') }}</option>
+                        </select>
+                    </div>
+
+                    {{-- Background Music --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('Background Music') }}</label>
+                        <select class="form-select" name="story_mode_music_enabled">
+                            <option value="1" {{ get_option('story_mode_music_enabled', 1) == 1 ? 'selected' : '' }}>{{ __('Enable') }}</option>
+                            <option value="0" {{ get_option('story_mode_music_enabled', 1) == 0 ? 'selected' : '' }}>{{ __('Disable') }}</option>
+                        </select>
+                    </div>
+
+                    {{-- Music Volume --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('Music Volume') }}</label>
+                        <input type="number" class="form-control" name="story_mode_music_volume"
+                               value="{{ get_option('story_mode_music_volume', 0.15) }}"
+                               min="0" max="1" step="0.05">
+                        <small class="text-muted">{{ __('0 = silent, 1 = full volume') }}</small>
+                    </div>
+
+                    {{-- Export Quality --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('Export Quality') }}</label>
+                        <select class="form-select" name="story_mode_export_quality">
+                            <option value="fast" {{ get_option('story_mode_export_quality', 'balanced') == 'fast' ? 'selected' : '' }}>{{ __('Fast') }}</option>
+                            <option value="balanced" {{ get_option('story_mode_export_quality', 'balanced') == 'balanced' ? 'selected' : '' }}>{{ __('Balanced') }}</option>
+                            <option value="best" {{ get_option('story_mode_export_quality', 'balanced') == 'best' ? 'selected' : '' }}>{{ __('Best') }}</option>
+                        </select>
+                    </div>
+
+                    {{-- Export Resolution --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('Export Resolution') }}</label>
+                        <select class="form-select" name="story_mode_export_resolution">
+                            <option value="720p" {{ get_option('story_mode_export_resolution', '1080p') == '720p' ? 'selected' : '' }}>720p</option>
+                            <option value="1080p" {{ get_option('story_mode_export_resolution', '1080p') == '1080p' ? 'selected' : '' }}>1080p</option>
+                            <option value="4k" {{ get_option('story_mode_export_resolution', '1080p') == '4k' ? 'selected' : '' }}>4K</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- Save button --}}
         <div class="mt-4">
             <button type="submit" class="btn btn-dark b-r-10 w-100">

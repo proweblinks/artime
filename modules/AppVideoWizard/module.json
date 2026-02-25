@@ -33,6 +33,12 @@
                 "icon": "fa-light fa-video"
             },
             {
+                "uri": "app/story-mode",
+                "name": "Story Mode",
+                "position": 105,
+                "icon": "fa-light fa-book-sparkles"
+            },
+            {
                 "uri": "app/ai-tools",
                 "name": "Ai Tools",
                 "position": 100,

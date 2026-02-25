@@ -268,6 +268,10 @@ class AppVideoWizardServiceProvider extends ServiceProvider
 
         // Phase 21: Lazy-loaded scene card component
         Livewire::component('app-video-wizard::components.scene-card', \Modules\AppVideoWizard\Livewire\Components\SceneCard::class);
+
+        // Story Mode components
+        Livewire::component('appvideowizard::story-mode', \Modules\AppVideoWizard\Livewire\StoryMode::class);
+        Livewire::component('appvideowizard::story-mode-projects', \Modules\AppVideoWizard\Livewire\StoryModeProjects::class);
     }
 
     /**
