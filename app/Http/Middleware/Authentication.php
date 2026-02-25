@@ -23,6 +23,11 @@ class Authentication
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // PERF: Skip heavy sidebar/module loading on Livewire update requests.
+        // The sidebar is already rendered in the browser from the initial page load.
+        if ($request->hasHeader('X-Livewire') && Auth::check()) {
+            return $this->handleLivewireUpdate($request, $next);
+        }
 
         if (config('app.demo') || env('DEMO_MODE', false)) {
             $except = [
@@ -304,6 +309,16 @@ class Authentication
 
     public function registerSidebar(): void
     {
+        // PERF: Cache sidebar in session keyed by login_as + permissions hash
+        $loginAs = session()->has("login_as") ? session("login_as") : "client";
+        $permissions = app()->bound('permissions') ? app('permissions') : [];
+        $cacheKey = $loginAs . ':' . md5(serialize($permissions));
+
+        if (session('_sidebar_cache_key') === $cacheKey && session('_sidebar_cache')) {
+            view()->share('sidebar', session('_sidebar_cache'));
+            return;
+        }
+
         $modules = \Module::all();
         $sidebar_top = [];
         $sidebar_bottom = [];
@@ -386,10 +401,78 @@ class Authentication
         uasort($sidebar_top, 'cmp_sidebar');
         uasort($sidebar_bottom, 'cmp_sidebar');
 
-        view()->share('sidebar', [
+        $sidebar = [
             'top' => array_values($sidebar_top),
             'bottom' => array_values($sidebar_bottom),
+        ];
+
+        // Cache in session for Livewire fast-path and page reload reuse
+        session(['_sidebar_cache' => $sidebar, '_sidebar_cache_key' => $cacheKey]);
+
+        view()->share('sidebar', $sidebar);
+    }
+
+    /**
+     * Fast-path for Livewire update requests.
+     * Skips sidebar building, module boot files, and quota resets.
+     */
+    protected function handleLivewireUpdate(Request $request, Closure $next): Response
+    {
+        $user_id = Auth::id();
+        $user = Auth::user();
+
+        if ($user->status == 0 && $user->role == 1) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect()->route("home");
+        }
+
+        // Timezone
+        $timezone = $user->timezone ?? config('app.timezone');
+        if (!$this->isValidTimezone($timezone)) {
+            $timezone = 'UTC';
+        }
+        config(['app.timezone' => $timezone]);
+        date_default_timezone_set($timezone);
+
+        // Fast team resolution via session PK lookup
+        $current_team_id = session('current_team_id');
+        $team = $current_team_id ? Teams::find($current_team_id) : null;
+
+        if (!$team) {
+            $team = Teams::where("owner", $user_id)->first();
+        }
+
+        if (!$team) {
+            return response()->json(['error' => 'No team'], 403);
+        }
+
+        // Permissions are still needed for Gate definitions
+        self::checkPermissions($user, $team);
+
+        $request->team_id = $team->id;
+        $request->team = $team;
+        request()->merge(['team' => $team, 'team_id' => $team->id]);
+        view()->share("user", $user);
+        view()->share("team", $team);
+
+        // Share cached sidebar so Livewire components that reference it don't break
+        $cachedSidebar = session('_sidebar_cache');
+        if ($cachedSidebar) {
+            view()->share('sidebar', $cachedSidebar);
+        }
+
+        \Script::define('VARIABLES', [
+            'csrf' => csrf_token(),
+            'url' => rtrim(url('/'), '/') . '/',
+            'theme_asset' => theme_public_asset(''),
+            'lang' => strtolower(app()->getLocale()),
+            'format_date' => dateFormatJs(),
+            'format_datetime' => dateTimeFormatJs(),
         ]);
+
+        return $next($request);
     }
 
     protected function isValidTimezone($tz)

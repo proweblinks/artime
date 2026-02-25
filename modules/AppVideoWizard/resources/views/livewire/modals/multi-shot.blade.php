@@ -1255,7 +1255,7 @@ window.multiShotVideoPolling = function() {
                                             $remainingMin = floor($remainingSecs / 60);
                                             $remainingSecRem = $remainingSecs % 60;
                                         @endphp
-                                        <div class="msm-render-status msm-render-status-enhanced" wire:poll.5s>
+                                        <div class="msm-render-status msm-render-status-enhanced" wire:poll.15s.visible>
                                             <div class="msm-render-header">
                                                 <span class="msm-render-provider">
                                                     🎬 Seedance

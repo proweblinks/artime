@@ -101,7 +101,7 @@
                     <input
                         type="checkbox"
                         x-model="smartAudioEnabled"
-                        wire:model.live="assembly.audioMix.smartAudio"
+                        wire:model.live.debounce.300ms="assembly.audioMix.smartAudio"
                     >
                     <span class="vw-toggle-slider"></span>
                 </label>
@@ -191,7 +191,7 @@
                 <label class="vw-toggle-switch small">
                     <input
                         type="checkbox"
-                        wire:model.live="assembly.audioMix.ducking"
+                        wire:model.live.debounce.300ms="assembly.audioMix.ducking"
                         {{ ($assembly['audioMix']['ducking'] ?? true) ? 'checked' : '' }}
                     >
                     <span class="vw-toggle-slider"></span>
@@ -250,7 +250,7 @@
                     <label class="vw-toggle-switch small">
                         <input
                             type="checkbox"
-                            wire:model.live="assembly.audioMix.normalize"
+                            wire:model.live.debounce.300ms="assembly.audioMix.normalize"
                             {{ ($assembly['audioMix']['normalize'] ?? true) ? 'checked' : '' }}
                         >
                         <span class="vw-toggle-slider"></span>
@@ -265,7 +265,7 @@
                     <label class="vw-toggle-switch small">
                         <input
                             type="checkbox"
-                            wire:model.live="assembly.audioMix.noiseReduction"
+                            wire:model.live.debounce.300ms="assembly.audioMix.noiseReduction"
                             {{ ($assembly['audioMix']['noiseReduction'] ?? false) ? 'checked' : '' }}
                         >
                         <span class="vw-toggle-slider"></span>
@@ -280,7 +280,7 @@
                     <label class="vw-toggle-switch small">
                         <input
                             type="checkbox"
-                            wire:model.live="assembly.audioMix.voiceEnhance"
+                            wire:model.live.debounce.300ms="assembly.audioMix.voiceEnhance"
                             {{ ($assembly['audioMix']['voiceEnhance'] ?? false) ? 'checked' : '' }}
                         >
                         <span class="vw-toggle-slider"></span>
@@ -320,7 +320,7 @@
             <label class="vw-toggle-switch">
                 <input
                     type="checkbox"
-                    wire:model.live="assembly.music.enabled"
+                    wire:model.live.debounce.300ms="assembly.music.enabled"
                     x-on:change="musicEnabled = $event.target.checked; updateMusicSetting('enabled', $event.target.checked)"
                     {{ ($assembly['music']['enabled'] ?? false) ? 'checked' : '' }}
                 >
@@ -376,7 +376,7 @@
             <div class="vw-fade-controls">
                 <div class="vw-fade-item">
                     <label>{{ __('Fade In') }}</label>
-                    <select wire:model.live="assembly.music.fadeIn" class="vw-select-sm">
+                    <select wire:model="assembly.music.fadeIn" class="vw-select-sm">
                         <option value="0">{{ __('None') }}</option>
                         <option value="1">1s</option>
                         <option value="2">2s</option>
@@ -386,7 +386,7 @@
                 </div>
                 <div class="vw-fade-item">
                     <label>{{ __('Fade Out') }}</label>
-                    <select wire:model.live="assembly.music.fadeOut" class="vw-select-sm">
+                    <select wire:model="assembly.music.fadeOut" class="vw-select-sm">
                         <option value="0">{{ __('None') }}</option>
                         <option value="2">2s</option>
                         <option value="3">3s</option>
@@ -404,7 +404,7 @@
                 <label class="vw-toggle-switch small">
                     <input
                         type="checkbox"
-                        wire:model.live="assembly.music.loop"
+                        wire:model.live.debounce.300ms="assembly.music.loop"
                         {{ ($assembly['music']['loop'] ?? true) ? 'checked' : '' }}
                     >
                     <span class="vw-toggle-slider"></span>

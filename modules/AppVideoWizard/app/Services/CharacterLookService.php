@@ -251,7 +251,7 @@ class CharacterLookService
         'neutral' => [
             'description' => 'relaxed neutral expression, natural resting face',
             'face' => 'relaxed jaw and brow, natural lip position',
-            'eyes' => 'calm direct gaze, natural eyelid position',
+            'eyes' => 'natural relaxed gaze, looking ahead naturally, natural eyelid position',
         ],
         'subtle_smile' => [
             'description' => 'gentle hint of smile, warmth without full grin',

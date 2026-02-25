@@ -1,5 +1,7 @@
 {{-- Step 4: Storyboard - Full Screen Layout --}}
-@include("appvideowizard::livewire.partials._storyboard-styles")
+@assets
+<link rel="stylesheet" href="{{ asset('modules/appvideowizard/css/storyboard-styles.css') }}">
+@endassets
 
 @php
 // PHASE 6: Shot type badge helper functions

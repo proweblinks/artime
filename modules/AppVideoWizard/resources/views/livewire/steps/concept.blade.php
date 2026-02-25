@@ -783,7 +783,7 @@
         </div>
 
         {{-- Genre Selection --}}
-        @if(!empty($genrePresets))
+        @if(!empty($this->genrePresets))
         <div class="vw-genre-section"
              x-data="{
                  get primary() { return $wire.$get('content.genres.primary') },
@@ -798,7 +798,7 @@
 
             {{-- Primary Genre Grid --}}
             <div class="vw-genre-grid">
-                @foreach($genrePresets as $preset)
+                @foreach($this->genrePresets as $preset)
                     <div class="vw-genre-chip {{ ($content['genres']['primary'] ?? null) === $preset['slug'] ? 'primary-selected' : '' }}"
                          wire:click="selectPrimaryGenre('{{ $preset['slug'] }}')"
                          title="{{ $preset['description'] ?? $preset['style'] ?? '' }}">
@@ -811,11 +811,11 @@
             </div>
 
             {{-- Sub-genre Modifiers (visible after primary selected) --}}
-            @if(!empty($content['genres']['primary']) && !empty($genreModifiers))
+            @if(!empty($content['genres']['primary']) && !empty($this->genreModifiers))
                 <div class="vw-genre-divider"></div>
                 <div class="vw-modifier-label">{{ __('Add flavor') }} <span style="font-weight:400;text-transform:none;">({{ __('up to 3') }})</span></div>
                 <div class="vw-genre-grid">
-                    @foreach($genreModifiers as $modifier)
+                    @foreach($this->genreModifiers as $modifier)
                         @php
                             $isSelected = in_array($modifier['slug'], $content['genres']['subgenres'] ?? []);
                             $isDisabled = !$isSelected && count($content['genres']['subgenres'] ?? []) >= 3;
@@ -835,8 +835,8 @@
             {{-- Blend Preview --}}
             @if(!empty($content['genres']['primary']) && !empty($content['genres']['subgenres']))
                 @php
-                    $primaryName = collect($genrePresets)->firstWhere('slug', $content['genres']['primary'])['name'] ?? ucwords(str_replace('-', ' ', $content['genres']['primary']));
-                    $subNames = collect($genreModifiers)
+                    $primaryName = collect($this->genrePresets)->firstWhere('slug', $content['genres']['primary'])['name'] ?? ucwords(str_replace('-', ' ', $content['genres']['primary']));
+                    $subNames = collect($this->genreModifiers)
                         ->whereIn('slug', $content['genres']['subgenres'])
                         ->pluck('name')
                         ->toArray();

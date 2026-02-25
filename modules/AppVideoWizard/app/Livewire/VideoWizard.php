@@ -23228,9 +23228,11 @@ PROMPT;
             'characters' => $beatShot['characters'] ?? [],
             'mood' => $beatShot['emotion'] ?? '',
         ];
+        $rawCameraMovement = $engineShot['cameraMovement'] ?? 'smooth camera movement';
+        $cameraMovementStr = is_array($rawCameraMovement) ? ($rawCameraMovement['type'] ?? 'smooth camera movement') : $rawCameraMovement;
         $engineShot['videoPrompt'] = $this->getMotionDescriptionForShot(
             $engineShot['type'],
-            $engineShot['cameraMovement'],
+            $cameraMovementStr,
             $uniqueVisual,
             $shotContext
         );
@@ -23768,7 +23770,8 @@ PROMPT;
             'narration' => $sceneContext['narration'] ?? '',
             'mood' => $sceneContext['mood'] ?? '',
         ];
-        $cameraMovement = $shot['cameraMovement'] ?? 'static';
+        $rawCameraMovement = $shot['cameraMovement'] ?? 'static';
+        $cameraMovement = is_array($rawCameraMovement) ? ($rawCameraMovement['type'] ?? 'static') : $rawCameraMovement;
         $shot['videoPrompt'] = $this->getMotionDescriptionForShot($shotType, $cameraMovement, $fallbackDesc, $shotContext);
         $shot['narrativeBeat']['motionDescription'] = $shot['videoPrompt'];
 
@@ -23836,7 +23839,9 @@ PROMPT;
             'mood' => $beatShot['emotion'] ?? '',
             'narration' => '',
         ];
-        $shot['videoPrompt'] = $this->getMotionDescriptionForShot($shotType, $shot['cameraMovement'], $uniqueVisual, $shotContext);
+        $rawCamMove = $shot['cameraMovement'] ?? 'smooth camera movement';
+        $camMoveStr = is_array($rawCamMove) ? ($rawCamMove['type'] ?? 'smooth camera movement') : $rawCamMove;
+        $shot['videoPrompt'] = $this->getMotionDescriptionForShot($shotType, $camMoveStr, $uniqueVisual, $shotContext);
         $shot['narrativeBeat'] = ['motionDescription' => $shot['videoPrompt']];
 
         return $shot;
@@ -23991,9 +23996,11 @@ PROMPT;
             'mood' => $shot['mood'] ?? '',
             'narration' => $shot['narration'] ?? '',
         ];
+        $rawCamMoveEnrich = $shot['cameraMovement'] ?? 'smooth camera movement';
+        $camMoveStrEnrich = is_array($rawCamMoveEnrich) ? ($rawCamMoveEnrich['type'] ?? 'smooth camera movement') : $rawCamMoveEnrich;
         $shot['videoPrompt'] = $this->getMotionDescriptionForShot(
             $shot['type'],
-            $shot['cameraMovement'],
+            $camMoveStrEnrich,
             $shot['uniqueVisualDescription'] ?? $shot['description'] ?? '',
             $shotContext
         );

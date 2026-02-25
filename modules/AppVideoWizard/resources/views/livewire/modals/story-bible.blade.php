@@ -510,7 +510,7 @@
                         </div>
                         <label style="position: relative; display: inline-block; width: 44px; height: 24px;">
                             <input type="checkbox"
-                                   wire:model.live="storyBible.cinematography.autoDetect"
+                                   wire:model.live.debounce.300ms="storyBible.cinematography.autoDetect"
                                    style="opacity: 0; width: 0; height: 0;">
                             <span style="position: absolute; cursor: pointer; inset: 0; background: {{ ($storyBible['cinematography']['autoDetect'] ?? true) ? 'linear-gradient(135deg, #ec4899, #f97316)' : 'var(--vw-border)' }}; border-radius: 24px; transition: 0.3s;"></span>
                             <span style="position: absolute; left: {{ ($storyBible['cinematography']['autoDetect'] ?? true) ? '22px' : '2px' }}; top: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: 0.3s;"></span>
@@ -525,19 +525,19 @@
                                 $globalRules = $storyBible['cinematography']['globalRules'] ?? [];
                             @endphp
                             <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.02); border: 1px solid var(--vw-border); border-radius: 0.375rem; cursor: pointer;">
-                                <input type="checkbox" wire:model.live="storyBible.cinematography.globalRules.enforce180Rule"
+                                <input type="checkbox" wire:model.live.debounce.300ms="storyBible.cinematography.globalRules.enforce180Rule"
                                        {{ ($globalRules['enforce180Rule'] ?? true) ? 'checked' : '' }}
                                        style="accent-color: #ec4899;">
                                 <span style="color: var(--vw-text); font-size: 0.75rem;">{{ __('Enforce 180° Rule') }}</span>
                             </label>
                             <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.02); border: 1px solid var(--vw-border); border-radius: 0.375rem; cursor: pointer;">
-                                <input type="checkbox" wire:model.live="storyBible.cinematography.globalRules.enforceEyeline"
+                                <input type="checkbox" wire:model.live.debounce.300ms="storyBible.cinematography.globalRules.enforceEyeline"
                                        {{ ($globalRules['enforceEyeline'] ?? true) ? 'checked' : '' }}
                                        style="accent-color: #ec4899;">
                                 <span style="color: var(--vw-text); font-size: 0.75rem;">{{ __('Maintain Eyeline Match') }}</span>
                             </label>
                             <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.02); border: 1px solid var(--vw-border); border-radius: 0.375rem; cursor: pointer;">
-                                <input type="checkbox" wire:model.live="storyBible.cinematography.globalRules.enforceMatchCuts"
+                                <input type="checkbox" wire:model.live.debounce.300ms="storyBible.cinematography.globalRules.enforceMatchCuts"
                                        {{ ($globalRules['enforceMatchCuts'] ?? true) ? 'checked' : '' }}
                                        style="accent-color: #ec4899;">
                                 <span style="color: var(--vw-text); font-size: 0.75rem;">{{ __('Match Action Across Cuts') }}</span>
@@ -557,7 +557,7 @@
                         <div style="padding: 0.75rem; background: rgba(0,0,0,0.02); border: 1px solid var(--vw-border); border-radius: 0.5rem;">
                             <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
                                 <span style="color: var(--vw-text); font-size: 0.75rem;">{{ __('Default Pattern:') }}</span>
-                                <select wire:model.live="storyBible.cinematography.dialogueSettings.defaultPattern"
+                                <select wire:model="storyBible.cinematography.dialogueSettings.defaultPattern"
                                         style="flex: 1; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.75rem;">
                                     <option value="shot_reverse_shot">{{ __('Shot/Reverse Shot (Standard)') }}</option>
                                     <option value="over_shoulder">{{ __('Over-the-Shoulder') }}</option>
@@ -567,12 +567,12 @@
                             </div>
                             <div style="display: flex; gap: 1rem;">
                                 <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                    <input type="checkbox" wire:model.live="storyBible.cinematography.dialogueSettings.insertReactions"
+                                    <input type="checkbox" wire:model.live.debounce.300ms="storyBible.cinematography.dialogueSettings.insertReactions"
                                            style="accent-color: #ec4899;">
                                     <span style="color: var(--vw-text); font-size: 0.7rem;">{{ __('Auto-insert reaction shots') }}</span>
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                    <input type="checkbox" wire:model.live="storyBible.cinematography.dialogueSettings.matchEyelines"
+                                    <input type="checkbox" wire:model.live.debounce.300ms="storyBible.cinematography.dialogueSettings.matchEyelines"
                                            style="accent-color: #ec4899;">
                                     <span style="color: var(--vw-text); font-size: 0.7rem;">{{ __('Match character eyelines') }}</span>
                                 </label>
@@ -586,7 +586,7 @@
                         <div style="padding: 0.75rem; background: rgba(0,0,0,0.02); border: 1px solid var(--vw-border); border-radius: 0.5rem;">
                             <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
                                 <span style="color: var(--vw-text); font-size: 0.75rem;">{{ __('Default Pattern:') }}</span>
-                                <select wire:model.live="storyBible.cinematography.actionSettings.defaultPattern"
+                                <select wire:model="storyBible.cinematography.actionSettings.defaultPattern"
                                         style="flex: 1; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.75rem;">
                                     <option value="action_reaction">{{ __('Action/Reaction (Standard)') }}</option>
                                     <option value="object_reveal">{{ __('Object Reveal (Amulet Pattern)') }}</option>
@@ -596,12 +596,12 @@
                             </div>
                             <div style="display: flex; gap: 1rem;">
                                 <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                    <input type="checkbox" wire:model.live="storyBible.cinematography.actionSettings.useInsertShots"
+                                    <input type="checkbox" wire:model.live.debounce.300ms="storyBible.cinematography.actionSettings.useInsertShots"
                                            style="accent-color: #ec4899;">
                                     <span style="color: var(--vw-text); font-size: 0.7rem;">{{ __('Use insert shots for objects') }}</span>
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                    <input type="checkbox" wire:model.live="storyBible.cinematography.actionSettings.matchAction"
+                                    <input type="checkbox" wire:model.live.debounce.300ms="storyBible.cinematography.actionSettings.matchAction"
                                            style="accent-color: #ec4899;">
                                     <span style="color: var(--vw-text); font-size: 0.7rem;">{{ __('Match action across cuts') }}</span>
                                 </label>

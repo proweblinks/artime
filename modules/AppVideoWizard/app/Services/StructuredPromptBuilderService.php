@@ -2064,115 +2064,107 @@ class StructuredPromptBuilderService
      */
     public function toPromptString(array $structuredPrompt): string
     {
+        // =====================================================================
+        // SEEDANCE 2.0 COMPLIANT PROMPT STRUCTURE
+        // Order: SCENE ACTION → SUBJECT → CAMERA → ENVIRONMENT → STYLE
+        // This is a FILM FRAME, not a portrait photo.
+        // =====================================================================
         $parts = [];
 
-        // Get visual mode to enforce realism upfront
         $visualMode = $structuredPrompt['meta_data']['visual_mode'] ?? 'cinematic-realistic';
         $promptType = $structuredPrompt['meta_data']['prompt_type'] ?? '';
-
-        // CRITICAL: Add strong realism enforcement at the very start of prompt
-        // This ensures the AI model prioritizes photorealism above all else
-        if ($promptType === 'photorealistic_cinematic' || $visualMode === 'cinematic-realistic') {
-            $parts[] = 'PHOTOREALISTIC ONLY - Ultra-realistic photograph, indistinguishable from real camera footage, NOT CGI, NOT illustration, NOT 3D render, NOT digital art';
-        } elseif ($promptType === 'photorealistic_documentary' || $visualMode === 'documentary-realistic') {
-            $parts[] = 'DOCUMENTARY PHOTOGRAPH - Real candid photograph, authentic moment captured, NOT staged, NOT CGI, NOT illustration';
-        }
-
-        // Opening with quality and style
-        $techSpecs = $structuredPrompt['technical_specifications'] ?? [];
-        $parts[] = $techSpecs['quality'] ?? '8K UHD, photorealistic';
-
-        // Camera setup
-        if (!empty($techSpecs['camera'])) {
-            $parts[] = $techSpecs['camera'];
-        }
-
-        // Scene summary
         $creative = $structuredPrompt['creative_prompt'] ?? [];
+        $techSpecs = $structuredPrompt['technical_specifications'] ?? [];
+        $subject = $creative['subject'] ?? [];
+        $composition = $creative['composition'] ?? [];
+        $environment = $creative['environment'] ?? [];
+        $lighting = $creative['lighting_and_atmosphere'] ?? [];
+        $shotType = $composition['shot_type'] ?? 'standard';
+        $isCloseShot = in_array($shotType, ['close-up', 'extreme-close-up', 'reaction', 'detail', 'insert']);
+
+        // ── PHASE 1: CINEMATIC CONTEXT (brief, sets the frame) ──
+        $parts[] = 'Cinematic film frame, photorealistic, shot on professional cinema camera';
+
+        // ── PHASE 2: SCENE ACTION (what is HAPPENING — the story beat) ──
+        // This is the MOST IMPORTANT part — what the viewer should understand
         if (!empty($creative['scene_summary'])) {
             $parts[] = $creative['scene_summary'];
         }
 
-        // SHOT COMPOSITION - Critical framing instructions for multi-shot sequences
-        $composition = $creative['composition'] ?? [];
+        // ── PHASE 3: SUBJECT performing ACTION (Seedance: Subject + Action) ──
+        if (!empty($subject['description'])) {
+            $actionParts = [];
+
+            // STORY ACTION FIRST — what the character is DOING
+            if (!empty($subject['story_action'])) {
+                $actionParts[] = $subject['description'] . ' ' . $subject['story_action'];
+            } else {
+                $actionParts[] = $subject['description'];
+            }
+
+            // Body language reinforces the action
+            if (!empty($subject['body_language'])) {
+                $actionParts[] = $subject['body_language'];
+            }
+
+            // Micro-action adds realism
+            if (!empty($subject['micro_action'])) {
+                $actionParts[] = $subject['micro_action'];
+            }
+
+            // Expression supports the emotion
+            if (!empty($subject['expression'])) {
+                $actionParts[] = $subject['expression'];
+            }
+
+            // Attire for character identification (brief)
+            if (!empty($subject['attire'])) {
+                $actionParts[] = 'wearing ' . $subject['attire'];
+            }
+
+            // Secondary characters and their interaction
+            if (!empty($subject['secondary_subjects'])) {
+                $actionParts[] = 'also featuring ' . $subject['secondary_subjects'];
+            }
+
+            $parts[] = implode(', ', array_filter($actionParts));
+        }
+
+        // ANTI-PORTRAIT GUARD: Characters must NOT look at camera
+        $parts[] = 'Characters are engaged in the scene action, NOT looking at the camera, NOT posing. Eyes focused on what they are doing. This is a film frame captured mid-action, not a portrait photograph';
+
+        // Character count instruction
+        if (!empty($subject['character_count_instruction'])) {
+            $parts[] = $subject['character_count_instruction'];
+        }
+
+        // ── PHASE 4: CAMERA & FRAMING (Seedance: Camera) ──
         if (!empty($composition['composition_instruction'])) {
-            // Add composition as HIGH PRIORITY instruction
-            $parts[] = '[FRAMING: ' . $composition['composition_instruction'] . ']';
+            $parts[] = $composition['composition_instruction'];
         }
-        if (!empty($composition['framing'])) {
-            $parts[] = $composition['framing'];
-        }
-        if (!empty($composition['subject_scale'])) {
-            $parts[] = $composition['subject_scale'];
+        if (!empty($techSpecs['camera'])) {
+            $parts[] = $techSpecs['camera'];
         }
         if (!empty($composition['depth_of_field'])) {
             $parts[] = $composition['depth_of_field'];
         }
 
-        // Subject details
-        $subject = $creative['subject'] ?? [];
-        if (!empty($subject['description'])) {
-            $subjectParts = ['featuring ' . $subject['description']];
-            if (!empty($subject['physical_details'])) {
-                $subjectParts[] = $subject['physical_details'];
-            }
-            if (!empty($subject['expression'])) {
-                $subjectParts[] = $subject['expression'];
-            }
-            if (!empty($subject['attire'])) {
-                $subjectParts[] = 'wearing ' . $subject['attire'];
-            }
-            if (!empty($subject['pose'])) {
-                $subjectParts[] = $subject['pose'];
-            }
-            if (!empty($subject['micro_action'])) {
-                $subjectParts[] = $subject['micro_action'];
-            }
-            // =================================================================
-            // PHASE 1: Include story action and body language
-            // =================================================================
-            if (!empty($subject['story_action'])) {
-                $subjectParts[] = $subject['story_action'];
-            }
-            if (!empty($subject['body_language'])) {
-                $subjectParts[] = $subject['body_language'];
-            }
-            // Include secondary characters (if multiple characters in scene)
-            if (!empty($subject['secondary_subjects'])) {
-                $subjectParts[] = 'also featuring ' . $subject['secondary_subjects'];
-            }
-            $parts[] = implode(', ', array_filter($subjectParts));
+        // Hollywood camera language
+        if (!empty($creative['camera_language'])) {
+            $parts[] = $creative['camera_language'];
+        }
+        if (!empty($creative['framing_technical'])) {
+            $parts[] = $creative['framing_technical'];
         }
 
-        // =================================================================
-        // PHASE 1: Character count instruction (duplicate prevention)
-        // =================================================================
-        if (!empty($subject['character_count_instruction'])) {
-            $parts[] = $subject['character_count_instruction'];
-        }
-
-        // Environment - respect shot composition for background treatment
-        $environment = $creative['environment'] ?? [];
-        $backgroundTreatment = $composition['background_treatment'] ?? '';
-        $shotType = $composition['shot_type'] ?? 'standard';
-
-        // For close-ups and extreme close-ups, minimize environment details
-        $isCloseShot = in_array($shotType, ['close-up', 'extreme-close-up', 'reaction', 'detail', 'insert']);
-
+        // ── PHASE 5: ENVIRONMENT (where it happens) ──
         if (!empty($environment['location']) || !empty($environment['background'])) {
             $envParts = [];
-
-            // Always include location context, but frame it appropriately
             if (!empty($environment['location'])) {
-                if ($isCloseShot) {
-                    // For close shots, just mention location without detail
-                    $envParts[] = 'location: ' . $environment['location'] . ' (blurred background)';
-                } else {
-                    $envParts[] = 'set in ' . $environment['location'];
-                }
+                $envParts[] = $isCloseShot
+                    ? $environment['location'] . ', shallow depth of field'
+                    : $environment['location'];
             }
-
-            // Only add detailed background for wide/medium shots
             if (!$isCloseShot) {
                 if (!empty($environment['background'])) {
                     $envParts[] = $environment['background'];
@@ -2181,17 +2173,14 @@ class StructuredPromptBuilderService
                     $envParts[] = $environment['details'];
                 }
             }
-
-            // Add background treatment instruction if specified
+            $backgroundTreatment = $composition['background_treatment'] ?? '';
             if (!empty($backgroundTreatment)) {
-                $envParts[] = 'Background: ' . $backgroundTreatment;
+                $envParts[] = $backgroundTreatment;
             }
-
             $parts[] = implode(', ', array_filter($envParts));
         }
 
-        // Lighting and atmosphere
-        $lighting = $creative['lighting_and_atmosphere'] ?? [];
+        // ── PHASE 6: STYLE (lighting, color, mood — Seedance: Style) ──
         if (!empty($lighting['lighting'])) {
             $parts[] = $lighting['lighting'];
         }
@@ -2201,31 +2190,16 @@ class StructuredPromptBuilderService
         if (!empty($lighting['mood'])) {
             $parts[] = $lighting['mood'] . ' mood';
         }
-
-        // =================================================================
-        // PHASE 22: Hollywood-quality vocabulary integration
-        // =================================================================
-        // Add lens psychology with emotional reasoning
-        if (!empty($creative['camera_language'])) {
-            $parts[] = '[LENS: ' . $creative['camera_language'] . ']';
-        }
-
-        // Add technical lighting with Kelvin values and stop ratios
         if (!empty($creative['lighting_technical'])) {
-            $parts[] = '[LIGHTING: ' . $creative['lighting_technical'] . ']';
+            $parts[] = $creative['lighting_technical'];
         }
 
-        // Add precise framing with percentages
-        if (!empty($creative['framing_technical'])) {
-            $parts[] = '[FRAME: ' . $creative['framing_technical'] . ']';
-        }
-
-        // Authenticity markers
+        // Authenticity markers (film grain, skin texture — brief)
         if (!empty($creative['authenticity_markers'])) {
             $parts[] = $creative['authenticity_markers'];
         }
 
-        // Focus and technical
+        // Focus
         if (!empty($techSpecs['focus'])) {
             $parts[] = $techSpecs['focus'];
         }
@@ -2233,31 +2207,25 @@ class StructuredPromptBuilderService
         // Combine base prompt
         $basePrompt = implode('. ', array_filter($parts));
 
-        // Add Style DNA for visual consistency enforcement
+        // ── DNA BLOCKS (consistency enforcement) ──
         $styleDNA = $creative['style_dna'] ?? '';
         if (!empty($styleDNA)) {
             $basePrompt .= "\n\n" . $styleDNA;
         }
-
-        // Add Location DNA for environmental consistency enforcement
         $locationDNA = $creative['location_dna'] ?? '';
         if (!empty($locationDNA)) {
             $basePrompt .= "\n\n" . $locationDNA;
         }
-
-        // Add Character DNA blocks for consistency enforcement
         $characterDNA = $creative['character_dna'] ?? [];
         if (!empty($characterDNA)) {
-            $dnaSection = "\n\n" . implode("\n\n", $characterDNA);
-            $basePrompt .= $dnaSection;
+            $basePrompt .= "\n\n" . implode("\n\n", $characterDNA);
         }
 
-        // CRITICAL: Final realism enforcement for photorealistic modes
-        // This ensures the AI model doesn't drift into stylized/CGI territory
+        // ── FINAL: Realism + anti-portrait reinforcement ──
         if ($promptType === 'photorealistic_cinematic' || $visualMode === 'cinematic-realistic') {
-            $basePrompt .= "\n\n[MANDATORY STYLE: This must look like a real photograph taken on a professional cinema camera. Real human skin with pores, real textures, real lighting. NO CGI, NO illustration, NO digital art, NO anime, NO cartoon styling whatsoever.]";
+            $basePrompt .= "\n\n[MANDATORY: Photorealistic cinema quality. Real skin with pores, real textures, natural lighting. Characters must be performing their scene action, NOT posing for a photograph. NO CGI, NO illustration, NO anime.]";
         } elseif ($promptType === 'photorealistic_documentary' || $visualMode === 'documentary-realistic') {
-            $basePrompt .= "\n\n[MANDATORY STYLE: This must look like a real documentary photograph. Authentic, candid, natural. NO stylization, NO CGI effects.]";
+            $basePrompt .= "\n\n[MANDATORY: Documentary photograph. Authentic candid moment. NOT posed. NO stylization.]";
         }
 
         return $basePrompt;

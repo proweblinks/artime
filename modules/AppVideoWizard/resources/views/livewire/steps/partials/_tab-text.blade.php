@@ -35,7 +35,7 @@
         <label class="vw-toggle-switch">
             <input
                 type="checkbox"
-                wire:model.live="assembly.captions.enabled"
+                wire:model.live.debounce.300ms="assembly.captions.enabled"
                 x-on:change="captionsEnabled = $event.target.checked; updateCaptionSetting('enabled', $event.target.checked)"
                 {{ ($assembly['captions']['enabled'] ?? true) ? 'checked' : '' }}
             >
@@ -314,7 +314,7 @@
                     <div class="vw-color-picker-wrap">
                         <input
                             type="color"
-                            wire:model.live="assembly.captions.fillColor"
+                            wire:model.live.debounce.500ms="assembly.captions.fillColor"
                             x-on:change="customColors.fill = $event.target.value; updateCaptionSetting('fillColor', $event.target.value)"
                             value="{{ $assembly['captions']['fillColor'] ?? '#FFFFFF' }}"
                             class="vw-color-picker"
@@ -342,7 +342,7 @@
                     <div class="vw-color-picker-wrap">
                         <input
                             type="color"
-                            wire:model.live="assembly.captions.strokeColor"
+                            wire:model.live.debounce.500ms="assembly.captions.strokeColor"
                             x-on:change="customColors.stroke = $event.target.value; updateCaptionSetting('strokeColor', $event.target.value)"
                             value="{{ $assembly['captions']['strokeColor'] ?? '#000000' }}"
                             class="vw-color-picker"
@@ -373,7 +373,7 @@
                     <div class="vw-color-picker-wrap">
                         <input
                             type="color"
-                            wire:model.live="assembly.captions.highlightColor"
+                            wire:model.live.debounce.500ms="assembly.captions.highlightColor"
                             x-on:change="customColors.highlight = $event.target.value; updateCaptionSetting('highlightColor', $event.target.value)"
                             value="{{ $assembly['captions']['highlightColor'] ?? '#FBBF24' }}"
                             class="vw-color-picker"
@@ -401,7 +401,7 @@
                     <label class="vw-mini-toggle">
                         <input
                             type="checkbox"
-                            wire:model.live="assembly.captions.backgroundEnabled"
+                            wire:model.live.debounce.300ms="assembly.captions.backgroundEnabled"
                             x-on:change="updateCaptionSetting('backgroundEnabled', $event.target.checked)"
                             {{ ($assembly['captions']['backgroundEnabled'] ?? false) ? 'checked' : '' }}
                         >
@@ -413,7 +413,7 @@
                         <div class="vw-color-picker-wrap">
                             <input
                                 type="color"
-                                wire:model.live="assembly.captions.backgroundColor"
+                                wire:model.live.debounce.500ms="assembly.captions.backgroundColor"
                                 x-on:change="customColors.background = $event.target.value; updateCaptionSetting('backgroundColor', $event.target.value)"
                                 value="{{ $assembly['captions']['backgroundColor'] ?? '#000000' }}"
                                 class="vw-color-picker"
@@ -474,7 +474,7 @@
                     <label class="vw-mini-toggle">
                         <input
                             type="checkbox"
-                            wire:model.live="assembly.captions.shadowEnabled"
+                            wire:model.live.debounce.300ms="assembly.captions.shadowEnabled"
                             x-on:change="updateCaptionSetting('shadowEnabled', $event.target.checked)"
                             {{ ($assembly['captions']['shadowEnabled'] ?? true) ? 'checked' : '' }}
                         >
@@ -516,7 +516,7 @@
                     <label class="vw-mini-toggle">
                         <input
                             type="checkbox"
-                            wire:model.live="assembly.captions.glowEnabled"
+                            wire:model.live.debounce.300ms="assembly.captions.glowEnabled"
                             x-on:change="updateCaptionSetting('glowEnabled', $event.target.checked)"
                             {{ ($assembly['captions']['glowEnabled'] ?? false) ? 'checked' : '' }}
                         >
@@ -529,7 +529,7 @@
                             <span class="vw-style-label">{{ __('Glow Color') }}</span>
                             <input
                                 type="color"
-                                wire:model.live="assembly.captions.glowColor"
+                                wire:model.live.debounce.500ms="assembly.captions.glowColor"
                                 x-on:change="updateCaptionSetting('glowColor', $event.target.value)"
                                 value="{{ $assembly['captions']['glowColor'] ?? '#8B5CF6' }}"
                                 class="vw-color-picker small"
