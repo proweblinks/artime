@@ -306,7 +306,12 @@
     @endphp
 
     <div x-show="showTemplatePicker" x-cloak>
-        <div class="cs-bottom-sheet open" x-transition style="z-index: 101; max-height: 70vh; overflow-y: auto;">
+        <div @click.outside="showTemplatePicker = false"
+             x-transition
+             style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 101;
+                    width: 90vw; max-width: 640px; max-height: 70vh; overflow-y: auto;
+                    background: var(--cs-bg-card); border-radius: var(--cs-radius-lg);
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.3); padding: 24px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                 <h3 style="font-size: 16px; font-weight: 600; margin: 0;">{{ __('Choose a Template') }}</h3>
                 <button class="cs-modal-close" @click="showTemplatePicker = false">
@@ -319,7 +324,7 @@
                     <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--cs-text-muted); margin-bottom: 8px;">
                         {{ ucfirst($category) }}
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px;">
                         @foreach($categoryTemplates as $tpl)
                             <button class="cs-btn" style="padding: 10px 6px; text-align: center; border: 1px solid {{ ($creative->layout_template_id ?? 0) === $tpl->id ? 'var(--cs-primary-text)' : 'var(--cs-border)' }}; border-radius: var(--cs-radius-md); font-size: 11px; line-height: 1.3;"
                                     wire:click="changeTemplate({{ $tpl->id }})" @click="showTemplatePicker = false">

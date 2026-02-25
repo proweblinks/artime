@@ -526,7 +526,7 @@ class CompositeRenderer
             };
 
             $fontWeight = in_array($weight, ['bold', 'semibold']) ? 'bold' : 'regular';
-            $fontPath = FontManager::getFontPath($fontFamily, $fontWeight);
+            $fontPath = FontManager::getFontPath($fontFamily, $fontWeight, $text);
 
             $colorMode = $region['color_mode'] ?? 'light';
             $textColor = $this->colors->gdAllocate($this->canvas, $colorMode);
