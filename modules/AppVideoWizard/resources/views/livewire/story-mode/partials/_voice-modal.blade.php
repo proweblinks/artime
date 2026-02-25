@@ -1,7 +1,7 @@
 {{-- Voice Selection Modal --}}
 @if($showVoiceModal)
-<div class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-     style="background: rgba(0,0,0,0.7); z-index: 10100;"
+<div class="d-flex align-items-center justify-content-center"
+     style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 10100;"
      wire:click.self="$set('showVoiceModal', false)">
     <div class="card border-0" style="background: #1a1a1a; border-radius: 16px; width: 480px; max-height: 80vh; overflow-y: auto;">
         <div class="card-header border-0 d-flex align-items-center justify-content-between p-4 pb-2" style="background: transparent;">

@@ -1,13 +1,13 @@
 {{-- Project Detail Overlay --}}
-<div class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-     style="background: rgba(0,0,0,0.85); z-index: 10100;"
+<div class="d-flex align-items-center justify-content-center"
+     style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 10100;"
      wire:click.self="closeProject">
-    <div class="d-flex gap-4" style="max-width: 900px; width: 100%; max-height: 90vh; padding: 20px;">
+    <div class="d-flex gap-4 position-relative" style="max-width: 900px; width: 100%; max-height: 90vh; padding: 20px;">
 
         {{-- Close Button --}}
         <button wire:click="closeProject" type="button"
-                class="btn-close btn-close-white position-absolute"
-                style="top: 20px; right: 20px; z-index: 10110;"></button>
+                class="btn-close btn-close-white"
+                style="position: absolute; top: 8px; right: 8px; z-index: 10110;"></button>
 
         {{-- Video Player Area --}}
         <div class="flex-shrink-0 d-flex align-items-center justify-content-center"
