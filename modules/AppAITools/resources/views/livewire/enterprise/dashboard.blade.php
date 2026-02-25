@@ -6,6 +6,7 @@
             position: relative;
             overflow: hidden;
             padding: 2rem 1.5rem 3rem;
+            background: #0f0a1e;
         }
 
         /* Aurora Background */

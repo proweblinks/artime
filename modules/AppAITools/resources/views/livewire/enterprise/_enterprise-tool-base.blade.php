@@ -47,6 +47,18 @@
     }
 
     /* Enterprise Tool Specific Overrides */
+    .main { background: #0f0a1e !important; }
+    .aith-nav-btn {
+        background: rgba(255,255,255,0.06) !important;
+        border-color: rgba(255,255,255,0.1) !important;
+        color: rgba(255,255,255,0.6) !important;
+        backdrop-filter: none !important;
+        box-shadow: none !important;
+    }
+    .aith-nav-btn:hover {
+        background: rgba(255,255,255,0.12) !important;
+        color: #fff !important;
+    }
     .aith-tool { max-width: 1080px; }
 
     .aith-e-tool-header {
