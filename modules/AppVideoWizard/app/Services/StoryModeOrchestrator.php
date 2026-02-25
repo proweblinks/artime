@@ -26,10 +26,10 @@ class StoryModeOrchestrator
     public function __construct()
     {
         $this->scriptService = new StoryModeScriptService();
-        $this->voiceoverService = new VoiceoverService();
-        $this->imageService = new ImageGenerationService();
-        $this->animationService = new AnimationService();
-        $this->renderService = new VideoRenderService();
+        $this->voiceoverService = app(VoiceoverService::class);
+        $this->imageService = app(ImageGenerationService::class);
+        $this->animationService = app(AnimationService::class);
+        $this->renderService = app(VideoRenderService::class);
     }
 
     /**
