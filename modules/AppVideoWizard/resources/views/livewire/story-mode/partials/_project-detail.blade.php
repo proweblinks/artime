@@ -1,6 +1,6 @@
 {{-- Project Detail Overlay --}}
 <div class="d-flex align-items-center justify-content-center"
-     style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 10100;"
+     style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 10100;"
      wire:click.self="closeProject">
     <div class="d-flex gap-4 position-relative" style="max-width: 900px; width: 100%; max-height: 90vh; padding: 20px;">
 
