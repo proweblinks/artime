@@ -57,15 +57,26 @@ class StoryModeScriptService
         ]);
 
         try {
-            $response = AI::completion(
-                prompt: $compiledPrompt,
-                platform: $engine,
-                model: $model,
-                temperature: 0.7,
-                systemMessage: $systemMessage
+            // Prepend system instruction to the prompt content
+            $fullPrompt = "{$systemMessage}\n\n{$compiledPrompt}";
+
+            $response = AI::processWithOverride(
+                $fullPrompt,
+                $engine,
+                $model,
+                'text',
+                [
+                    'temperature' => 0.7,
+                    'max_tokens' => 4000,
+                ],
+                auth()->user()?->team_id ?? 0
             );
 
-            $content = $response['content'] ?? $response['text'] ?? '';
+            if (!empty($response['error'])) {
+                throw new \Exception('AI error: ' . $response['error']);
+            }
+
+            $content = $response['data'][0] ?? '';
 
             // Parse the JSON response
             $parsed = $this->parseScriptResponse($content);
@@ -143,15 +154,25 @@ Output ONLY valid JSON, no markdown.
 PROMPT;
 
         try {
-            $response = AI::completion(
-                prompt: $prompt,
-                platform: $engine,
-                model: $model,
-                temperature: 0.6,
-                systemMessage: 'You are a visual director. Respond only with valid JSON arrays.'
+            $fullPrompt = "You are a visual director. Respond only with valid JSON arrays.\n\n{$prompt}";
+
+            $response = AI::processWithOverride(
+                $fullPrompt,
+                $engine,
+                $model,
+                'text',
+                [
+                    'temperature' => 0.6,
+                    'max_tokens' => 4000,
+                ],
+                auth()->user()?->team_id ?? 0
             );
 
-            $content = $response['content'] ?? $response['text'] ?? '';
+            if (!empty($response['error'])) {
+                throw new \Exception('AI error: ' . $response['error']);
+            }
+
+            $content = $response['data'][0] ?? '';
             $visualScript = $this->parseJsonResponse($content);
 
             if (!is_array($visualScript)) {
