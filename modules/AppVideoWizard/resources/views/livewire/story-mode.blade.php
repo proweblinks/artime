@@ -45,14 +45,14 @@
         @include('appvideowizard::livewire.story-mode.partials._style-picker')
 
         {{-- Input Area --}}
-        <div class="card border-0 mb-4" style="background: #1a1a1a; border-radius: 12px;">
-            <div class="card-body p-4">
+        <div class="border-0 mb-4 p-4" style="background: #1a1a1a !important; border-radius: 12px;" x-data="{ promptText: @entangle('prompt') }">
                 <textarea
-                    wire:model.defer="prompt"
-                    class="form-control border-0 bg-transparent text-white"
+                    x-model="promptText"
+                    wire:model.live.debounce.500ms="prompt"
+                    class="form-control border-0 text-white"
                     rows="4"
                     placeholder="{{ __('Describe the video you want to make...') }}"
-                    style="resize: none; font-size: 1rem; line-height: 1.6; box-shadow: none;"
+                    style="resize: none; font-size: 1rem; line-height: 1.6; box-shadow: none; background: transparent !important;"
                     {{ $isGeneratingScript ? 'disabled' : '' }}
                 ></textarea>
 
@@ -61,7 +61,7 @@
                     <div class="d-flex align-items-center gap-3">
                         {{-- Aspect Ratio --}}
                         <select wire:model="aspectRatio" class="form-select form-select-sm border-0"
-                                style="width: auto; background: #2a2a2a; color: #ccc; border-radius: 8px; font-size: 0.8rem;">
+                                style="width: auto; background: #2a2a2a !important; color: #ccc; border-radius: 8px; font-size: 0.8rem;">
                             <option value="9:16">9:16</option>
                             <option value="16:9">16:9</option>
                             <option value="1:1">1:1</option>
@@ -70,7 +70,7 @@
                         {{-- Voice Button --}}
                         <button wire:click="openVoiceModal" type="button"
                                 class="btn btn-sm border-0 d-flex align-items-center gap-1"
-                                style="background: #2a2a2a; color: #ccc; border-radius: 8px; font-size: 0.8rem;">
+                                style="background: #2a2a2a !important; color: #ccc; border-radius: 8px; font-size: 0.8rem;">
                             <i class="fa-light fa-microphone"></i>
                             <span>{{ $selectedVoice === 'auto' ? __('Voice') : $selectedVoice }}</span>
                         </button>
@@ -79,8 +79,8 @@
                     {{-- Submit Button --}}
                     <button wire:click="submitPrompt" type="button"
                             class="btn d-flex align-items-center justify-content-center"
-                            style="width: 42px; height: 42px; border-radius: 50%; background: {{ strlen($prompt) > 9 ? '#f97316' : '#333' }}; border: none; color: #fff; transition: background 0.2s;"
-                            {{ strlen($prompt) < 10 || $isGeneratingScript ? 'disabled' : '' }}>
+                            :style="promptText.length > 9 ? 'width:42px;height:42px;border-radius:50%;background:#f97316;border:none;color:#fff' : 'width:42px;height:42px;border-radius:50%;background:#333;border:none;color:#fff'"
+                            :disabled="promptText.length < 10 || {{ $isGeneratingScript ? 'true' : 'false' }}">
                         @if($isGeneratingScript)
                             <i class="fa-light fa-spinner-third fa-spin"></i>
                         @else
@@ -88,7 +88,6 @@
                         @endif
                     </button>
                 </div>
-            </div>
         </div>
 
         {{-- Error Messages --}}
@@ -140,14 +139,19 @@
     <style>
         .story-mode-page {
             min-height: 100vh;
-            background: #0a0a0a;
+            background: #0a0a0a !important;
         }
+        .story-mode-page .form-control,
         .story-mode-page .form-control:focus {
-            box-shadow: none;
-            outline: none;
+            box-shadow: none !important;
+            outline: none !important;
+            background: transparent !important;
         }
         .story-mode-page .form-select:focus {
-            box-shadow: none;
+            box-shadow: none !important;
+        }
+        .story-mode-page .card {
+            background: #1a1a1a !important;
         }
         .style-thumb {
             cursor: pointer;
