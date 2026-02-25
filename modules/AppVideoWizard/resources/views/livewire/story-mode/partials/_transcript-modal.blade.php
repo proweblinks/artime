@@ -1,7 +1,7 @@
 {{-- Transcript Preview/Edit Modal --}}
 @if($showTranscriptModal)
 <div class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-     style="background: rgba(0,0,0,0.7); z-index: 1050;">
+     style="background: rgba(0,0,0,0.7); z-index: 10100;">
     <div class="card border-0" style="background: #1a1a1a; border-radius: 16px; width: 560px; max-height: 85vh; display: flex; flex-direction: column;">
         {{-- Header --}}
         <div class="card-header border-0 d-flex align-items-center justify-content-between p-4 pb-2" style="background: transparent;">
