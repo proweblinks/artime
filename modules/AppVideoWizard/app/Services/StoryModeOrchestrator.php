@@ -377,7 +377,7 @@ class StoryModeOrchestrator
                 $project->updateProgress('assembling', min(99, $mappedProgress), $message);
             };
 
-            $result = $this->renderService->processExport($manifest, $progressCallback);
+            $result = $this->renderService->processStoryModeExport($manifest, $progressCallback);
 
             $videoUrl = $result['outputUrl'] ?? null;
             $videoPath = $result['outputPath'] ?? null;

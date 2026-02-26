@@ -210,6 +210,236 @@ class VideoRenderService
     }
 
     /**
+     * Process a Story Mode export (video clips + voiceover assembly).
+     *
+     * Unlike processExport() which generates Ken Burns from images,
+     * this method handles pre-rendered video clips (from Seedance/etc.)
+     * and concatenates them with voiceover audio.
+     *
+     * @param array $manifest Story mode manifest with scenes containing videoUrl/imageUrl/voiceoverUrl
+     * @param callable|null $progressCallback Callback for progress updates
+     * @return array Result with outputUrl, outputPath, outputSize
+     */
+    public function processStoryModeExport(array $manifest, ?callable $progressCallback = null): array
+    {
+        $jobId = Str::uuid()->toString();
+        $workDir = $this->tempDir . '/story_' . $jobId;
+
+        try {
+            mkdir($workDir, 0755, true);
+            $scenes = $manifest['scenes'] ?? [];
+            $output = $manifest['output'] ?? [];
+            $music = $manifest['music'] ?? null;
+
+            if (empty($scenes)) {
+                throw new Exception('No scenes provided in manifest');
+            }
+
+            $sceneCount = count($scenes);
+            Log::info("[StoryExport:{$jobId}] Starting with {$sceneCount} scenes");
+
+            // Determine target resolution
+            $aspectRatio = $output['aspectRatio'] ?? '9:16';
+            $width = $output['width'] ?? 1080;
+            $height = $output['height'] ?? 1920;
+
+            // Step 1: Download video clips (or images as fallback)
+            $this->updateProgress($progressCallback, 5, 'Downloading video clips...');
+            $clipFiles = [];
+            $voiceoverFiles = [];
+
+            foreach ($scenes as $i => $scene) {
+                $videoUrl = $scene['videoUrl'] ?? null;
+                $imageUrl = $scene['imageUrl'] ?? null;
+                $voiceoverUrl = $scene['voiceoverUrl'] ?? null;
+                $duration = $scene['duration'] ?? 6;
+
+                // Download video clip or image
+                if ($videoUrl) {
+                    $clipPath = "{$workDir}/clip_{$i}.mp4";
+                    try {
+                        $this->downloadFile($videoUrl, $clipPath, $jobId);
+                        $clipFiles[$i] = ['type' => 'video', 'path' => $clipPath, 'duration' => $duration];
+                        Log::debug("[StoryExport:{$jobId}] Downloaded clip {$i}");
+                    } catch (Exception $e) {
+                        Log::warning("[StoryExport:{$jobId}] Failed to download clip {$i}, trying image fallback");
+                        $clipFiles[$i] = null;
+                    }
+                }
+
+                // Fallback to image if no video clip
+                if (empty($clipFiles[$i]) && $imageUrl) {
+                    $ext = str_contains($imageUrl, '.png') ? 'png' : 'jpg';
+                    $imgPath = "{$workDir}/img_{$i}.{$ext}";
+                    try {
+                        $this->downloadFile($imageUrl, $imgPath, $jobId);
+                        $clipFiles[$i] = ['type' => 'image', 'path' => $imgPath, 'duration' => $duration];
+                    } catch (Exception $e) {
+                        Log::error("[StoryExport:{$jobId}] Failed to download image {$i}");
+                        $clipFiles[$i] = null;
+                    }
+                }
+
+                // Download voiceover
+                if ($voiceoverUrl) {
+                    $voicePath = "{$workDir}/voice_{$i}.mp3";
+                    try {
+                        $this->downloadFile($voiceoverUrl, $voicePath, $jobId);
+                        $voiceoverFiles[$i] = $voicePath;
+                    } catch (Exception $e) {
+                        Log::warning("[StoryExport:{$jobId}] Failed to download voiceover {$i}");
+                        $voiceoverFiles[$i] = null;
+                    }
+                }
+
+                $dlProgress = 5 + (int) round(($i / $sceneCount) * 20);
+                $this->updateProgress($progressCallback, $dlProgress, 'Downloading scene ' . ($i + 1) . "/{$sceneCount}...");
+            }
+
+            // Step 2: Normalize and prepare scene videos
+            $this->updateProgress($progressCallback, 30, 'Processing video scenes...');
+            $normalizedClips = [];
+            $renderQuality = $output['renderQuality'] ?? $output['quality'] ?? 'balanced';
+            $settings = $this->qualitySettings[$renderQuality] ?? $this->qualitySettings['balanced'];
+            $fps = $output['fps'] ?? $settings['fps'];
+
+            foreach ($clipFiles as $i => $clip) {
+                if (!$clip) continue;
+
+                $normalizedPath = "{$workDir}/norm_{$i}.mp4";
+
+                if ($clip['type'] === 'video') {
+                    // Normalize video clip: scale to target resolution, set fps, re-encode
+                    $cmd = [
+                        $this->ffmpegPath,
+                        '-i', $clip['path'],
+                        '-vf', "scale={$width}:{$height}:force_original_aspect_ratio=decrease,pad={$width}:{$height}:(ow-iw)/2:(oh-ih)/2:color=black,fps={$fps},setsar=1",
+                        '-c:v', 'libx264',
+                        '-preset', $settings['preset'],
+                        '-crf', $settings['crf'],
+                        '-an',  // Strip audio (we'll add voiceover separately)
+                        '-pix_fmt', 'yuv420p',
+                        '-y',
+                        $normalizedPath,
+                    ];
+                    $this->runCommand($cmd, $jobId, "Normalize clip {$i}");
+                } else {
+                    // Generate Ken Burns from image
+                    $duration = $clip['duration'];
+                    $kb = $scenes[$i]['kenBurns'] ?? [];
+                    $startScale = $kb['startScale'] ?? 1.0;
+                    $endScale = $kb['endScale'] ?? 1.2;
+                    $startX = $kb['startX'] ?? 0.5;
+                    $startY = $kb['startY'] ?? 0.5;
+                    $endX = $kb['endX'] ?? 0.5;
+                    $endY = $kb['endY'] ?? 0.5;
+
+                    $zoompanFps = $settings['zoompanFps'];
+                    $zoompanFrames = (int) round($duration * $zoompanFps);
+                    $progressExpr = "(on/" . ($zoompanFrames - 1) . ")";
+                    $zoomExpr = "{$startScale}+({$endScale}-{$startScale})*{$progressExpr}";
+                    $xExpr = "({$startX}+({$endX}-{$startX})*{$progressExpr})*(iw-iw/zoom)";
+                    $yExpr = "({$startY}+({$endY}-{$startY})*{$progressExpr})*(ih-ih/zoom)";
+
+                    $filter = "scale=8000:-1:flags=lanczos,zoompan=z='{$zoomExpr}':x='{$xExpr}':y='{$yExpr}':d={$zoompanFrames}:s={$width}x{$height}:fps={$zoompanFps},fps={$fps},setsar=1";
+
+                    $cmd = [
+                        $this->ffmpegPath,
+                        '-loop', '1',
+                        '-i', $clip['path'],
+                        '-vf', $filter,
+                        '-t', (string) $duration,
+                        '-c:v', 'libx264',
+                        '-preset', $settings['preset'],
+                        '-crf', $settings['crf'],
+                        '-pix_fmt', 'yuv420p',
+                        '-y',
+                        $normalizedPath,
+                    ];
+                    $this->runCommand($cmd, $jobId, "Ken Burns scene {$i}");
+                }
+
+                if (file_exists($normalizedPath)) {
+                    $normalizedClips[] = $normalizedPath;
+                }
+
+                $normProgress = 30 + (int) round(($i / $sceneCount) * 25);
+                $this->updateProgress($progressCallback, $normProgress, 'Processing scene ' . ($i + 1) . "/{$sceneCount}...");
+            }
+
+            if (empty($normalizedClips)) {
+                throw new Exception('No video clips were produced');
+            }
+
+            // Step 3: Concatenate all video clips
+            $this->updateProgress($progressCallback, 58, 'Joining video clips...');
+            $concatListFile = "{$workDir}/concat_list.txt";
+            $concatContent = [];
+            foreach ($normalizedClips as $clipPath) {
+                $concatContent[] = "file '{$clipPath}'";
+            }
+            file_put_contents($concatListFile, implode("\n", $concatContent));
+
+            $concatenatedVideo = "{$workDir}/concatenated.mp4";
+            $cmd = [
+                $this->ffmpegPath,
+                '-f', 'concat',
+                '-safe', '0',
+                '-i', $concatListFile,
+                '-c', 'copy',
+                '-movflags', '+faststart',
+                '-y',
+                $concatenatedVideo,
+            ];
+            $this->runCommand($cmd, $jobId, 'Concat clips');
+
+            if (!file_exists($concatenatedVideo)) {
+                throw new Exception('Failed to concatenate video clips');
+            }
+
+            // Step 4: Concatenate voiceovers
+            $this->updateProgress($progressCallback, 65, 'Processing voiceovers...');
+            $voiceoverConcatFile = $this->concatenateVoiceovers($jobId, $scenes, $voiceoverFiles, $workDir);
+
+            // Step 5: Combine video + audio
+            $this->updateProgress($progressCallback, 75, 'Mixing audio...');
+            $finalVideoFile = $this->combineVideoWithAudio(
+                $jobId,
+                $concatenatedVideo,
+                $scenes,
+                $voiceoverFiles,
+                null, // music file - could add later
+                $music['volume'] ?? 0.15,
+                $workDir,
+                $output
+            );
+
+            // Step 6: Upload
+            $this->updateProgress($progressCallback, 92, 'Uploading video...');
+            $result = $this->uploadToStorage(
+                $jobId,
+                $finalVideoFile,
+                $manifest['userId'] ?? 'anonymous',
+                $manifest['projectId'] ?? $jobId
+            );
+
+            $this->cleanupWorkDir($workDir);
+            $this->updateProgress($progressCallback, 100, 'Export complete!');
+
+            Log::info("[StoryExport:{$jobId}] Export completed", $result);
+            return $result;
+
+        } catch (Exception $e) {
+            Log::error("[StoryExport:{$jobId}] Export failed", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            $this->cleanupWorkDir($workDir);
+            throw $e;
+        }
+    }
+
+    /**
      * Process export via Cloud Run service
      *
      * @param array $manifest Export manifest
