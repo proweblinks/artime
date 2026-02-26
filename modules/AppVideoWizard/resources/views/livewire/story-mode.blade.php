@@ -58,13 +58,40 @@
 
                 {{-- Bottom Toolbar --}}
                 <div class="d-flex align-items-center justify-content-between mt-3 pt-3" style="border-top: 1px solid #333;">
-                    <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-3" x-data="{
+                        resolution: @entangle('videoResolution'),
+                        quality: @entangle('videoQuality'),
+                        init() {
+                            this.$watch('quality', (val) => {
+                                if (val === 'fast' && this.resolution === '480p') {
+                                    this.resolution = '720p';
+                                }
+                            });
+                        }
+                    }">
                         {{-- Aspect Ratio --}}
                         <select wire:model="aspectRatio" class="form-select form-select-sm border-0"
                                 style="width: auto; background: #2a2a2a !important; color: #ccc; border-radius: 8px; font-size: 0.8rem;">
                             <option value="9:16">9:16</option>
                             <option value="16:9">16:9</option>
                             <option value="1:1">1:1</option>
+                        </select>
+
+                        {{-- Resolution --}}
+                        <select x-model="resolution" class="form-select form-select-sm border-0"
+                                style="width: auto; background: #2a2a2a !important; color: #ccc; border-radius: 8px; font-size: 0.8rem;">
+                            <template x-if="quality !== 'fast'">
+                                <option value="480p">480p</option>
+                            </template>
+                            <option value="720p">720p</option>
+                            <option value="1080p">1080p</option>
+                        </select>
+
+                        {{-- Quality --}}
+                        <select x-model="quality" class="form-select form-select-sm border-0"
+                                style="width: auto; background: #2a2a2a !important; color: #ccc; border-radius: 8px; font-size: 0.8rem;">
+                            <option value="pro">Pro</option>
+                            <option value="fast">Fast</option>
                         </select>
 
                         {{-- Voice Button --}}
