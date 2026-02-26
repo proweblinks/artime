@@ -53,6 +53,44 @@
                     {{ __('Transcript exceeds maximum word count. Consider shortening for best results.') }}
                 </div>
             @endif
+
+            {{-- Video Settings --}}
+            <div class="d-flex align-items-center gap-3 mt-3 p-3" style="background: #2a2a2a; border-radius: 10px;"
+                 x-data="{
+                     resolution: @entangle('videoResolution'),
+                     quality: @entangle('videoQuality'),
+                     init() {
+                         this.$watch('quality', (val) => {
+                             if (val === 'fast' && this.resolution === '480p') {
+                                 this.resolution = '720p';
+                             }
+                         });
+                     }
+                 }">
+                <div class="d-flex align-items-center gap-2 flex-grow-1">
+                    <i class="fa-light fa-film text-muted" style="font-size: 0.85rem;"></i>
+                    <small class="text-muted" style="white-space: nowrap;">{{ __('Resolution') }}</small>
+                    <select x-model="resolution"
+                            class="form-select form-select-sm border-0 text-white"
+                            style="background: #1a1a1a; border-radius: 6px; font-size: 0.8rem; width: auto; padding: 4px 28px 4px 10px;">
+                        <template x-if="quality !== 'fast'">
+                            <option value="480p">480p</option>
+                        </template>
+                        <option value="720p">720p</option>
+                        <option value="1080p">1080p</option>
+                    </select>
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-grow-1">
+                    <i class="fa-light fa-gauge-high text-muted" style="font-size: 0.85rem;"></i>
+                    <small class="text-muted" style="white-space: nowrap;">{{ __('Quality') }}</small>
+                    <select x-model="quality"
+                            class="form-select form-select-sm border-0 text-white"
+                            style="background: #1a1a1a; border-radius: 6px; font-size: 0.8rem; width: auto; padding: 4px 28px 4px 10px;">
+                        <option value="pro">Pro</option>
+                        <option value="fast">Fast</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
         {{-- Footer --}}

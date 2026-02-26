@@ -630,7 +630,8 @@ class StoryModeOrchestrator
                     'prompt' => $this->buildStoryVideoPrompt($scene, $styleInstruction, $aspectRatio),
                     'duration' => $clipDuration,
                     'sceneIndex' => $i,
-                    'resolution' => '1080p',
+                    'resolution' => $project->metadata['video_resolution'] ?? '480p',
+                    'variant' => $project->metadata['video_quality'] ?? 'pro',
                     'generate_audio' => false,
                 ];
 
@@ -895,7 +896,8 @@ class StoryModeOrchestrator
                     'prompt' => $this->buildStoryVideoPrompt($scene, $styleInstruction, $aspectRatio),
                     'duration' => $clipDuration,
                     'sceneIndex' => $i,
-                    'resolution' => '1080p',
+                    'resolution' => $project->metadata['video_resolution'] ?? '480p',
+                    'variant' => $project->metadata['video_quality'] ?? 'pro',
                     'generate_audio' => false,
                 ];
 

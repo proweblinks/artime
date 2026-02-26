@@ -23,6 +23,8 @@ class StoryMode extends Component
     public string $aspectRatio = '9:16';
     public string $selectedVoice = 'auto';
     public string $voiceProvider = '';
+    public string $videoResolution = '480p';
+    public string $videoQuality = 'pro';
 
     // Transcript editing
     public ?string $editableTranscript = null;
@@ -149,6 +151,8 @@ class StoryMode extends Component
                 'metadata' => [
                     'started_at' => now()->toIso8601String(),
                     'ai_engine' => get_option('story_mode_ai_engine', 'gemini'),
+                    'video_resolution' => $this->videoResolution,
+                    'video_quality' => $this->videoQuality,
                 ],
             ]);
 
