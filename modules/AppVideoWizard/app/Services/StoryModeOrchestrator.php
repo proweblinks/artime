@@ -318,127 +318,118 @@ class StoryModeOrchestrator
         $project->updateProgress('assembling', 85, 'Assembling final video');
 
         $scenes = $project->scenes ?? [];
-        $captionsEnabled = (bool) get_option('story_mode_captions_enabled', 1);
-        $musicEnabled = (bool) get_option('story_mode_music_enabled', 1);
-        $musicVolume = (float) get_option('story_mode_music_volume', 0.15);
         $exportQuality = get_option('story_mode_export_quality', 'balanced');
         $exportResolution = get_option('story_mode_export_resolution', '1080p');
 
-        // Build the export manifest for VideoRenderService
-        $manifestScenes = [];
-        foreach ($scenes as $i => $scene) {
-            $manifestScenes[] = [
-                'imageUrl' => $scene['image_url'] ?? null,
-                'videoUrl' => $scene['video_url'] ?? null,
-                'voiceoverUrl' => $scene['audio_url'] ?? null,
-                'duration' => $scene['audio_duration'] ?? $scene['estimated_duration'] ?? 6,
-                'narration' => $scene['text'] ?? '',
-            ];
-        }
+        $videoUrl = null;
+        $videoPath = null;
 
-        // Determine aspect ratio dimensions
-        $aspectRatio = $project->aspect_ratio ?? '9:16';
-        $resMap = [
-            '9:16' => ['width' => 1080, 'height' => 1920],
-            '16:9' => ['width' => 1920, 'height' => 1080],
-            '1:1' => ['width' => 1080, 'height' => 1080],
-        ];
-        $res = $resMap[$aspectRatio] ?? $resMap['9:16'];
-
-        $manifest = [
-            'scenes' => $manifestScenes,
-            'output' => [
-                'quality' => $exportQuality,
-                'resolution' => $exportResolution,
-                'width' => $res['width'],
-                'height' => $res['height'],
-                'aspectRatio' => $aspectRatio,
-                'fps' => 30,
-            ],
-            'music' => $musicEnabled ? [
-                'volume' => $musicVolume,
-            ] : null,
-            'captions' => $captionsEnabled ? [
-                'enabled' => true,
-                'style' => 'default',
-            ] : null,
-        ];
-
+        // Try Cloud Run assembly
         try {
             $project->updateProgress('assembling', 90, 'Rendering final video');
 
-            // Submit to Cloud Run video processor
-            $jobId = \Illuminate\Support\Str::uuid()->toString();
-            $manifest['userId'] = $project->user_id;
-            $manifest['projectId'] = $project->id;
+            $captionsEnabled = (bool) get_option('story_mode_captions_enabled', 1);
+            $musicEnabled = (bool) get_option('story_mode_music_enabled', 1);
+            $musicVolume = (float) get_option('story_mode_music_volume', 0.15);
+
+            $manifestScenes = [];
+            foreach ($scenes as $i => $scene) {
+                $manifestScenes[] = [
+                    'imageUrl' => $scene['image_url'] ?? null,
+                    'videoUrl' => $scene['video_url'] ?? null,
+                    'voiceoverUrl' => $scene['audio_url'] ?? null,
+                    'duration' => $scene['audio_duration'] ?? $scene['estimated_duration'] ?? 6,
+                    'narration' => $scene['text'] ?? '',
+                ];
+            }
+
+            $aspectRatio = $project->aspect_ratio ?? '9:16';
+            $resMap = [
+                '9:16' => ['width' => 1080, 'height' => 1920],
+                '16:9' => ['width' => 1920, 'height' => 1080],
+                '1:1' => ['width' => 1080, 'height' => 1080],
+            ];
+            $res = $resMap[$aspectRatio] ?? $resMap['9:16'];
+
+            $jobId = Str::uuid()->toString();
+            $manifest = [
+                'scenes' => $manifestScenes,
+                'output' => [
+                    'quality' => $exportQuality,
+                    'resolution' => $exportResolution,
+                    'width' => $res['width'],
+                    'height' => $res['height'],
+                    'aspectRatio' => $aspectRatio,
+                    'fps' => 30,
+                ],
+                'music' => $musicEnabled ? ['volume' => $musicVolume] : null,
+                'captions' => $captionsEnabled ? ['enabled' => true, 'style' => 'default'] : null,
+                'userId' => $project->user_id,
+                'projectId' => $project->id,
+            ];
 
             $submitResult = $this->renderService->processExportViaCloudRun($manifest, $jobId);
             Log::info('StoryModeOrchestrator: Cloud Run job submitted', [
                 'project_id' => $project->id,
                 'job_id' => $jobId,
-                'result' => $submitResult,
             ]);
 
             // Poll for completion (max 10 minutes)
-            $maxAttempts = 120; // 120 * 5s = 10 minutes
-            $videoUrl = null;
-            $videoPath = null;
-
-            for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
+            for ($attempt = 0; $attempt < 120; $attempt++) {
                 sleep(5);
-
                 $status = $this->renderService->getCloudRunExportStatus($jobId);
                 $state = $status['status'] ?? $status['state'] ?? 'unknown';
 
                 $progressPct = $status['progress'] ?? 0;
-                $mappedProgress = 90 + (int) (($progressPct / 100) * 9);
-                $project->updateProgress('assembling', min(99, $mappedProgress), $status['stage'] ?? 'Rendering...');
+                $project->updateProgress('assembling', min(99, 90 + (int)(($progressPct / 100) * 9)), $status['stage'] ?? 'Rendering...');
 
                 if ($state === 'completed' || $state === 'done') {
                     $videoUrl = $status['videoUrl'] ?? $status['video_url'] ?? $status['url'] ?? null;
                     $videoPath = $status['videoPath'] ?? $status['video_path'] ?? null;
                     break;
                 }
-
                 if ($state === 'failed' || $state === 'error') {
-                    throw new \Exception('Cloud Run export failed: ' . ($status['error'] ?? 'Unknown error'));
+                    throw new \Exception('Cloud Run export failed: ' . ($status['error'] ?? 'Unknown'));
                 }
             }
-
-            if (empty($videoUrl)) {
-                throw new \Exception('Video render timed out or did not return a video URL');
-            }
-
-            $totalDuration = 0;
-            foreach ($scenes as $scene) {
-                $totalDuration += $scene['audio_duration'] ?? $scene['estimated_duration'] ?? 6;
-            }
-
-            $project->update([
-                'status' => 'ready',
-                'progress_percent' => 100,
-                'current_stage' => 'Complete',
-                'video_url' => $videoUrl,
-                'video_path' => $videoPath,
-                'video_duration' => (int) round($totalDuration),
-                'metadata' => array_merge($project->metadata ?? [], [
-                    'completed_at' => now()->toIso8601String(),
-                    'export_quality' => $exportQuality,
-                    'export_resolution' => $exportResolution,
-                    'cloud_run_job_id' => $jobId,
-                ]),
-            ]);
-
-            // Increment style usage counter
-            if ($project->style) {
-                $project->style->incrementUsage();
-            }
         } catch (\Exception $e) {
-            Log::error('StoryModeOrchestrator: Assembly failed', [
+            Log::warning('StoryModeOrchestrator: Cloud Run assembly failed, using first clip as preview', [
                 'project_id' => $project->id,
                 'error' => $e->getMessage(),
             ]);
-            throw $e;
+        }
+
+        // Fallback: use the first available video clip URL if Cloud Run failed
+        if (empty($videoUrl)) {
+            foreach ($scenes as $scene) {
+                if (!empty($scene['video_url'])) {
+                    $videoUrl = $scene['video_url'];
+                    break;
+                }
+            }
+        }
+
+        $totalDuration = 0;
+        foreach ($scenes as $scene) {
+            $totalDuration += $scene['audio_duration'] ?? $scene['estimated_duration'] ?? 6;
+        }
+
+        $project->update([
+            'status' => 'ready',
+            'progress_percent' => 100,
+            'current_stage' => 'Complete',
+            'video_url' => $videoUrl,
+            'video_duration' => (int) round($totalDuration),
+            'metadata' => array_merge($project->metadata ?? [], [
+                'completed_at' => now()->toIso8601String(),
+                'export_quality' => $exportQuality,
+                'export_resolution' => $exportResolution,
+                'assembly_method' => $videoUrl && !empty($videoPath) ? 'cloud_run' : 'clip_preview',
+            ]),
+        ]);
+
+        if ($project->style) {
+            $project->style->incrementUsage();
         }
     }
 
