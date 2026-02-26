@@ -27,6 +27,7 @@ class StoryMode extends Component
     public string $voiceProvider = '';
     public string $videoResolution = '480p';
     public string $videoQuality = 'pro';
+    public $attachedFile = null;
 
     // Transcript editing
     public ?string $editableTranscript = null;
@@ -155,6 +156,9 @@ class StoryMode extends Component
                     'ai_engine' => get_option('story_mode_ai_engine', 'gemini'),
                     'video_resolution' => $this->videoResolution,
                     'video_quality' => $this->videoQuality,
+                    'attached_file' => $this->attachedFile
+                        ? $this->attachedFile->store('story-mode/attachments', 'public')
+                        : null,
                 ],
             ]);
 
@@ -181,6 +185,24 @@ class StoryMode extends Component
     public function updatedEditableTranscript()
     {
         $this->transcriptWordCount = str_word_count($this->editableTranscript ?? '');
+    }
+
+    /**
+     * Validate attached file on upload.
+     */
+    public function updatedAttachedFile()
+    {
+        $this->validate([
+            'attachedFile' => 'file|max:10240|mimes:jpg,jpeg,png,gif,webp,mp4,mov,avi,mp3,wav,pdf,doc,docx,txt',
+        ]);
+    }
+
+    /**
+     * Remove the attached file.
+     */
+    public function removeAttachedFile()
+    {
+        $this->attachedFile = null;
     }
 
     /**

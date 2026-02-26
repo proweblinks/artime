@@ -51,12 +51,44 @@
                  promptText: @js($prompt),
                  resolution: @js($videoResolution),
                  quality: @js($videoQuality),
+                 aspectRatio: @js($aspectRatio),
+                 showSettings: false,
+                 placeholders: [
+                     '{{ __("A cat astronaut floating through a neon galaxy...") }}',
+                     '{{ __("Morning routine of a robot barista in Tokyo...") }}',
+                     '{{ __("Time-lapse of a flower blooming in the desert...") }}',
+                     '{{ __("A detective solving a mystery in a rain-soaked city...") }}',
+                     '{{ __("An underwater adventure with bioluminescent creatures...") }}'
+                 ],
+                 placeholderIdx: 0,
                  init() {
                      this.$watch('quality', (val) => {
                          if (val === 'fast' && this.resolution === '480p') {
                              this.resolution = '720p';
+                             $wire.set('videoResolution', '720p');
                          }
                      });
+                     setInterval(() => {
+                         this.placeholderIdx = (this.placeholderIdx + 1) % this.placeholders.length;
+                     }, 4000);
+                 },
+                 cycleAspect() {
+                     const cycle = { '9:16': '16:9', '16:9': '1:1', '1:1': '9:16' };
+                     this.aspectRatio = cycle[this.aspectRatio] || '9:16';
+                     $wire.set('aspectRatio', this.aspectRatio);
+                 },
+                 cycleResolution() {
+                     if (this.quality === 'fast') {
+                         this.resolution = this.resolution === '720p' ? '1080p' : '720p';
+                     } else {
+                         const cycle = { '480p': '720p', '720p': '1080p', '1080p': '480p' };
+                         this.resolution = cycle[this.resolution] || '480p';
+                     }
+                     $wire.set('videoResolution', this.resolution);
+                 },
+                 cycleQuality() {
+                     this.quality = this.quality === 'pro' ? 'fast' : 'pro';
+                     $wire.set('videoQuality', this.quality);
                  }
              }">
                 <textarea
@@ -64,43 +96,111 @@
                     wire:model.live.debounce.500ms="prompt"
                     class="form-control border-0 text-white"
                     rows="4"
-                    placeholder="{{ __('Describe the video you want to make...') }}"
+                    :placeholder="placeholders[placeholderIdx]"
                     style="resize: none; font-size: 1rem; line-height: 1.6; box-shadow: none; background: transparent !important;"
                     {{ $isGeneratingScript ? 'disabled' : '' }}
                 ></textarea>
 
+                {{-- Attached File Preview --}}
+                @if($attachedFile)
+                    <div class="d-flex align-items-center gap-2 mt-2 px-1">
+                        <div class="d-flex align-items-center gap-2 px-3 py-1" style="background: #2a2a2a; border-radius: 20px; font-size: 0.8rem; color: #ccc;">
+                            <i class="fa-light fa-file" style="color: #f97316;"></i>
+                            <span style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                {{ $attachedFile->getClientOriginalName() }}
+                            </span>
+                            <span class="text-muted">({{ number_format($attachedFile->getSize() / 1024, 0) }}KB)</span>
+                            <button wire:click="removeAttachedFile" type="button"
+                                    class="btn btn-sm p-0 border-0" style="color: #888; line-height: 1;">
+                                <i class="fa-light fa-xmark"></i>
+                            </button>
+                        </div>
+                        <div wire:loading wire:target="attachedFile">
+                            <i class="fa-light fa-spinner-third fa-spin" style="color: #f97316; font-size: 0.8rem;"></i>
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Bottom Toolbar --}}
                 <div class="d-flex align-items-center justify-content-between mt-3 pt-3" style="border-top: 1px solid #333;">
-                    <div class="d-flex align-items-center gap-3">
-                        {{-- Aspect Ratio --}}
-                        <select wire:model="aspectRatio" class="form-select form-select-sm border-0"
-                                style="width: auto; background: #2a2a2a !important; color: #ccc; border-radius: 8px; font-size: 0.8rem;">
-                            <option value="9:16">9:16</option>
-                            <option value="16:9">16:9</option>
-                            <option value="1:1">1:1</option>
-                        </select>
+                    <div class="d-flex align-items-center gap-2 position-relative">
+                        {{-- Attach Button --}}
+                        <input type="file" x-ref="fileInput" wire:model="attachedFile" class="d-none"
+                               accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt">
+                        <button @click="$refs.fileInput.click()" type="button"
+                                class="btn btn-sm border-0 d-flex align-items-center justify-content-center"
+                                style="width: 32px; height: 32px; background: #2a2a2a; border-radius: 8px; color: #ccc;">
+                            <i class="fa-light fa-paperclip"></i>
+                        </button>
 
-                        {{-- Resolution --}}
-                        <select x-model="resolution" wire:model.lazy="videoResolution"
-                                class="form-select form-select-sm border-0"
-                                style="width: auto; background: #2a2a2a !important; color: #ccc; border-radius: 8px; font-size: 0.8rem;">
-                            <option value="480p" x-show="quality !== 'fast'">480p</option>
-                            <option value="720p">720p</option>
-                            <option value="1080p">1080p</option>
-                        </select>
-
-                        {{-- Quality --}}
-                        <select x-model="quality" wire:model.lazy="videoQuality"
-                                class="form-select form-select-sm border-0"
-                                style="width: auto; background: #2a2a2a !important; color: #ccc; border-radius: 8px; font-size: 0.8rem;">
-                            <option value="pro">Pro</option>
-                            <option value="fast">Fast</option>
-                        </select>
+                        {{-- Settings Popover --}}
+                        <div class="position-relative">
+                            <button @click="showSettings = !showSettings" type="button"
+                                    class="btn btn-sm border-0 d-flex align-items-center justify-content-center"
+                                    :style="showSettings ? 'width:32px;height:32px;background:#f97316;border-radius:8px;color:#fff' : 'width:32px;height:32px;background:#2a2a2a;border-radius:8px;color:#ccc'">
+                                <i class="fa-light fa-sliders"></i>
+                            </button>
+                            <div x-show="showSettings" x-cloak
+                                 @click.away="showSettings = false"
+                                 x-transition:enter="transition ease-out duration-150"
+                                 x-transition:enter-start="opacity-0 transform -translate-y-1"
+                                 x-transition:enter-end="opacity-100 transform translate-y-0"
+                                 x-transition:leave="transition ease-in duration-100"
+                                 x-transition:leave-start="opacity-100"
+                                 x-transition:leave-end="opacity-0"
+                                 style="position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 50; background: #2a2a2a; border-radius: 10px; padding: 12px; min-width: 220px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
+                                <div style="font-size: 0.65rem; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;">
+                                    {{ __('Settings') }}
+                                </div>
+                                {{-- Aspect Ratio --}}
+                                <button @click="cycleAspect()" type="button"
+                                        class="btn w-100 border-0 d-flex align-items-center justify-content-between px-2 py-2"
+                                        style="background: transparent; color: #ccc; font-size: 0.85rem; border-radius: 6px;"
+                                        onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'">
+                                    <span class="d-flex align-items-center gap-2">
+                                        <i class="fa-light fa-expand" style="width: 16px; text-align: center; color: #888;"></i>
+                                        {{ __('Aspect Ratio') }}
+                                    </span>
+                                    <span class="d-flex align-items-center gap-1" style="color: #f97316;">
+                                        <span x-text="aspectRatio"></span>
+                                        <i class="fa-light fa-chevron-right" style="font-size: 0.7rem; color: #666;"></i>
+                                    </span>
+                                </button>
+                                {{-- Resolution --}}
+                                <button @click="cycleResolution()" type="button"
+                                        class="btn w-100 border-0 d-flex align-items-center justify-content-between px-2 py-2"
+                                        style="background: transparent; color: #ccc; font-size: 0.85rem; border-radius: 6px;"
+                                        onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'">
+                                    <span class="d-flex align-items-center gap-2">
+                                        <i class="fa-light fa-display" style="width: 16px; text-align: center; color: #888;"></i>
+                                        {{ __('Resolution') }}
+                                    </span>
+                                    <span class="d-flex align-items-center gap-1" style="color: #f97316;">
+                                        <span x-text="resolution"></span>
+                                        <i class="fa-light fa-chevron-right" style="font-size: 0.7rem; color: #666;"></i>
+                                    </span>
+                                </button>
+                                {{-- Quality --}}
+                                <button @click="cycleQuality()" type="button"
+                                        class="btn w-100 border-0 d-flex align-items-center justify-content-between px-2 py-2"
+                                        style="background: transparent; color: #ccc; font-size: 0.85rem; border-radius: 6px;"
+                                        onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'">
+                                    <span class="d-flex align-items-center gap-2">
+                                        <i class="fa-light fa-gauge-high" style="width: 16px; text-align: center; color: #888;"></i>
+                                        {{ __('Quality') }}
+                                    </span>
+                                    <span class="d-flex align-items-center gap-1" style="color: #f97316;">
+                                        <span x-text="quality.charAt(0).toUpperCase() + quality.slice(1)"></span>
+                                        <i class="fa-light fa-chevron-right" style="font-size: 0.7rem; color: #666;"></i>
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
 
                         {{-- Voice Button --}}
                         <button wire:click="openVoiceModal" type="button"
                                 class="btn btn-sm border-0 d-flex align-items-center gap-1"
-                                style="background: #2a2a2a !important; color: #ccc; border-radius: 8px; font-size: 0.8rem;">
+                                style="height: 32px; background: #2a2a2a; color: #ccc; border-radius: 8px; font-size: 0.8rem; padding: 0 10px;">
                             <i class="fa-light fa-microphone"></i>
                             <span>{{ $selectedVoice === 'auto' ? __('Voice') : $selectedVoice }}</span>
                         </button>
