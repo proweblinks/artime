@@ -433,17 +433,13 @@ EOT;
             ],
         ];
 
-        // NOTE: imageConfig with imageSize was causing "Request contains an invalid argument" error
-        // The Gemini API doesn't support these parameters in generationConfig
-        // Aspect ratio is controlled through text guidance in the prompt instead
-        // If native imageConfig support is added to Gemini API in the future, re-enable this:
-        // if (str_contains($model, '2.5') || str_contains($model, '3-pro') || str_contains($model, 'flash-image')) {
-        //     $resolution = $options['resolution'] ?? '2K';
-        //     $generationConfig['imageConfig'] = [
-        //         'aspectRatio' => $requestedAspectRatio,
-        //         'imageSize' => strtoupper($resolution),
-        //     ];
-        // }
+        // Native aspect ratio enforcement via imageConfig (imageSize was the cause of the
+        // "invalid argument" error — aspectRatio alone works, matching image-to-image path at L648)
+        if (str_contains($model, '2.5') || str_contains($model, '3-pro') || str_contains($model, 'flash-image')) {
+            $generationConfig['imageConfig'] = [
+                'aspectRatio' => $requestedAspectRatio,
+            ];
+        }
 
         try {
             // Log the request for debugging

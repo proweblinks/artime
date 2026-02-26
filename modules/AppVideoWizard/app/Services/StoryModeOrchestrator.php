@@ -3,10 +3,13 @@
 namespace Modules\AppVideoWizard\Services;
 
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Modules\AppVideoWizard\Models\StoryModeProject;
 use Modules\AppVideoWizard\Models\WizardProject;
+use Modules\AppVideoWizard\Services\SmartReferenceService;
+use Modules\AppVideoWizard\Services\ReferenceImageStorageService;
 
 /**
  * StoryModeOrchestrator
@@ -134,6 +137,7 @@ class StoryModeOrchestrator
     /**
      * Step 1: Build visual script (image prompts + creative metadata) from transcript segments.
      * Runs FIRST so mood/emotion data is available for voiceover generation.
+     * Also extracts a Character Bible for visual consistency across scenes.
      */
     protected function stepBuildVisualScript(StoryModeProject $project): void
     {
@@ -141,6 +145,7 @@ class StoryModeOrchestrator
 
         $scenes = $project->scenes ?? [];
         $styleInstruction = $project->getEffectiveStyleInstruction();
+        $aspectRatio = $project->aspect_ratio ?? '9:16';
 
         // Convert scenes to segments format for script service
         $segments = array_map(fn ($s) => [
@@ -148,13 +153,15 @@ class StoryModeOrchestrator
             'estimated_duration' => $s['audio_duration'] ?? $s['estimated_duration'] ?? 6,
         ], $scenes);
 
-        $visualScript = $this->scriptService->buildVisualScript($segments, $styleInstruction);
+        $visualScript = $this->scriptService->buildVisualScript($segments, $styleInstruction, $aspectRatio);
+        $characterBible = $this->scriptService->lastCharacterBible;
 
         // Merge visual script data back into scenes (includes mood, voice_emotion, transitions)
         $updatedScenes = [];
         foreach ($scenes as $i => $scene) {
             $visual = $visualScript[$i] ?? [];
             $scene['image_prompt'] = $visual['image_prompt'] ?? "A cinematic scene: {$scene['text']}";
+            $scene['characters_in_scene'] = $visual['characters_in_scene'] ?? [];
             $scene['camera_motion'] = $visual['camera_motion'] ?? 'slow zoom in';
             $scene['mood'] = $visual['mood'] ?? 'professional';
             $scene['voice_emotion'] = $visual['voice_emotion'] ?? 'neutral';
@@ -166,11 +173,25 @@ class StoryModeOrchestrator
         $project->update([
             'scenes' => $updatedScenes,
             'visual_script' => $visualScript,
+            'metadata' => array_merge($project->metadata ?? [], [
+                'character_bible' => $characterBible,
+            ]),
+        ]);
+
+        Log::info('StoryModeOrchestrator: Visual script built', [
+            'project_id' => $project->id,
+            'scenes' => count($updatedScenes),
+            'character_bible_count' => count($characterBible),
         ]);
     }
 
     /**
      * Step 3: Generate images for each scene.
+     *
+     * Scene 0 is generated as text-to-image. After Scene 0 succeeds, character
+     * references are extracted from it using SmartReferenceService. Scenes 1-N
+     * then use the Reference Cascade (image-to-image with character face refs)
+     * so characters maintain visual identity across the entire video.
      */
     protected function stepGenerateImages(StoryModeProject $project): void
     {
@@ -179,12 +200,14 @@ class StoryModeOrchestrator
         $scenes = $project->scenes ?? [];
         $imageModel = get_option('story_mode_image_model', 'nanobanana-pro');
         $wizardProject = $this->createTempWizardProject($project);
+        $characterBible = $project->metadata['character_bible'] ?? [];
+        $characterRefs = []; // charId => { name, description, appears_in, storageKey, mimeType }
 
         $updatedScenes = [];
 
         foreach ($scenes as $i => $scene) {
             $progress = 50 + (int) (($i / count($scenes)) * 20);
-            $project->updateProgress('generating_images', $progress, "Generating image ({$i}/{" . count($scenes) . "})");
+            $project->updateProgress('generating_images', $progress, "Generating image (" . ($i + 1) . "/" . count($scenes) . ")");
 
             try {
                 $sceneData = [
@@ -199,6 +222,35 @@ class StoryModeOrchestrator
                 ]);
 
                 $scene['image_url'] = $result['imageUrl'] ?? $result['image_url'] ?? null;
+
+                // After Scene 0 succeeds: extract character references for subsequent scenes
+                if ($i === 0 && !empty($scene['image_url']) && !empty($characterBible)) {
+                    $project->updateProgress('generating_images', 53, 'Analyzing Scene 1 for character references');
+
+                    try {
+                        $characterRefs = $this->extractCharacterReferences(
+                            $scene['image_url'],
+                            $characterBible,
+                            $wizardProject->id,
+                            $project
+                        );
+
+                        if (!empty($characterRefs)) {
+                            // Populate wizardProject with sceneMemory so Reference Cascade triggers
+                            $this->populateSceneMemory($wizardProject, $characterRefs, $characterBible);
+
+                            Log::info('StoryModeOrchestrator: Character references extracted from Scene 0', [
+                                'project_id' => $project->id,
+                                'characters' => array_keys($characterRefs),
+                            ]);
+                        }
+                    } catch (\Exception $e) {
+                        Log::warning('StoryModeOrchestrator: Character reference extraction failed, continuing without references', [
+                            'error' => $e->getMessage(),
+                        ]);
+                        // Graceful degradation: scenes 1-N will generate as text-to-image
+                    }
+                }
             } catch (\Exception $e) {
                 Log::warning("StoryModeOrchestrator: Image generation failed for segment {$i}", [
                     'error' => $e->getMessage(),
@@ -211,6 +263,170 @@ class StoryModeOrchestrator
 
         $project->update(['scenes' => $updatedScenes]);
         $wizardProject->delete();
+    }
+
+    /**
+     * Extract character references from Scene 0's generated image.
+     *
+     * Downloads the image, uses SmartReferenceService to detect characters,
+     * extracts individual portraits, and stores them via ReferenceImageStorageService.
+     *
+     * @return array Map of charId => { name, description, appears_in, storageKey, mimeType }
+     */
+    protected function extractCharacterReferences(
+        string $imageUrl,
+        array $characterBible,
+        int $wizardProjectId,
+        StoryModeProject $project
+    ): array {
+        // Download Scene 0 image to base64
+        $response = Http::timeout(30)->get($imageUrl);
+        if (!$response->successful()) {
+            Log::warning('StoryModeOrchestrator: Failed to download Scene 0 image for character analysis');
+            return [];
+        }
+
+        $imageBase64 = base64_encode($response->body());
+        $mimeType = $response->header('Content-Type') ?: 'image/png';
+
+        // Build bible format expected by SmartReferenceService
+        $bibleForAnalysis = [
+            'characters' => array_map(fn($char) => [
+                'name' => $char['name'] ?? '',
+                'description' => $char['description'] ?? '',
+            ], $characterBible),
+        ];
+
+        $smartRefService = app(SmartReferenceService::class);
+        $storageService = app(ReferenceImageStorageService::class);
+
+        // Analyze the scene for characters
+        $analysis = $smartRefService->analyzeSceneForCharacters($imageBase64, $bibleForAnalysis);
+
+        if (empty($analysis['success']) || empty($analysis['detectedCharacters'])) {
+            Log::info('StoryModeOrchestrator: No characters detected in Scene 0 (may be landscape/abstract content)');
+            return [];
+        }
+
+        $characterRefs = [];
+        $extractionCount = 0;
+        $maxExtractions = 3; // Limit cost
+
+        foreach ($analysis['detectedCharacters'] as $detected) {
+            if ($extractionCount >= $maxExtractions) {
+                break;
+            }
+
+            $confidence = $detected['confidence'] ?? 0;
+            if ($confidence < 0.7) {
+                continue;
+            }
+
+            $bibleIndex = $detected['bibleIndex'] ?? null;
+            if ($bibleIndex === null || !isset($characterBible[$bibleIndex])) {
+                continue;
+            }
+
+            $charData = $characterBible[$bibleIndex];
+            $charId = $charData['id'] ?? "char_{$bibleIndex}";
+
+            try {
+                // Extract portrait for this character
+                $portrait = $smartRefService->extractCharacterPortrait($imageBase64, $detected, $charData);
+
+                if (empty($portrait['success']) || empty($portrait['base64'])) {
+                    Log::warning("StoryModeOrchestrator: Portrait extraction failed for {$charId}");
+                    continue;
+                }
+
+                // Store the portrait via ReferenceImageStorageService
+                $storageKey = $storageService->storeBase64(
+                    $wizardProjectId,
+                    'character',
+                    $extractionCount,
+                    $portrait['base64'],
+                    $portrait['mimeType'] ?? 'image/png'
+                );
+
+                $characterRefs[$charId] = [
+                    'name' => $charData['name'] ?? $detected['name'] ?? 'Unknown',
+                    'description' => $charData['description'] ?? '',
+                    'appears_in' => $charData['appears_in'] ?? [],
+                    'storageKey' => $storageKey,
+                    'mimeType' => $portrait['mimeType'] ?? 'image/png',
+                    'base64' => $portrait['base64'],
+                ];
+
+                $extractionCount++;
+
+                Log::info("StoryModeOrchestrator: Portrait extracted for {$charId}", [
+                    'storageKey' => $storageKey,
+                    'confidence' => $confidence,
+                ]);
+            } catch (\Exception $e) {
+                Log::warning("StoryModeOrchestrator: Portrait extraction failed for {$charId}", [
+                    'error' => $e->getMessage(),
+                ]);
+                // Skip this character, continue with others
+            }
+        }
+
+        return $characterRefs;
+    }
+
+    /**
+     * Populate the WizardProject's content_config with sceneMemory.characterBible
+     * so that ImageGenerationService's Reference Cascade triggers for scenes 1-N.
+     */
+    protected function populateSceneMemory(WizardProject $wizardProject, array $characterRefs, array $characterBible): void
+    {
+        $characters = [];
+
+        foreach ($characterRefs as $charId => $ref) {
+            // Find the original bible entry for full data
+            $bibleEntry = null;
+            foreach ($characterBible as $entry) {
+                if (($entry['id'] ?? '') === $charId) {
+                    $bibleEntry = $entry;
+                    break;
+                }
+            }
+
+            // Map appears_in (1-based) to 0-based scene indices
+            $appearsIn = $ref['appears_in'] ?? [];
+            $sceneIndices = array_map(fn($s) => $s - 1, $appearsIn);
+
+            $characters[] = [
+                'name' => $ref['name'],
+                'description' => $ref['description'],
+                'scenes' => $sceneIndices, // Empty = all scenes
+                'referenceImageStorageKey' => $ref['storageKey'],
+                'referenceImageStatus' => 'ready',
+                'referenceImageMimeType' => $ref['mimeType'],
+                'role' => 'Protagonist',
+                'hair' => [],
+                'wardrobe' => [],
+                'makeup' => [],
+                'accessories' => [],
+                'traits' => [],
+                'defaultExpression' => 'neutral',
+            ];
+        }
+
+        $contentConfig = $wizardProject->content_config ?? [];
+        $contentConfig['sceneMemory'] = [
+            'characterBible' => [
+                'enabled' => true,
+                'characters' => $characters,
+            ],
+        ];
+
+        $wizardProject->update(['content_config' => $contentConfig]);
+
+        Log::info('StoryModeOrchestrator: sceneMemory populated with character references', [
+            'wizardProjectId' => $wizardProject->id,
+            'characterCount' => count($characters),
+        ]);
     }
 
     /**

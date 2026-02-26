@@ -9,6 +9,12 @@ class StoryModeScriptService
 {
     protected PromptService $promptService;
 
+    /**
+     * Character Bible extracted from the last buildVisualScript() call.
+     * Each entry: { id, name, description, appears_in }
+     */
+    public array $lastCharacterBible = [];
+
     public function __construct()
     {
         $this->promptService = new PromptService();
@@ -112,12 +118,14 @@ class StoryModeScriptService
     /**
      * Build the visual script from transcript segments.
      * Converts each segment's narration into a detailed image prompt.
+     * Also produces a character_bible for visual consistency across scenes.
      *
      * @param array $segments Transcript segments
      * @param string $styleInstruction Style modifier for image generation
+     * @param string $aspectRatio Target aspect ratio (e.g. '9:16', '16:9', '1:1')
      * @return array Visual script with image prompts per segment
      */
-    public function buildVisualScript(array $segments, string $styleInstruction = ''): array
+    public function buildVisualScript(array $segments, string $styleInstruction = '', string $aspectRatio = '9:16'): array
     {
         $engine = get_option('story_mode_ai_engine', 'gemini');
         $model = get_option('story_mode_ai_model', 'gemini-2.5-flash');
@@ -132,13 +140,27 @@ class StoryModeScriptService
             ? "\n\nVISUAL STYLE TO APPLY: {$styleInstruction}\nAll image prompts must incorporate this visual style consistently."
             : '';
 
+        $aspectRatioLabel = match($aspectRatio) {
+            '9:16' => 'portrait 9:16 vertical',
+            '1:1' => 'square 1:1',
+            default => 'landscape 16:9 widescreen',
+        };
+
         $prompt = <<<PROMPT
 You are a cinematic director creating a visual and emotional script for a narrated video.
 
-For each narration segment below, output a detailed creative direction that includes:
+Your task has TWO phases:
+
+## PHASE 1 — CHARACTER BIBLE
+Read ALL narration segments and identify every recurring character or subject (people, animals, mascots — anything that appears in more than one scene, or is the main subject).
+For each, provide a detailed visual identity sheet so the character looks IDENTICAL across all generated images.
+
+## PHASE 2 — PER-SCENE DIRECTION
+For each narration segment, output detailed creative direction:
 
 1. **image_prompt**: Detailed image generation prompt (1-3 sentences) with subject, setting, lighting, mood, composition, camera perspective{$styleContext}
-2. **camera_motion**: Select from this list based on scene content:
+2. **characters_in_scene**: Array of character IDs (from the bible) that appear in this scene
+3. **camera_motion**: Select from this list based on scene content:
    - "slow zoom in" — builds intimacy/focus (emotional moments, portraits, detail)
    - "slow zoom out" — reveals context/scale (establishing shots, conclusions, landscapes)
    - "dramatic zoom in" — intense focus (climax, shock, tension)
@@ -153,9 +175,9 @@ For each narration segment below, output a detailed creative direction that incl
    - "rise and reveal" — epic opening (establishing shots, landscapes, reveals)
    - "settle in" — subtle settling (minimal motion, text-friendly)
    - "breathe" — very subtle zoom keeping image alive (default/safe choice)
-3. **mood**: The emotional tone of this scene. Pick ONE from: calm, dramatic, energetic, tense, mysterious, epic, playful, nostalgic, professional, horror, intimate, hopeful
-4. **voice_emotion**: How the narrator should deliver this scene. Pick ONE from: neutral, dramatic, funny, excited, calm, mysterious, sad, confident, urgent, contemplative, storytelling, whisper
-5. **transition_type**: FFmpeg xfade transition TO THE NEXT scene. Pick based on mood:
+4. **mood**: The emotional tone of this scene. Pick ONE from: calm, dramatic, energetic, tense, mysterious, epic, playful, nostalgic, professional, horror, intimate, hopeful
+5. **voice_emotion**: How the narrator should deliver this scene. Pick ONE from: neutral, dramatic, funny, excited, calm, mysterious, sad, confident, urgent, contemplative, storytelling, whisper
+6. **transition_type**: FFmpeg xfade transition TO THE NEXT scene. Pick based on mood:
    - Calm/nostalgic: "fade", "dissolve", "smoothleft", "smoothright", "fadewhite"
    - Dramatic/epic: "fadeblack", "radial", "zoomin", "circleclose"
    - Energetic/playful: "wipeleft", "wiperight", "coverleft", "pixelize", "squeezeh"
@@ -163,7 +185,7 @@ For each narration segment below, output a detailed creative direction that incl
    - Mysterious: "dissolve", "distance", "fadegrays", "hblur"
    - Professional: "fade", "wipeleft", "dissolve", "smoothleft"
    - For the LAST scene: use "fade" (will be the fade-to-black)
-6. **transition_duration**: Duration in seconds (0.3 for energetic, 0.5 for normal, 0.8 for calm, 1.0 for mysterious/dramatic)
+7. **transition_duration**: Duration in seconds (0.3 for energetic, 0.5 for normal, 0.8 for calm, 1.0 for mysterious/dramatic)
 
 IMPORTANT RULES:
 - Never use the same transition_type for more than 2 consecutive scenes — variety is key
@@ -171,24 +193,40 @@ IMPORTANT RULES:
 - Match voice_emotion to the scene content, NOT to a single global mood
 - The first scene should grab attention (energetic camera, confident voice)
 - The last scene should feel conclusive (slow camera, calm/storytelling voice)
+- If there are no recurring characters (e.g. landscapes, abstract content), return an empty character_bible array
 
 NARRATION SEGMENTS:
 {$allSegments}
 
-Respond ONLY with a JSON array where each element has:
-- "segment_index": (1-based)
-- "image_prompt": string
-- "camera_motion": string (from list above)
-- "mood": string
-- "voice_emotion": string
-- "transition_type": string (FFmpeg xfade name)
-- "transition_duration": float
+Respond ONLY with a JSON object in this exact format:
+{
+  "character_bible": [
+    {
+      "id": "short_snake_case_id",
+      "name": "Character Display Name",
+      "description": "Detailed visual description: age, gender, build, height, skin tone, hair color/style/length, eye color, facial features, clothing, accessories, distinguishing marks",
+      "appears_in": [1, 3, 5]
+    }
+  ],
+  "scenes": [
+    {
+      "segment_index": 1,
+      "image_prompt": "...",
+      "characters_in_scene": ["short_snake_case_id"],
+      "camera_motion": "...",
+      "mood": "...",
+      "voice_emotion": "...",
+      "transition_type": "...",
+      "transition_duration": 0.5
+    }
+  ]
+}
 
 Output ONLY valid JSON, no markdown.
 PROMPT;
 
         try {
-            $fullPrompt = "You are a cinematic director. Respond only with valid JSON arrays.\n\n{$prompt}";
+            $fullPrompt = "You are a cinematic director. Respond only with valid JSON.\n\n{$prompt}";
 
             $response = AI::processWithOverride(
                 $fullPrompt,
@@ -197,7 +235,7 @@ PROMPT;
                 'text',
                 [
                     'temperature' => 0.6,
-                    'max_tokens' => 4000,
+                    'max_tokens' => 6000,
                 ],
                 auth()->user()?->team_id ?? 0
             );
@@ -207,18 +245,59 @@ PROMPT;
             }
 
             $content = $response['data'][0] ?? '';
-            $visualScript = $this->parseJsonResponse($content);
+            $parsed = $this->parseJsonResponse($content);
 
-            if (!is_array($visualScript)) {
+            if (!is_array($parsed)) {
                 throw new \Exception('Failed to parse visual script response');
             }
+
+            // Handle new format (object with character_bible + scenes) vs legacy (flat array)
+            $characterBible = [];
+            $visualScript = [];
+
+            if (isset($parsed['character_bible']) && isset($parsed['scenes'])) {
+                // New format
+                $characterBible = $parsed['character_bible'] ?? [];
+                $visualScript = $parsed['scenes'] ?? [];
+
+                Log::info('StoryModeScriptService: Character bible extracted', [
+                    'characters' => count($characterBible),
+                    'names' => array_column($characterBible, 'name'),
+                ]);
+            } else {
+                // Legacy flat array format — no character bible
+                $visualScript = $parsed;
+
+                Log::info('StoryModeScriptService: Legacy flat array format (no character bible)');
+            }
+
+            $this->lastCharacterBible = $characterBible;
+
+            // Build a lookup: charId => description from the bible
+            $charLookup = [];
+            foreach ($characterBible as $char) {
+                $charLookup[$char['id']] = $char;
+            }
+
+            // Aspect ratio framing instruction
+            $aspectFraming = $this->buildAspectRatioFraming($aspectRatio, $aspectRatioLabel);
 
             // Merge visual script data back into segments
             $result = [];
             foreach ($segments as $i => $segment) {
                 $visual = $visualScript[$i] ?? [];
+                $imagePrompt = $visual['image_prompt'] ?? "A visual scene depicting: {$segment['text']}";
+                $charsInScene = $visual['characters_in_scene'] ?? [];
+
+                // Inject character descriptions from bible into the image prompt
+                $imagePrompt = $this->injectCharacterDescriptions($imagePrompt, $charsInScene, $charLookup);
+
+                // Append aspect ratio framing
+                $imagePrompt .= "\n\n" . $aspectFraming;
+
                 $result[] = array_merge($segment, [
-                    'image_prompt' => $visual['image_prompt'] ?? "A visual scene depicting: {$segment['text']}",
+                    'image_prompt' => $imagePrompt,
+                    'characters_in_scene' => $charsInScene,
                     'camera_motion' => $visual['camera_motion'] ?? 'slow zoom in',
                     'mood' => $visual['mood'] ?? 'professional',
                     'voice_emotion' => $visual['voice_emotion'] ?? 'neutral',
@@ -233,11 +312,15 @@ PROMPT;
                 'error' => $e->getMessage(),
             ]);
 
+            $this->lastCharacterBible = [];
+            $aspectFraming = $this->buildAspectRatioFraming($aspectRatio, $aspectRatioLabel ?? 'portrait 9:16 vertical');
+
             // Fallback: create basic image prompts from narration with default creative metadata
-            return array_map(function ($segment) use ($styleInstruction) {
+            return array_map(function ($segment) use ($styleInstruction, $aspectFraming) {
                 $stylePrefix = $styleInstruction ? "{$styleInstruction}. " : '';
                 return array_merge($segment, [
-                    'image_prompt' => "{$stylePrefix}A cinematic scene depicting: {$segment['text']}",
+                    'image_prompt' => "{$stylePrefix}A cinematic scene depicting: {$segment['text']}\n\n{$aspectFraming}",
+                    'characters_in_scene' => [],
                     'camera_motion' => 'slow zoom in',
                     'mood' => 'professional',
                     'voice_emotion' => 'neutral',
@@ -246,6 +329,42 @@ PROMPT;
                 ]);
             }, $segments);
         }
+    }
+
+    /**
+     * Build aspect ratio framing instruction for image prompts.
+     */
+    protected function buildAspectRatioFraming(string $aspectRatio, string $aspectRatioLabel): string
+    {
+        return match($aspectRatio) {
+            '9:16' => "Compose in {$aspectRatioLabel} format. Frame subjects vertically with headroom at top.",
+            '1:1' => "Compose in {$aspectRatioLabel} format. Center subjects with balanced framing.",
+            default => "Compose in {$aspectRatioLabel} format. Use wide horizontal framing with cinematic composition.",
+        };
+    }
+
+    /**
+     * Inject character visual descriptions from the Bible into an image prompt.
+     */
+    protected function injectCharacterDescriptions(string $imagePrompt, array $characterIds, array $charLookup): string
+    {
+        if (empty($characterIds) || empty($charLookup)) {
+            return $imagePrompt;
+        }
+
+        $descriptions = [];
+        foreach ($characterIds as $charId) {
+            if (isset($charLookup[$charId])) {
+                $char = $charLookup[$charId];
+                $descriptions[] = "{$char['name']}: {$char['description']}";
+            }
+        }
+
+        if (empty($descriptions)) {
+            return $imagePrompt;
+        }
+
+        return $imagePrompt . "\n\nCHARACTER VISUAL IDENTITY (maintain exact appearance):\n" . implode("\n", $descriptions);
     }
 
     /**
@@ -386,6 +505,14 @@ PROMPT;
         $decoded = json_decode($content, true);
         if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
             return $decoded;
+        }
+
+        // Try extracting JSON object with character_bible (visual script format)
+        if (preg_match('/\{[\s\S]*"character_bible"[\s\S]*\}/', $content, $matches)) {
+            $decoded = json_decode($matches[0], true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
         }
 
         // Try extracting JSON object from mixed content
