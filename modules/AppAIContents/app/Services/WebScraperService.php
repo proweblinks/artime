@@ -24,7 +24,14 @@ class WebScraperService
 
             return $result;
         } catch (\Throwable $e) {
-            // If direct scrape failed entirely, try Jina as last resort
+            // Don't fall back to Jina for 4xx errors — the page genuinely doesn't exist.
+            // Jina would just render the error page and we'd generate a script about "404 errors".
+            if (preg_match('/HTTP\s+4\d\d/', $e->getMessage())) {
+                Log::warning('WebScraperService: URL returned client error, not retrying', ['url' => $url, 'error' => $e->getMessage()]);
+                throw $e;
+            }
+
+            // For other failures (network, timeout, bot protection), try Jina as last resort
             Log::warning('WebScraperService: direct scrape failed, trying Jina Reader', ['url' => $url, 'error' => $e->getMessage()]);
             $jinaResult = $this->jinaScrape($url);
             if ($jinaResult) {
