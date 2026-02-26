@@ -81,6 +81,9 @@ class UrlToVideo extends Component
             $url = rtrim($matches[1], '.,;:!?)');
             if ($url !== $this->sourceUrl) {
                 $this->sourceUrl = $url;
+                $this->editableTranscript = null;
+                $this->generatedTitle = null;
+                $this->generatedSegments = [];
                 $this->detectAndPreview();
             }
         } else {
@@ -125,11 +128,18 @@ class UrlToVideo extends Component
 
     /**
      * Submit — extract, analyze, generate script, show transcript modal.
+     * If a transcript was already generated for the same URL, re-show it.
      */
     public function submitPrompt()
     {
         if (empty($this->sourceUrl) && mb_strlen($this->prompt) < 10) {
             session()->flash('error', 'Please paste a URL or enter a prompt (at least 10 characters).');
+            return;
+        }
+
+        // If we already have a transcript from a previous generation, just re-show it
+        if (!empty($this->editableTranscript) && $this->showTranscriptModal === false) {
+            $this->showTranscriptModal = true;
             return;
         }
 
