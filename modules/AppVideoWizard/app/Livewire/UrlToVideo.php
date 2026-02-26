@@ -221,8 +221,15 @@ class UrlToVideo extends Component
             return;
         }
 
-        // If Real Images mode is enabled, source images first
+        // If Real Images mode is enabled, source images first (or reuse if already sourced)
         if ($this->useRealImages) {
+            // If we already have candidates from a previous sourcing, just reopen the modal
+            if (!empty($this->sceneImageCandidates)) {
+                $this->showTranscriptModal = false;
+                $this->showImageSelectionModal = true;
+                return;
+            }
+
             $this->showTranscriptModal = false;
             $this->isSourcingImages = true;
 
@@ -283,6 +290,15 @@ class UrlToVideo extends Component
         } finally {
             $this->isGenerating = false;
         }
+    }
+
+    /**
+     * Go back from image selection modal to transcript modal.
+     */
+    public function backToTranscript()
+    {
+        $this->showImageSelectionModal = false;
+        $this->showTranscriptModal = true;
     }
 
     /**
@@ -482,6 +498,8 @@ class UrlToVideo extends Component
         $this->editableTranscript = null;
         $this->generatedTitle = null;
         $this->generatedSegments = [];
+        $this->sceneImageCandidates = [];
+        $this->selectedSceneImages = [];
     }
 
     public function updatedEditableTranscript()

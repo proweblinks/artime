@@ -29,7 +29,7 @@
                 </h5>
                 <small class="text-muted">{{ __('Choose a real image for each scene, or let AI generate one') }}</small>
             </div>
-            <button wire:click="$set('showImageSelectionModal', false)" type="button" class="btn-close btn-close-white"></button>
+            <button wire:click="backToTranscript" type="button" class="btn-close btn-close-white"></button>
         </div>
 
         {{-- Body (scrollable) --}}
@@ -189,7 +189,7 @@
 
         {{-- Footer --}}
         <div class="card-footer border-0 p-4 pt-2 d-flex gap-3" style="background: transparent;">
-            <button wire:click="$set('showImageSelectionModal', false)" type="button"
+            <button wire:click="backToTranscript" type="button"
                     class="btn flex-grow-1" style="background: #2a2a2a; color: #ccc; border-radius: 10px;">
                 <i class="fa-light fa-arrow-left me-1"></i>
                 {{ __('Back') }}
