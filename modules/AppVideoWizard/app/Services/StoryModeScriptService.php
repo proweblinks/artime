@@ -546,6 +546,12 @@ PROMPT;
             Log::info('StoryModeScriptService: JSON parsed via aggressive control char removal');
             return $decoded;
         }
+        Log::debug('StoryModeScriptService: Aggressive removal still failed', [
+            'error' => json_last_error_msg(),
+            'error_code' => json_last_error(),
+            'content_length' => strlen($aggressive),
+            'preview' => substr($aggressive, 0, 300),
+        ]);
 
         // Try smart sanitizer (replaces control chars only inside string values)
         $sanitized = $this->sanitizeJsonControlChars($content);
