@@ -186,6 +186,21 @@ For each narration segment, output detailed creative direction:
    - Professional: "fade", "wipeleft", "dissolve", "smoothleft"
    - For the LAST scene: use "fade" (will be the fade-to-black)
 7. **transition_duration**: Duration in seconds (0.3 for energetic, 0.5 for normal, 0.8 for calm, 1.0 for mysterious/dramatic)
+8. **video_action**: A single present-tense action sentence describing what the subject DOES in this scene.
+   This is for VIDEO generation — describe physical movement, not a static image.
+   Rules:
+   - Use active verbs: "walks", "turns", "reaches", "opens", "runs"
+   - Be specific about body parts and directions: "reaches forward with right hand", "turns head to look over shoulder"
+   - One clear action per scene — do NOT combine multiple actions
+   - Match the narration content — the video should visually depict what the narrator says
+   - Do NOT describe appearance or clothing (the source image defines this)
+   - Do NOT describe facial expressions (video model cannot control these)
+   Examples:
+   - "walks slowly through the dark corridor, trailing fingers along dusty bookshelves"
+   - "picks up the antique bookmark and holds it toward the light"
+   - "steps backward as a spectral form materializes between the stacks"
+   - "opens the old tome and turns its yellowed pages"
+   - For scenes without characters: "dust motes drift through shafts of warm light" or "pages flutter as a cold wind sweeps through"
 
 IMPORTANT RULES:
 - Never use the same transition_type for more than 2 consecutive scenes — variety is key
@@ -212,6 +227,7 @@ Respond ONLY with a JSON object in this exact format:
     {
       "segment_index": 1,
       "image_prompt": "...",
+      "video_action": "walks slowly through the dark library corridor, trailing fingers along dusty spines",
       "characters_in_scene": ["short_snake_case_id"],
       "camera_motion": "...",
       "mood": "...",
@@ -297,6 +313,7 @@ PROMPT;
 
                 $result[] = array_merge($segment, [
                     'image_prompt' => $imagePrompt,
+                    'video_action' => $visual['video_action'] ?? '',
                     'characters_in_scene' => $charsInScene,
                     'camera_motion' => $visual['camera_motion'] ?? 'slow zoom in',
                     'mood' => $visual['mood'] ?? 'professional',
@@ -320,6 +337,7 @@ PROMPT;
                 $stylePrefix = $styleInstruction ? "{$styleInstruction}. " : '';
                 return array_merge($segment, [
                     'image_prompt' => "{$stylePrefix}A cinematic scene depicting: {$segment['text']}\n\n{$aspectFraming}",
+                    'video_action' => '',
                     'characters_in_scene' => [],
                     'camera_motion' => 'slow zoom in',
                     'mood' => 'professional',

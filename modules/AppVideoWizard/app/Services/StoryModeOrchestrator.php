@@ -161,6 +161,7 @@ class StoryModeOrchestrator
         foreach ($scenes as $i => $scene) {
             $visual = $visualScript[$i] ?? [];
             $scene['image_prompt'] = $visual['image_prompt'] ?? "A cinematic scene: {$scene['text']}";
+            $scene['video_action'] = $visual['video_action'] ?? '';
             $scene['characters_in_scene'] = $visual['characters_in_scene'] ?? [];
             $scene['camera_motion'] = $visual['camera_motion'] ?? 'slow zoom in';
             $scene['mood'] = $visual['mood'] ?? 'professional';
@@ -175,6 +176,7 @@ class StoryModeOrchestrator
             'visual_script' => $visualScript,
             'metadata' => array_merge($project->metadata ?? [], [
                 'character_bible' => $characterBible,
+                'style_instruction' => $styleInstruction,
             ]),
         ]);
 
@@ -430,6 +432,158 @@ class StoryModeOrchestrator
     }
 
     /**
+     * Build a narrative Seedance prompt for a Story Mode scene.
+     * Combines video_action, camera motion, style, mood lighting, and audio direction
+     * into a flowing prompt following the Subject+Action+Camera+Style format.
+     */
+    protected function buildStoryVideoPrompt(array $scene, string $styleInstruction, string $aspectRatio): string
+    {
+        try {
+            $parts = [];
+
+            // 1. Subject + Action (from video_action, with fallbacks)
+            $videoAction = trim($scene['video_action'] ?? '');
+            if (!empty($videoAction)) {
+                $parts[] = $videoAction;
+            } else {
+                // Fallback: extract action from narration text
+                $narration = trim($scene['text'] ?? '');
+                if (!empty($narration)) {
+                    // Use first sentence of narration as a loose action hint
+                    $firstSentence = strtok($narration, '.!?');
+                    if (!empty($firstSentence)) {
+                        $parts[] = trim($firstSentence);
+                    }
+                }
+            }
+
+            // If still empty, fall back to camera_motion only (current behavior safety net)
+            if (empty($parts)) {
+                return $scene['camera_motion'] ?? 'slow zoom in';
+            }
+
+            // 2. Camera (map story mode slugs to Seedance camera language)
+            $cameraMotion = $scene['camera_motion'] ?? 'slow zoom in';
+            $cameraLanguage = $this->mapStoryModeCameraToSeedance($cameraMotion);
+            if (!empty($cameraLanguage)) {
+                $parts[] = $cameraLanguage;
+            }
+
+            // 3. Style
+            $style = !empty($styleInstruction) ? $styleInstruction : 'Cinematic, photorealistic';
+            $parts[] = rtrim($style, '.') . '.';
+
+            // 4. Mood → Lighting
+            $mood = strtolower(trim($scene['mood'] ?? ''));
+            $lighting = $this->mapMoodToLighting($mood);
+            $parts[] = $lighting . '.';
+
+            // 5. Audio direction (prevent Seedance from adding speech)
+            $parts[] = 'Ambient sound only.';
+
+            $prompt = implode(' ', $parts);
+
+            // Apply SeedancePromptService sanitization pipeline
+            $prompt = SeedancePromptService::sanitize($prompt);
+
+            Log::info('StoryModeOrchestrator: Video prompt built', [
+                'scene_index' => $scene['segment_index'] ?? null,
+                'prompt_preview' => substr($prompt, 0, 150),
+                'has_video_action' => !empty($videoAction),
+            ]);
+
+            return $prompt;
+        } catch (\Exception $e) {
+            Log::warning('StoryModeOrchestrator: buildStoryVideoPrompt failed, falling back to camera_motion', [
+                'error' => $e->getMessage(),
+            ]);
+            return $scene['camera_motion'] ?? 'slow zoom in';
+        }
+    }
+
+    /**
+     * Map Story Mode camera motion slugs to Seedance-native camera language.
+     */
+    protected function mapStoryModeCameraToSeedance(string $cameraMotion): string
+    {
+        $map = [
+            'slow zoom in'      => 'Slow push-in camera',
+            'slow zoom out'     => 'Slow pull-back camera',
+            'dramatic zoom in'  => 'Fast push-in camera',
+            'pan left'          => 'Slow pan left',
+            'pan right'         => 'Slow pan right',
+            'pan left slow'     => 'Very slow pan left',
+            'pan right slow'    => 'Very slow pan right',
+            'tilt up'           => 'Slow tilt up',
+            'tilt down'         => 'Slow tilt down',
+            'zoom in pan right' => 'Push-in with pan right',
+            'zoom out pan left' => 'Pull-back with pan left',
+            'diagonal drift'    => 'Gentle diagonal tracking',
+            'push to subject'   => 'Slow push-in to subject',
+            'rise and reveal'   => 'Crane shot rising upward',
+            'settle in'         => 'Subtle settle, nearly locked-off',
+            'breathe'           => 'Very subtle breathing movement',
+        ];
+
+        $normalized = strtolower(trim($cameraMotion));
+        return $map[$normalized] ?? 'Slow push-in camera';
+    }
+
+    /**
+     * Map mood to a lighting direction hint for Seedance.
+     */
+    protected function mapMoodToLighting(string $mood): string
+    {
+        $map = [
+            'calm'         => 'Soft natural lighting',
+            'dramatic'     => 'High-contrast dramatic lighting',
+            'energetic'    => 'Bright dynamic lighting',
+            'tense'        => 'Harsh directional lighting with deep shadows',
+            'mysterious'   => 'Low-key lighting with atmospheric haze',
+            'epic'         => 'Golden hour cinematic lighting',
+            'playful'      => 'Warm cheerful lighting',
+            'nostalgic'    => 'Warm amber tones, soft diffused light',
+            'professional' => 'Clean balanced lighting',
+            'horror'       => 'Dark underlit with cold blue tones',
+            'intimate'     => 'Soft warm close lighting',
+            'hopeful'      => 'Bright natural light breaking through',
+        ];
+
+        return $map[$mood] ?? 'Clean balanced lighting';
+    }
+
+    /**
+     * Calculate clip duration matched to narration audio.
+     * Snaps to Seedance-supported durations: 4, 5, 6, 8, 10.
+     */
+    protected function calculateClipDuration(?float $audioDuration): int
+    {
+        if ($audioDuration === null || $audioDuration <= 0) {
+            return 8; // Default when no audio duration available
+        }
+
+        // Add ~1.5s padding for breathing room
+        $withPadding = $audioDuration + 1.5;
+
+        // Clamp to 5-10 range
+        $clamped = min(10, max(5, round($withPadding)));
+
+        // Snap to nearest Seedance-supported duration
+        $supported = [4, 5, 6, 8, 10];
+        $snapped = $supported[0];
+        $minDiff = PHP_INT_MAX;
+        foreach ($supported as $dur) {
+            $diff = abs($clamped - $dur);
+            if ($diff < $minDiff) {
+                $minDiff = $diff;
+                $snapped = $dur;
+            }
+        }
+
+        return $snapped;
+    }
+
+    /**
      * Step 4: Generate video clips from images.
      * Submits all Seedance jobs, then polls until all complete.
      */
@@ -439,6 +593,8 @@ class StoryModeOrchestrator
 
         $scenes = $project->scenes ?? [];
         $wizardProject = $this->createTempWizardProject($project);
+        $styleInstruction = $project->metadata['style_instruction'] ?? '';
+        $aspectRatio = $project->aspect_ratio ?? '9:16';
 
         // Collect image URLs for end_image_url continuity
         $imageUrls = array_map(fn($s) => $s['image_url'] ?? null, $scenes);
@@ -453,14 +609,15 @@ class StoryModeOrchestrator
             }
 
             try {
-                $clipDuration = 10;
+                $audioDuration = isset($scene['audio_duration']) ? (float) $scene['audio_duration'] : null;
+                $clipDuration = $this->calculateClipDuration($audioDuration);
 
                 $animationOptions = [
                     'imageUrl' => $imageUrl,
-                    'prompt' => $scene['camera_motion'] ?? 'slow zoom in',
+                    'prompt' => $this->buildStoryVideoPrompt($scene, $styleInstruction, $aspectRatio),
                     'duration' => $clipDuration,
                     'sceneIndex' => $i,
-                    'resolution' => '480p',
+                    'resolution' => '1080p',
                     'generate_audio' => false,
                 ];
 
@@ -691,6 +848,8 @@ class StoryModeOrchestrator
 
         $scenes = $project->scenes ?? [];
         $wizardProject = $this->createTempWizardProject($project);
+        $styleInstruction = $project->metadata['style_instruction'] ?? '';
+        $aspectRatio = $project->aspect_ratio ?? '9:16';
         $crossfade = (float) get_option('story_mode_crossfade_duration', 0.5);
         $projectDir = $this->ensureProjectDir($project->id, 'frames');
         $lastFrameUrl = null;
@@ -708,14 +867,15 @@ class StoryModeOrchestrator
             $startImage = $lastFrameUrl ?: $imageUrl;
 
             try {
-                $clipDuration = 10;
+                $audioDuration = isset($scene['audio_duration']) ? (float) $scene['audio_duration'] : null;
+                $clipDuration = $this->calculateClipDuration($audioDuration);
 
                 $animationOptions = [
                     'imageUrl' => $startImage,
-                    'prompt' => $scene['camera_motion'] ?? 'slow zoom in',
+                    'prompt' => $this->buildStoryVideoPrompt($scene, $styleInstruction, $aspectRatio),
                     'duration' => $clipDuration,
                     'sceneIndex' => $i,
-                    'resolution' => '480p',
+                    'resolution' => '1080p',
                     'generate_audio' => false,
                 ];
 
