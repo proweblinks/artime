@@ -438,13 +438,25 @@ PROMPT;
 
         // If JSON parsing fails, try to extract transcript via regex
         // Pre-sanitize: collapse control chars so regex can match across newlines in values
-        $sanitized = preg_replace('/[\x00-\x1F\x7F]+/', ' ', $content);
+        $sanitized = preg_replace('/[\x00-\x1F\x7F]+/', ' ', $content) ?? $content;
         if (preg_match('/"transcript"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $sanitized, $m)) {
             $transcript = stripcslashes($m[1]);
             $title = 'Untitled Story';
             if (preg_match('/"title"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $sanitized, $tm)) {
                 $title = stripcslashes($tm[1]);
             }
+            return [
+                'title' => $title,
+                'transcript' => $transcript,
+                'segments' => [],
+            ];
+        }
+
+        // Aggressive manual extraction: find "transcript" key and extract value char-by-char
+        $transcript = $this->manualExtractJsonStringValue($sanitized, 'transcript');
+        if ($transcript) {
+            $title = $this->manualExtractJsonStringValue($sanitized, 'title') ?: 'Untitled Story';
+            Log::info('StoryModeScriptService: Transcript extracted via manual char-by-char parsing');
             return [
                 'title' => $title,
                 'transcript' => $transcript,
@@ -542,8 +554,10 @@ PROMPT;
         // Always try aggressive control char removal — collapse ALL control chars to spaces.
         // AI responses often contain literal newlines/tabs inside JSON string values.
         // This turns pretty-printed JSON into a single line, which is still valid JSON.
-        $aggressive = preg_replace('/[\x00-\x1F\x7F]+/', ' ', $content);
-        $decoded = json_decode($aggressive, true);
+        $aggressive = preg_replace('/[\x00-\x1F\x7F]+/', ' ', $content) ?? $content;
+        // Ensure valid UTF-8 (replace invalid sequences)
+        $aggressive = mb_convert_encoding($aggressive, 'UTF-8', 'UTF-8');
+        $decoded = json_decode($aggressive, true, 512, JSON_INVALID_UTF8_SUBSTITUTE);
         if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
             Log::info('StoryModeScriptService: JSON parsed via aggressive control char removal');
             return $decoded;
@@ -554,6 +568,15 @@ PROMPT;
             'content_length' => strlen($aggressive),
             'preview' => substr($aggressive, 0, 300),
         ]);
+
+        // Try double-pass: also replace non-breaking spaces, zero-width chars, etc.
+        $doublePass = preg_replace('/[\x00-\x1F\x7F\xC2\x80-\xC2\x9F]+/u', ' ', $content) ?? $content;
+        $doublePass = mb_convert_encoding($doublePass, 'UTF-8', 'UTF-8');
+        $decoded = json_decode($doublePass, true, 512, JSON_INVALID_UTF8_SUBSTITUTE);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            Log::info('StoryModeScriptService: JSON parsed via double-pass control char removal');
+            return $decoded;
+        }
 
         // Try smart sanitizer (replaces control chars only inside string values)
         $sanitized = $this->sanitizeJsonControlChars($content);
@@ -592,6 +615,73 @@ PROMPT;
         ]);
 
         return null;
+    }
+
+    /**
+     * Manually extract a JSON string value by key using char-by-char scanning.
+     * Handles unescaped quotes, control chars, and other malformed JSON.
+     */
+    protected function manualExtractJsonStringValue(string $content, string $key): ?string
+    {
+        // Find the key position
+        $keyPattern = '"' . $key . '"';
+        $keyPos = strpos($content, $keyPattern);
+        if ($keyPos === false) {
+            return null;
+        }
+
+        // Skip past key, colon, and opening quote
+        $pos = $keyPos + strlen($keyPattern);
+        $len = strlen($content);
+
+        // Skip whitespace and colon
+        while ($pos < $len && ($content[$pos] === ' ' || $content[$pos] === ':')) {
+            $pos++;
+        }
+
+        // Expect opening quote
+        if ($pos >= $len || $content[$pos] !== '"') {
+            return null;
+        }
+        $pos++; // skip opening quote
+
+        // Extract value: scan until we find closing quote followed by , or } or ]
+        $value = '';
+        $escaped = false;
+        while ($pos < $len) {
+            $char = $content[$pos];
+
+            if ($escaped) {
+                $value .= $char;
+                $escaped = false;
+                $pos++;
+                continue;
+            }
+
+            if ($char === '\\') {
+                $escaped = true;
+                $pos++;
+                continue;
+            }
+
+            // Check if this quote is the closing one (followed by , or } or ] or whitespace+one of those)
+            if ($char === '"') {
+                $ahead = ltrim(substr($content, $pos + 1, 5));
+                if ($ahead === '' || $ahead[0] === ',' || $ahead[0] === '}' || $ahead[0] === ']') {
+                    break; // found the real closing quote
+                }
+                // Unescaped quote mid-value — include it and keep going
+                $value .= $char;
+                $pos++;
+                continue;
+            }
+
+            $value .= $char;
+            $pos++;
+        }
+
+        $value = trim($value);
+        return !empty($value) ? $value : null;
     }
 
     /**
