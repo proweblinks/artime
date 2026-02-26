@@ -137,8 +137,12 @@ class ImageSourceService
         $cacheKey = 'wikimedia_search_' . md5($query . '_' . $limit);
 
         return Cache::remember($cacheKey, 3600, function () use ($query, $limit) {
+            $http = Http::timeout(15)->withHeaders([
+                'User-Agent' => 'ArtimeVideoWizard/1.0 (https://artime.ai; contact@artime.ai)',
+            ]);
+
             // Step 1: Search for files
-            $searchResponse = Http::timeout(15)->get('https://commons.wikimedia.org/w/api.php', [
+            $searchResponse = $http->get('https://commons.wikimedia.org/w/api.php', [
                 'action' => 'query',
                 'list' => 'search',
                 'srsearch' => $query,
@@ -149,7 +153,11 @@ class ImageSourceService
             ]);
 
             if (!$searchResponse->ok()) {
-                return [];
+                Log::warning('ImageSourceService: Wikimedia search API error', [
+                    'status' => $searchResponse->status(),
+                    'query' => $query,
+                ]);
+                throw new \RuntimeException('Wikimedia API returned ' . $searchResponse->status());
             }
 
             $searchResults = $searchResponse->json('query.search', []);
@@ -161,7 +169,7 @@ class ImageSourceService
             $titles = array_column($searchResults, 'title');
             $titlesString = implode('|', array_slice($titles, 0, $limit * 2));
 
-            $infoResponse = Http::timeout(15)->get('https://commons.wikimedia.org/w/api.php', [
+            $infoResponse = $http->get('https://commons.wikimedia.org/w/api.php', [
                 'action' => 'query',
                 'titles' => $titlesString,
                 'prop' => 'imageinfo',

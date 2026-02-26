@@ -337,11 +337,17 @@ class UrlToVideo extends Component
     }
 
     /**
-     * Mark a scene to use AI-generated image instead of a real one.
+     * Toggle AI-generated image for a scene. Click again to revert to first candidate.
      */
     public function markSceneForAI(string $sceneId)
     {
-        $this->selectedSceneImages[$sceneId] = 'ai';
+        if (($this->selectedSceneImages[$sceneId] ?? null) === 'ai') {
+            // Toggle off: revert to first candidate or null
+            $candidates = $this->sceneImageCandidates[$sceneId] ?? [];
+            $this->selectedSceneImages[$sceneId] = !empty($candidates) ? 0 : null;
+        } else {
+            $this->selectedSceneImages[$sceneId] = 'ai';
+        }
     }
 
     /**
