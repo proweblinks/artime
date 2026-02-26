@@ -231,6 +231,15 @@
                             <i class="fa-light fa-camera"></i>
                             <span>{{ $useRealImages ? __('Real Images') : __('AI Images') }}</span>
                         </button>
+
+                        {{-- Edit Images (direct access when candidates already sourced) --}}
+                        @if($useRealImages && !empty($sceneImageCandidates))
+                            <button wire:click="openImageSelection" type="button"
+                                    class="utv-tool-btn active">
+                                <i class="fa-light fa-images"></i>
+                                <span>{{ __('Edit Images') }}</span>
+                            </button>
+                        @endif
                     </div>
 
                     {{-- Submit Button --}}

@@ -223,11 +223,27 @@ class UrlToVideo extends Component
 
         // If Real Images mode is enabled, source images first (or reuse if already sourced)
         if ($this->useRealImages) {
-            // If we already have candidates from a previous sourcing, just reopen the modal
+            // If we already have candidates, verify scene count still matches the transcript
             if (!empty($this->sceneImageCandidates)) {
-                $this->showTranscriptModal = false;
-                $this->showImageSelectionModal = true;
-                return;
+                $scriptService = new StoryModeScriptService();
+                $targetDuration = (int) get_option('story_mode_default_duration', 35);
+                $currentSegments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
+                $currentCount = count($currentSegments);
+                $cachedCount = count($this->sceneImageCandidates);
+
+                if ($currentCount === $cachedCount) {
+                    // Scene count matches — safe to reuse cached candidates
+                    $this->showTranscriptModal = false;
+                    $this->showImageSelectionModal = true;
+                    return;
+                }
+
+                // Scene count changed — invalidate stale candidates
+                Log::info('UrlToVideo: Transcript changed scene count, re-sourcing images', [
+                    'cached' => $cachedCount, 'current' => $currentCount,
+                ]);
+                $this->sceneImageCandidates = [];
+                $this->selectedSceneImages = [];
             }
 
             $this->showTranscriptModal = false;
@@ -299,6 +315,17 @@ class UrlToVideo extends Component
     {
         $this->showImageSelectionModal = false;
         $this->showTranscriptModal = true;
+    }
+
+    /**
+     * Directly open image selection modal (when candidates already exist).
+     */
+    public function openImageSelection()
+    {
+        if (!empty($this->sceneImageCandidates)) {
+            $this->showTranscriptModal = false;
+            $this->showImageSelectionModal = true;
+        }
     }
 
     /**
