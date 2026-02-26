@@ -220,7 +220,7 @@ PROMPT;
      * Build an enhanced prompt for StoryModeScriptService from content brief + user prompt.
      * Creates ORIGINAL narration about the topic — never references the source.
      */
-    public function buildEnhancedPrompt(array $contentBrief, ?string $userPrompt = null): string
+    public function buildEnhancedPrompt(array $contentBrief, ?string $userPrompt = null, ?string $narrativeStyle = null): string
     {
         $subject = $contentBrief['subject'] ?? $contentBrief['suggested_title'] ?? 'this topic';
         $title = $contentBrief['suggested_title'] ?? 'Video Summary';
@@ -245,6 +245,10 @@ PROMPT;
         $prompt .= "RESEARCH FACTS (use as source material, weave into the narrative naturally):\n{$factsText}\n\n";
         $prompt .= "STYLE: {$angle} format, {$tone} tone, for {$audience}.\n\n";
 
+        if ($narrativeStyle) {
+            $prompt .= $this->getNarrativeStyleInstruction($narrativeStyle) . "\n\n";
+        }
+
         if ($userPrompt) {
             $prompt .= "USER'S CREATIVE DIRECTION: {$userPrompt}\n\n";
         }
@@ -260,6 +264,129 @@ PROMPT;
         $prompt .= "- Target 30-60 seconds of spoken narration.\n";
 
         return $prompt;
+    }
+
+    /**
+     * Get narrative style instruction block for the given preset key.
+     */
+    public function getNarrativeStyleInstruction(string $style): string
+    {
+        $styles = [
+            'hook_reveal' => <<<'TXT'
+NARRATIVE STRUCTURE: Hook & Reveal
+- Open with a SHOCKING or counterintuitive statement that stops the viewer mid-scroll
+- Build tension: "But here's where it gets interesting..."
+- 2-3 surprising facts that raise stakes
+- Deliver a satisfying reveal that reframes everything
+- Structure: HOOK (first 5 seconds) → BUILDUP (middle) → REVEAL (ending)
+- Use short punchy sentences for the hook, longer flowing sentences for buildup
+TXT,
+            'narrator' => <<<'TXT'
+NARRATIVE STRUCTURE: Documentary Narrator
+- Clean, authoritative, professional voiceover style
+- Present facts clearly with measured pacing
+- Build understanding progressively — context first, then depth
+- Use transitions like "What makes this remarkable..." and "Behind the scenes..."
+- Maintain objectivity while keeping it engaging
+- Structure: CONTEXT → KEY FACTS → DEEPER INSIGHT → CLOSING THOUGHT
+TXT,
+            'storytime' => <<<'TXT'
+NARRATIVE STRUCTURE: Storytime / Casual
+- Start with "So here's the thing..." or "Okay, you need to hear this..."
+- Conversational, like you're telling a friend over coffee
+- Use natural pauses, rhetorical questions, and reactions ("I know, right?")
+- Make it feel spontaneous and personal, not scripted
+- Include opinions and genuine reactions to the facts
+- End with a relatable takeaway or "So yeah, that happened."
+TXT,
+            'did_you_know' => <<<'TXT'
+NARRATIVE STRUCTURE: Did You Know / Mind-Blown
+- Open with "Did you know that..." followed by the most surprising fact
+- Each segment reveals something increasingly mind-blowing
+- Use phrases like "But it gets even crazier..." and "Wait, there's more..."
+- Pack in maximum wow-factor facts with rapid-fire delivery
+- End with the biggest mic-drop fact of all
+- Make the viewer feel smarter for watching
+TXT,
+            'hot_take' => <<<'TXT'
+NARRATIVE STRUCTURE: Hot Take / Controversial
+- Open with a bold, provocative claim that challenges conventional thinking
+- Take a strong stance — no fence-sitting allowed
+- Back up the opinion with surprising evidence
+- Anticipate and dismiss the obvious counterargument
+- Use confident language: "Here's what nobody wants to admit..."
+- End with a call to think differently, not a safe middle-ground
+TXT,
+            'breaking' => <<<'TXT'
+NARRATIVE STRUCTURE: Breaking News
+- Open with urgent, attention-grabbing delivery: "Breaking:" or "This just happened:"
+- Present facts in descending order of importance (inverted pyramid)
+- Use news-anchor phrasing: "Sources confirm...", "What we know so far..."
+- Keep sentences short and punchy — every word carries weight
+- Include context for WHY this matters right now
+- End with "Developing story — here's what to watch for next..."
+TXT,
+            'top_facts' => <<<'TXT'
+NARRATIVE STRUCTURE: Top Facts / Countdown List
+- Open with "Here are [N] things about [topic] that will blow your mind"
+- Number each fact clearly: "Number 5...", "Number 4..."
+- Save the most impressive fact for #1
+- Build anticipation between items — "But the next one is even wilder..."
+- Each fact should be self-contained but build on the overall theme
+- End with a strong callback: "And that's why [topic] is incredible."
+TXT,
+            'cinematic' => <<<'TXT'
+NARRATIVE STRUCTURE: Cinematic / Epic
+- Write like a movie trailer narrator — grand, sweeping, dramatic
+- Open with a powerful visual statement that sets the scene
+- Use short dramatic sentences followed by long flowing reveals
+- Include pauses for impact: "And then... everything changed."
+- Build to a crescendo — each segment more epic than the last
+- End with a line that gives chills: powerful, resonant, unforgettable
+- Think Hans Zimmer soundtrack energy in word form
+TXT,
+            'comedy' => <<<'TXT'
+NARRATIVE STRUCTURE: Comedy Roast
+- Sarcastic, witty, and self-aware tone throughout
+- Open with a dry observation or absurd take on the topic
+- Use irony, exaggeration, and unexpected comparisons
+- Roast the subject lovingly — funny but never mean-spirited
+- Include at least one "plot twist" moment that subverts expectations
+- Throw in a pop culture reference or two that the audience will get
+- End with a punchline or callback to the opening joke
+TXT,
+            'motivational' => <<<'TXT'
+NARRATIVE STRUCTURE: Motivational / Inspirational
+- Open with a challenge or struggle that the audience can relate to
+- Frame the topic as a story of perseverance, innovation, or human spirit
+- Use empowering language: "Against all odds...", "What started as..."
+- Build from struggle to triumph — classic hero's journey in miniature
+- Include a quotable line the viewer will want to screenshot
+- End with an uplifting call-to-action that leaves the viewer inspired
+TXT,
+            'debate' => <<<'TXT'
+NARRATIVE STRUCTURE: Debate / Both Sides
+- Open by framing the central question or controversy clearly
+- Present Side A with its strongest arguments and evidence
+- Transition: "But here's what the other side says..."
+- Present Side B with equal strength and fairness
+- Add a surprise angle neither side usually considers
+- End with YOUR verdict — a clear, reasoned conclusion that picks a side
+- Make the viewer feel they heard a fair debate before the verdict
+TXT,
+            'mystery' => <<<'TXT'
+NARRATIVE STRUCTURE: Mystery / Conspiracy
+- Open with an eerie, intriguing question: "What if everything you knew about X was wrong?"
+- Present facts as clues being uncovered one by one
+- Build suspense with "But that's not even the strangest part..."
+- Use dramatic pauses (short sentences followed by longer reveals)
+- Layer the mystery deeper with each segment
+- End with a mind-bending conclusion that leaves the viewer thinking
+- Whisper-worthy tone, like sharing a secret nobody else knows
+TXT,
+        ];
+
+        return $styles[$style] ?? $styles['narrator'];
     }
 
     /**

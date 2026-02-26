@@ -23,6 +23,7 @@ class UrlToVideo extends Component
     public string $voiceProvider = '';
     public string $videoResolution = '480p';
     public string $videoQuality = 'pro';
+    public string $narrativeStyle = 'hook_reveal';
 
     // Extraction state
     public bool $isExtracting = false;
@@ -162,10 +163,14 @@ class UrlToVideo extends Component
                 $contentBrief = $extractor->analyzeContent($extractedContent, $userPrompt);
                 $this->storedContentBrief = $contentBrief;
 
-                $enhancedPrompt = $extractor->buildEnhancedPrompt($contentBrief, $userPrompt);
+                $enhancedPrompt = $extractor->buildEnhancedPrompt($contentBrief, $userPrompt, $this->narrativeStyle);
             } else {
-                // Prompt-only mode (no URL)
+                // Prompt-only mode (no URL) — still apply narrative style
                 $enhancedPrompt = $this->prompt;
+                $styleInstruction = $extractor->getNarrativeStyleInstruction($this->narrativeStyle);
+                if ($styleInstruction) {
+                    $enhancedPrompt .= "\n\n" . $styleInstruction;
+                }
                 $this->storedExtractedContent = [];
                 $this->storedContentBrief = [];
             }
@@ -246,6 +251,7 @@ class UrlToVideo extends Component
                     'ai_engine' => get_option('story_mode_ai_engine', 'gemini'),
                     'video_resolution' => $this->videoResolution,
                     'video_quality' => $this->videoQuality,
+                    'narrative_style' => $this->narrativeStyle,
                 ],
             ]);
 
@@ -263,6 +269,13 @@ class UrlToVideo extends Component
         } finally {
             $this->isGenerating = false;
         }
+    }
+
+    public function updatedNarrativeStyle()
+    {
+        $this->editableTranscript = null;
+        $this->generatedTitle = null;
+        $this->generatedSegments = [];
     }
 
     public function updatedEditableTranscript()
@@ -339,6 +352,24 @@ class UrlToVideo extends Component
                 ->limit(20)
                 ->get()
         );
+    }
+
+    public function getNarrativePresetsProperty(): array
+    {
+        return [
+            ['key' => 'hook_reveal', 'name' => 'Hook & Reveal', 'icon' => 'fa-light fa-bolt'],
+            ['key' => 'narrator', 'name' => 'Narrator', 'icon' => 'fa-light fa-microphone'],
+            ['key' => 'storytime', 'name' => 'Storytime', 'icon' => 'fa-light fa-book-open'],
+            ['key' => 'did_you_know', 'name' => 'Did You Know', 'icon' => 'fa-light fa-lightbulb'],
+            ['key' => 'hot_take', 'name' => 'Hot Take', 'icon' => 'fa-light fa-fire'],
+            ['key' => 'breaking', 'name' => 'Breaking News', 'icon' => 'fa-light fa-signal-stream'],
+            ['key' => 'top_facts', 'name' => 'Top Facts', 'icon' => 'fa-light fa-list-ol'],
+            ['key' => 'cinematic', 'name' => 'Cinematic', 'icon' => 'fa-light fa-clapperboard'],
+            ['key' => 'comedy', 'name' => 'Comedy Roast', 'icon' => 'fa-light fa-face-laugh'],
+            ['key' => 'motivational', 'name' => 'Motivational', 'icon' => 'fa-light fa-rocket'],
+            ['key' => 'debate', 'name' => 'Debate', 'icon' => 'fa-light fa-scale-balanced'],
+            ['key' => 'mystery', 'name' => 'Mystery', 'icon' => 'fa-light fa-mask'],
+        ];
     }
 
     public function getVoicesProperty(): array

@@ -153,6 +153,17 @@
                     </div>
                 @endif
 
+                {{-- Narrative Style Pills --}}
+                <div class="utv-style-pills-row px-3 pb-2">
+                    @foreach($this->narrativePresets as $preset)
+                        <button wire:click="$set('narrativeStyle', '{{ $preset['key'] }}')" type="button"
+                                class="utv-style-pill {{ $narrativeStyle === $preset['key'] ? 'active' : '' }}">
+                            <i class="{{ $preset['icon'] }}"></i>
+                            <span>{{ $preset['name'] }}</span>
+                        </button>
+                    @endforeach
+                </div>
+
                 {{-- Bottom Toolbar --}}
                 <div class="d-flex align-items-center justify-content-between px-3 pb-3 pt-2" style="border-top: 1px solid rgba(255,255,255,0.06);">
                     <div class="d-flex align-items-center gap-1">
@@ -454,6 +465,41 @@
             display: block;
             width: 100%;
             height: auto;
+        }
+        .utv-style-pills-row {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding-top: 4px;
+            padding-bottom: 4px;
+        }
+        .utv-style-pills-row::-webkit-scrollbar { display: none; }
+        .utv-style-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            border: none;
+            background: rgba(255,255,255,0.05);
+            color: #888;
+            font-size: 0.72rem;
+            font-weight: 500;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+            flex-shrink: 0;
+        }
+        .utv-style-pill:hover {
+            background: rgba(255,255,255,0.1);
+            color: #ccc;
+        }
+        .utv-style-pill i { font-size: 0.75rem; }
+        .utv-style-pill.active {
+            background: #f97316;
+            color: #fff;
         }
     </style>
 </div>
