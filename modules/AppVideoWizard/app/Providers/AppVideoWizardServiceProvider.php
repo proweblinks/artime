@@ -272,6 +272,9 @@ class AppVideoWizardServiceProvider extends ServiceProvider
         // Story Mode components
         Livewire::component('appvideowizard::story-mode', \Modules\AppVideoWizard\Livewire\StoryMode::class);
         Livewire::component('appvideowizard::story-mode-projects', \Modules\AppVideoWizard\Livewire\StoryModeProjects::class);
+
+        // URL to Video component
+        Livewire::component('appvideowizard::url-to-video', \Modules\AppVideoWizard\Livewire\UrlToVideo::class);
     }
 
     /**

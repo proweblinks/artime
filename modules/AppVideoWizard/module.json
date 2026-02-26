@@ -39,6 +39,12 @@
                 "icon": "fa-light fa-book-sparkles"
             },
             {
+                "uri": "app/url-to-video",
+                "name": "URL to Video",
+                "position": 103,
+                "icon": "fa-light fa-link"
+            },
+            {
                 "uri": "app/ai-tools",
                 "name": "Ai Tools",
                 "position": 100,

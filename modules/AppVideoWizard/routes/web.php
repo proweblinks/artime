@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\AppVideoWizard\Http\Controllers\AppVideoWizardController;
 use Modules\AppVideoWizard\Http\Controllers\StoryModeController;
+use Modules\AppVideoWizard\Http\Controllers\UrlToVideoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -84,6 +85,10 @@ Route::middleware(['web', 'auth'])->group(function () {
         // Story Mode routes
         Route::get('/story-mode', [StoryModeController::class, 'index'])->name('app.story-mode');
         Route::get('/story-mode/{id}', [StoryModeController::class, 'show'])->name('app.story-mode.show');
+
+        // URL to Video routes
+        Route::get('/url-to-video', [UrlToVideoController::class, 'index'])->name('app.url-to-video');
+        Route::get('/url-to-video/{id}', [UrlToVideoController::class, 'show'])->name('app.url-to-video.show');
 
         Route::group(["prefix" => "video-wizard"], function () {
             // Main wizard page - renamed from 'create' to 'studio' for testing
