@@ -1032,29 +1032,36 @@ class VideoRenderService
 
         Log::info("[VideoRender:{$jobId}] Uploading to: {$fileName}");
 
-        try {
-            // Try Google Cloud Storage
-            if (config('filesystems.disks.gcs.bucket')) {
+        $publicUrl = null;
+
+        // Try Google Cloud Storage first
+        if (config('filesystems.disks.gcs.bucket')) {
+            try {
                 Storage::disk('gcs')->put($fileName, file_get_contents($filePath), 'public');
                 $publicUrl = "https://storage.googleapis.com/{$this->bucketName}/{$fileName}";
-            } else {
-                // Fallback to public disk
+            } catch (\Throwable $e) {
+                Log::warning("[VideoRender:{$jobId}] GCS upload failed, falling back to public disk: " . $e->getMessage());
+            }
+        }
+
+        // Fallback to public disk
+        if (!$publicUrl) {
+            try {
                 Storage::disk('public')->put($fileName, file_get_contents($filePath));
                 $publicUrl = url('/files/' . $fileName);
+            } catch (Exception $e) {
+                Log::error("[VideoRender:{$jobId}] Upload failed: " . $e->getMessage());
+                throw $e;
             }
-
-            Log::info("[VideoRender:{$jobId}] Upload completed: {$publicUrl}");
-
-            return [
-                'outputUrl' => $publicUrl,
-                'outputPath' => $fileName,
-                'outputSize' => $fileSize,
-            ];
-
-        } catch (Exception $e) {
-            Log::error("[VideoRender:{$jobId}] Upload failed: " . $e->getMessage());
-            throw $e;
         }
+
+        Log::info("[VideoRender:{$jobId}] Upload completed: {$publicUrl}");
+
+        return [
+            'outputUrl' => $publicUrl,
+            'outputPath' => $fileName,
+            'outputSize' => $fileSize,
+        ];
     }
 
     /**
