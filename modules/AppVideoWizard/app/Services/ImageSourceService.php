@@ -255,6 +255,7 @@ class ImageSourceService
     protected function extractSearchTerms(string $sceneText, string $subject): string
     {
         // Common words that should NOT be treated as proper nouns even when capitalized
+        // Includes contractions (that's, it's, etc.) stripped to base form
         $stopWords = array_flip(array_map('strtolower', [
             'The', 'This', 'That', 'These', 'Those', 'When', 'Where', 'Which',
             'What', 'How', 'Who', 'Why', 'Not', 'But', 'And', 'For', 'With',
@@ -275,6 +276,11 @@ class ImageSourceService
             'Almost', 'Along', 'Already', 'Across', 'Around', 'Away', 'Back',
             'Down', 'Enough', 'Else', 'Instead', 'Often', 'Rather', 'Soon',
             'Whether', 'Whose', 'Whom',
+            // Contractions
+            "That's", "It's", "He's", "She's", "There's", "Here's", "What's",
+            "Who's", "Where's", "How's", "Let's", "Don't", "Doesn't", "Didn't",
+            "Won't", "Can't", "Couldn't", "Shouldn't", "Wouldn't", "Isn't",
+            "Aren't", "Wasn't", "Weren't", "Haven't", "Hasn't", "Hadn't",
         ]));
 
         // Extract multi-word proper noun phrases (consecutive capitalized words)
@@ -325,26 +331,32 @@ class ImageSourceService
         // Sort by length desc (longer phrases = more specific = better search results)
         usort($properNounPhrases, fn($a, $b) => strlen($b) <=> strlen($a));
 
-        // Build query: top proper noun phrases + subject for context
+        // Build query: proper nouns only (short queries work best on Wikimedia Commons)
         $parts = [];
         if (!empty($properNounPhrases)) {
-            $parts = array_merge($parts, array_slice($properNounPhrases, 0, 2));
-        }
-
-        // Always include subject for Wikimedia search context
-        if (!empty($subject)) {
-            $parts[] = $subject;
+            // Use top 2-3 proper noun phrases — these are the most visual/searchable
+            $parts = array_merge($parts, array_slice($properNounPhrases, 0, 3));
         }
 
         $query = implode(' ', $parts);
 
-        // Fallback: use key content words (5+ chars, not common verbs)
+        // Fallback 1: if no proper nouns, extract key nouns from subject (first 3 words)
+        if (empty(trim($query)) && !empty($subject)) {
+            $subjectWords = array_filter(
+                preg_split('/[\s,\-:]+/', $subject),
+                fn($w) => mb_strlen($w) >= 3
+            );
+            $query = implode(' ', array_slice(array_values($subjectWords), 0, 3));
+        }
+
+        // Fallback 2: use key content words from scene text
         if (empty(trim($query))) {
             $commonVerbs = array_flip([
                 'would', 'could', 'should', 'might', 'about', 'after', 'before',
                 'being', 'between', 'during', 'through', 'under', 'until', 'without',
                 'which', 'where', 'while', 'their', 'there', 'these', 'those', 'other',
                 'still', 'already', 'really', 'never', 'always', 'often', 'every',
+                'interesting', 'important', 'significant', 'crucial',
             ]);
             $words = array_filter(
                 preg_split('/\s+/', $sceneText),
