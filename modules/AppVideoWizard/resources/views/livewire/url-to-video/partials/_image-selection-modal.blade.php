@@ -27,7 +27,7 @@
                     <i class="fa-light fa-images me-2" style="color: #f97316;"></i>
                     {{ __('Select Images for Your Video') }}
                 </h5>
-                <small class="text-muted">{{ __('Choose a real image for each scene, or let AI generate one') }}</small>
+                <small style="color: #999;">{{ __('Choose a real image for each scene, or let AI generate one') }}</small>
             </div>
             <button wire:click="backToTranscript" type="button" class="btn-close btn-close-white"></button>
         </div>
@@ -74,8 +74,8 @@
                                     </span>
                                 @endif
                             </div>
-                            <p class="mb-0 text-muted" style="font-size: 0.8rem; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
-                                {{ Str::limit($sceneText, 120) }}
+                            <p class="mb-0" style="color: rgba(255,255,255,0.7); font-size: 0.8rem; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">
+                                {{ Str::limit($sceneText, 180) }}
                             </p>
                         </div>
 
@@ -185,9 +185,22 @@
                             </div>
                         </div>
                     @else
-                        <div class="d-flex align-items-center gap-2 p-3" style="background: #111; border-radius: 10px;">
-                            <i class="fa-light fa-image-slash text-muted"></i>
-                            <span class="text-muted" style="font-size: 0.82rem;">{{ __('No matching images found. Use Search, Upload, or AI.') }}</span>
+                        <div class="d-flex align-items-center gap-2 p-3" style="background: #1a1a1a; border-radius: 10px;">
+                            <i class="fa-light fa-image-slash" style="color: #666;"></i>
+                            <span style="color: #999; font-size: 0.82rem;">{{ __('No matching images found. Use Search, Upload, or AI.') }}</span>
+                        </div>
+                    @endif
+
+                    {{-- Search suggestion chips --}}
+                    @if(!empty($sceneSearchSuggestions[$sceneId] ?? []))
+                        <div class="d-flex flex-wrap align-items-center gap-1 mt-2">
+                            <span style="color: #666; font-size: 0.72rem;">{{ __('Try:') }}</span>
+                            @foreach($sceneSearchSuggestions[$sceneId] as $suggestion)
+                                <button wire:click="searchMoreImages('{{ $sceneId }}', '{{ addslashes($suggestion) }}')"
+                                        type="button" class="utv-suggestion-chip">
+                                    {{ $suggestion }}
+                                </button>
+                            @endforeach
                         </div>
                     @endif
                 </div>
@@ -209,11 +222,11 @@
                 }
             @endphp
             <div class="d-flex align-items-center gap-3 p-3 mt-2" style="background: #111; border-radius: 10px; font-size: 0.82rem;">
-                <span class="text-muted">
+                <span style="color: #ccc;">
                     <i class="fa-light fa-camera me-1" style="color: #22c55e;"></i>
                     {{ $realCount }} {{ __('real') }}
                 </span>
-                <span class="text-muted">
+                <span style="color: #ccc;">
                     <i class="fa-light fa-wand-magic-sparkles me-1" style="color: #a78bfa;"></i>
                     {{ $aiCount }} {{ __('AI') }}
                 </span>
@@ -353,6 +366,23 @@
     .utv-img-action-btn.active-ai {
         background: #7c3aed30;
         color: #a78bfa;
+    }
+    .utv-suggestion-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 10px;
+        border-radius: 20px;
+        border: 1px solid rgba(249, 115, 22, 0.3);
+        background: transparent;
+        color: #f97316;
+        font-size: 0.72rem;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
+        white-space: nowrap;
+    }
+    .utv-suggestion-chip:hover {
+        background: rgba(249, 115, 22, 0.1);
+        border-color: #f97316;
     }
 </style>
 @endif

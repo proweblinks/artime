@@ -53,6 +53,7 @@ class UrlToVideo extends Component
     public bool $showImageSelectionModal = false;
     public bool $isSourcingImages = false;
     public array $sceneImageCandidates = [];
+    public array $sceneSearchSuggestions = [];
     public array $selectedSceneImages = [];
     public $uploadedSceneImage;
     public string $uploadTargetScene = '';
@@ -243,6 +244,7 @@ class UrlToVideo extends Component
                     'cached' => $cachedCount, 'current' => $currentCount,
                 ]);
                 $this->sceneImageCandidates = [];
+                $this->sceneSearchSuggestions = [];
                 $this->selectedSceneImages = [];
             }
 
@@ -265,17 +267,23 @@ class UrlToVideo extends Component
                 }
 
                 $imageService = new ImageSourceService();
-                $candidates = $imageService->sourceForScenes(
+                $result = $imageService->sourceForScenes(
                     $scenes,
                     $this->storedExtractedContent,
                     $this->storedContentBrief
                 );
 
-                $this->sceneImageCandidates = $candidates;
+                // Split structured result into candidates and suggestions
+                $this->sceneImageCandidates = [];
+                $this->sceneSearchSuggestions = [];
+                foreach ($result as $sceneId => $data) {
+                    $this->sceneImageCandidates[$sceneId] = $data['candidates'] ?? [];
+                    $this->sceneSearchSuggestions[$sceneId] = $data['suggestions'] ?? [];
+                }
 
                 // Auto-select first candidate per scene
                 $this->selectedSceneImages = [];
-                foreach ($candidates as $sceneId => $sceneCandidates) {
+                foreach ($this->sceneImageCandidates as $sceneId => $sceneCandidates) {
                     if (!empty($sceneCandidates)) {
                         $this->selectedSceneImages[$sceneId] = 0; // Index of first candidate
                     } else {
@@ -532,6 +540,7 @@ class UrlToVideo extends Component
         $this->generatedTitle = null;
         $this->generatedSegments = [];
         $this->sceneImageCandidates = [];
+        $this->sceneSearchSuggestions = [];
         $this->selectedSceneImages = [];
     }
 

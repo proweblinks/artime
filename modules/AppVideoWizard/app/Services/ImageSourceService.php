@@ -16,7 +16,7 @@ class ImageSourceService
      * @param array $scenes       [{id, text, estimated_duration}, ...]
      * @param array $extractedContent  From UrlContentExtractorService (has 'images' key)
      * @param array $contentBrief      From analyzeContent() (has 'subject' key)
-     * @return array  [scene_id => [{url, thumbnail, source, title, width, height, license?, author?}, ...]]
+     * @return array  [scene_id => ['candidates' => [...], 'suggestions' => [...]]]
      */
     public function sourceForScenes(array $scenes, array $extractedContent, array $contentBrief): array
     {
@@ -88,7 +88,12 @@ class ImageSourceService
                 return $c;
             }, $candidates);
 
-            $results[$sceneId] = array_values($candidates);
+            $suggestions = $this->generateSearchSuggestions($sceneText, $subject);
+
+            $results[$sceneId] = [
+                'candidates' => array_values($candidates),
+                'suggestions' => $suggestions,
+            ];
 
             // Track all Wiki URLs from this scene to avoid cross-scene duplicates
             foreach ($candidates as $c) {
@@ -99,6 +104,110 @@ class ImageSourceService
         }
 
         return $results;
+    }
+
+    /**
+     * Generate 2-4 short search suggestion terms for a scene.
+     * Extracts proper noun phrases and key nouns from the subject.
+     */
+    protected function generateSearchSuggestions(string $sceneText, string $subject): array
+    {
+        $suggestions = [];
+
+        // Reuse the same stop words logic from extractSearchTerms
+        $stopWords = array_flip(array_map('strtolower', [
+            'The', 'This', 'That', 'These', 'Those', 'When', 'Where', 'Which',
+            'What', 'How', 'Who', 'Why', 'Not', 'But', 'And', 'For', 'With',
+            'From', 'Into', 'Over', 'After', 'Before', 'Between', 'Under',
+            'About', 'Through', 'During', 'Without', 'Again', 'Once', 'Here',
+            'There', 'Some', 'Such', 'Very', 'Just', 'Also', 'Than', 'Other',
+            'Even', 'Most', 'More', 'Many', 'Much', 'Each', 'Every', 'Both',
+            'Few', 'All', 'Any', 'Its', 'His', 'Her', 'Our', 'Your', 'Their',
+            'Have', 'Has', 'Had', 'Will', 'Would', 'Could', 'Should', 'May',
+            'Might', 'Must', 'Shall', 'Can', 'Did', 'Does', 'Was', 'Were',
+            'Been', 'Being', 'Are', 'New', 'Now', 'Get', 'Got', 'Make',
+            'Made', 'Still', 'Yet', 'Already', 'Since', 'While', 'Then',
+            'Found', 'Error', 'However', 'Although', 'Despite', 'According',
+            'Meanwhile', 'Furthermore', 'Moreover', 'Like', 'Only', 'Well',
+            'Take', 'Took', 'Come', 'Came', 'Going', 'Gone', 'Said', 'Says',
+            'Tell', 'Told', 'Know', 'Known', 'Think', 'Thought', 'Give',
+            'Given', 'First', 'Last', 'Next', 'Another', 'Perhaps', 'Nearly',
+            'Almost', 'Along', 'Already', 'Across', 'Around', 'Away', 'Back',
+            'Down', 'Enough', 'Else', 'Instead', 'Often', 'Rather', 'Soon',
+            'Whether', 'Whose', 'Whom',
+        ]));
+
+        // Extract proper noun phrases from scene text
+        $sentences = preg_split('/[.!?]+/', $sceneText);
+        foreach ($sentences as $sentence) {
+            $sentence = trim($sentence);
+            if (empty($sentence)) continue;
+
+            $words = preg_split('/\s+/', $sentence);
+            $currentPhrase = [];
+            $isFirst = true;
+
+            foreach ($words as $word) {
+                $clean = preg_replace('/[^a-zA-Z\'-]/', '', $word);
+                if (empty($clean)) {
+                    if (!empty($currentPhrase)) {
+                        $suggestions[] = implode(' ', $currentPhrase);
+                        $currentPhrase = [];
+                    }
+                    $isFirst = false;
+                    continue;
+                }
+
+                $isCapitalized = ctype_upper($clean[0]) && mb_strlen($clean) >= 3;
+                $isStop = isset($stopWords[strtolower($clean)]);
+
+                if (!$isFirst && $isCapitalized && !$isStop) {
+                    $currentPhrase[] = $clean;
+                } else {
+                    if (!empty($currentPhrase)) {
+                        $suggestions[] = implode(' ', $currentPhrase);
+                        $currentPhrase = [];
+                    }
+                }
+                $isFirst = false;
+            }
+            if (!empty($currentPhrase)) {
+                $suggestions[] = implode(' ', $currentPhrase);
+            }
+        }
+
+        // Extract 2-3 key nouns from subject
+        if (!empty($subject)) {
+            $subjectWords = array_filter(
+                preg_split('/[\s,\-:]+/', $subject),
+                fn($w) => mb_strlen(trim($w)) >= 3 && !isset($stopWords[strtolower(trim($w))])
+            );
+            $subjectTerms = array_slice(array_values($subjectWords), 0, 3);
+            // Add subject as a single term if it has 2-3 short words
+            if (count($subjectTerms) >= 2 && count($subjectTerms) <= 3) {
+                $suggestions[] = implode(' ', $subjectTerms);
+            }
+            foreach ($subjectTerms as $term) {
+                $suggestions[] = trim($term);
+            }
+        }
+
+        // Deduplicate (case-insensitive)
+        $seen = [];
+        $unique = [];
+        foreach ($suggestions as $s) {
+            $s = trim($s);
+            if (empty($s)) continue;
+            $key = strtolower($s);
+            if (isset($seen[$key])) continue;
+            $seen[$key] = true;
+            $unique[] = $s;
+        }
+
+        // Return 2-4 suggestions, longest/most specific first
+        usort($unique, fn($a, $b) => strlen($b) <=> strlen($a));
+
+        return array_slice($unique, 0, 4);
     }
 
     /**
