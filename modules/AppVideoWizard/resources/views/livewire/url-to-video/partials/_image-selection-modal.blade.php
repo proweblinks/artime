@@ -3,7 +3,6 @@
 <div class="d-flex align-items-center justify-content-center"
      style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 10100;"
      x-data="{
-         searchInputs: {},
          showSearch: {},
          expandedScenes: {},
          toggleSearch(sceneId) {
@@ -11,14 +10,6 @@
          },
          toggleSceneText(sceneId) {
              this.expandedScenes[sceneId] = !this.expandedScenes[sceneId];
-         },
-         submitSearch(sceneId) {
-             const query = this.searchInputs[sceneId] || '';
-             if (query.trim().length >= 2) {
-                 $wire.searchMoreImages(sceneId, query.trim());
-                 this.showSearch[sceneId] = false;
-                 this.searchInputs[sceneId] = '';
-             }
          },
          // Crop modal state
          showCropModal: false,
@@ -221,20 +212,41 @@
                         </div>
                     @endif
 
-                    {{-- Search input (toggled) --}}
+                    {{-- Search input (toggled) — Livewire-native --}}
                     <div x-show="showSearch['{{ $sceneId }}']" x-cloak class="mb-2">
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            {{-- Media type filter pills --}}
+                            <div class="utv-search-filter">
+                                <button type="button"
+                                        class="utv-filter-pill {{ $searchType === 'all' ? 'active' : '' }}"
+                                        wire:click="$set('searchType', 'all')">{{ __('All') }}</button>
+                                <button type="button"
+                                        class="utv-filter-pill {{ $searchType === 'images' ? 'active' : '' }}"
+                                        wire:click="$set('searchType', 'images')">{{ __('Images') }}</button>
+                                <button type="button"
+                                        class="utv-filter-pill {{ $searchType === 'videos' ? 'active' : '' }}"
+                                        wire:click="$set('searchType', 'videos')">{{ __('Videos') }}</button>
+                            </div>
                             <input type="text"
-                                   x-model="searchInputs['{{ $sceneId }}']"
-                                   @keydown.enter="submitSearch('{{ $sceneId }}')"
+                                   wire:model="searchQuery"
+                                   wire:keydown.enter="executeSceneSearch('{{ $sceneId }}')"
                                    class="form-control form-control-sm border-0 text-white"
-                                   style="background: #2a2a2a; border-radius: 8px; font-size: 0.82rem;"
-                                   placeholder="{{ __('Search Wikimedia Commons...') }}">
-                            <button @click="submitSearch('{{ $sceneId }}')" type="button"
-                                    class="btn btn-sm" style="background: #f97316; color: #fff; border-radius: 8px; white-space: nowrap;">
-                                {{ __('Search') }}
+                                   style="background: #2a2a2a; border-radius: 8px; font-size: 0.82rem; flex: 1;"
+                                   placeholder="{{ __('Search images & videos...') }}">
+                            <button wire:click="executeSceneSearch('{{ $sceneId }}')" type="button"
+                                    class="btn btn-sm" style="background: #f97316; color: #fff; border-radius: 8px; white-space: nowrap;"
+                                    wire:loading.attr="disabled" wire:target="executeSceneSearch">
+                                <span wire:loading.remove wire:target="executeSceneSearch">{{ __('Search') }}</span>
+                                <span wire:loading wire:target="executeSceneSearch"><i class="fa-light fa-spinner fa-spin"></i></span>
                             </button>
                         </div>
+                        {{-- Search feedback --}}
+                        @if(session('searchSuccess'))
+                            <small class="d-block mt-1" style="color: #22c55e; font-size: 0.75rem;">{{ session('searchSuccess') }}</small>
+                        @endif
+                        @if(session('searchError'))
+                            <small class="d-block mt-1" style="color: #f87171; font-size: 0.75rem;">{{ session('searchError') }}</small>
+                        @endif
                     </div>
 
                     {{-- Image thumbnails row --}}
@@ -698,6 +710,33 @@
         background: rgba(255,255,255,0.03);
         border-radius: 8px;
         border-left: 2px solid rgba(249, 115, 22, 0.3);
+    }
+    /* Search filter pills */
+    .utv-search-filter {
+        display: flex;
+        gap: 2px;
+        background: #1a1a1a;
+        border-radius: 6px;
+        padding: 2px;
+        flex-shrink: 0;
+    }
+    .utv-filter-pill {
+        padding: 3px 8px;
+        border-radius: 4px;
+        border: none;
+        background: transparent;
+        color: #666;
+        font-size: 0.7rem;
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+    }
+    .utv-filter-pill:hover {
+        color: #999;
+    }
+    .utv-filter-pill.active {
+        background: #333;
+        color: #fff;
     }
     .utv-suggestion-chip {
         display: inline-flex;

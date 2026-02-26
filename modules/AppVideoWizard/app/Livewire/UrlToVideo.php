@@ -58,6 +58,10 @@ class UrlToVideo extends Component
     public $uploadedSceneImage;
     public string $uploadTargetScene = '';
 
+    // Search state
+    public string $searchQuery = '';
+    public string $searchType = 'all'; // 'all', 'images', 'videos'
+
     // Per-scene AI animation toggle (opt-in to Seedance)
     public array $sceneAnimateWithAI = [];
 
@@ -393,29 +397,79 @@ class UrlToVideo extends Component
     }
 
     /**
-     * Search Wikimedia Commons for additional images for a scene.
+     * Execute a scene search with media type filtering.
+     * Called via wire:click from the search UI.
+     */
+    public function executeSceneSearch(string $sceneId, string $query = '', string $type = '')
+    {
+        // Use passed params or fall back to component properties
+        $query = trim($query ?: $this->searchQuery);
+        $type = $type ?: $this->searchType;
+
+        if (mb_strlen($query) < 2) {
+            return;
+        }
+
+        Log::info('UrlToVideo: executeSceneSearch called', [
+            'scene' => $sceneId,
+            'query' => $query,
+            'type' => $type,
+        ]);
+
+        $imageService = new ImageSourceService();
+        $added = 0;
+
+        try {
+            // Search images (Wikimedia + Pexels/Pixabay photos)
+            if ($type !== 'videos') {
+                $wikiResults = $imageService->searchWikimedia($query, 5);
+                foreach ($wikiResults as $r) {
+                    $this->sceneImageCandidates[$sceneId][] = array_merge($r, [
+                        'source' => $r['source'] ?? 'wikimedia',
+                    ]);
+                    $added++;
+                }
+
+                $photoResults = $imageService->searchStockPhotos($query, 5);
+                foreach ($photoResults as $r) {
+                    $this->sceneImageCandidates[$sceneId][] = $r;
+                    $added++;
+                }
+            }
+
+            // Search video clips (Pexels + Pixabay videos)
+            if ($type !== 'images') {
+                $videoResults = $imageService->searchVideoClips($query, 5);
+                foreach ($videoResults as $r) {
+                    $this->sceneImageCandidates[$sceneId][] = $r;
+                    $added++;
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('UrlToVideo: Scene search failed', [
+                'scene' => $sceneId,
+                'query' => $query,
+                'error' => $e->getMessage(),
+            ]);
+            session()->flash('searchError', 'Search failed: ' . $e->getMessage());
+        }
+
+        if ($added > 0) {
+            session()->flash('searchSuccess', "Found {$added} results for \"{$query}\"");
+        } else {
+            session()->flash('searchError', "No results found for \"{$query}\"");
+        }
+
+        // Reset search input
+        $this->searchQuery = '';
+    }
+
+    /**
+     * Backward-compatible alias for suggestion chips.
      */
     public function searchMoreImages(string $sceneId, string $query)
     {
-        try {
-            $imageService = new ImageSourceService();
-
-            // Search Wikimedia images
-            $results = $imageService->searchWikimedia($query, 5);
-            foreach ($results as $result) {
-                $this->sceneImageCandidates[$sceneId][] = array_merge($result, [
-                    'source' => $result['source'] ?? 'wikimedia',
-                ]);
-            }
-
-            // Also search for free video clips
-            $videoResults = $imageService->searchVideoClips($query, 3);
-            foreach ($videoResults as $vClip) {
-                $this->sceneImageCandidates[$sceneId][] = $vClip;
-            }
-        } catch (\Exception $e) {
-            Log::warning('UrlToVideo: Additional image/video search failed', ['error' => $e->getMessage()]);
-        }
+        $this->executeSceneSearch($sceneId, $query, 'all');
     }
 
     /**

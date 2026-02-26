@@ -637,6 +637,73 @@ class ImageSourceService
     }
 
     /**
+     * Search Pexels and Pixabay for stock PHOTOS (not videos).
+     * Returns a unified array of image candidates.
+     */
+    public function searchStockPhotos(string $query, int $limit = 5): array
+    {
+        $results = [];
+
+        // Search Pexels Photos
+        if (get_option('file_pexels_status', 1) == 1) {
+            try {
+                $pexels = new PexelsService();
+                if ($pexels->isConfigured()) {
+                    $response = $pexels->searchPhotos($query, [
+                        'per_page' => $limit,
+                        'orientation' => 'portrait',
+                    ]);
+                    if (!empty($response['success']) && !empty($response['data'])) {
+                        foreach ($response['data'] as $photo) {
+                            $results[] = [
+                                'url' => $photo['src']['large'] ?? $photo['src']['original'] ?? '',
+                                'thumbnail' => $photo['src']['medium'] ?? $photo['src']['small'] ?? '',
+                                'title' => $photo['alt'] ?? $query,
+                                'width' => $photo['width'] ?? 0,
+                                'height' => $photo['height'] ?? 0,
+                                'source' => 'pexels',
+                                'score' => 2,
+                            ];
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('ImageSourceService: Pexels photo search failed', ['error' => $e->getMessage()]);
+            }
+        }
+
+        // Search Pixabay Photos
+        if (get_option('file_pixabay_status', 1) == 1) {
+            try {
+                $pixabay = new PixabayService();
+                if ($pixabay->isConfigured()) {
+                    $response = $pixabay->searchImages($query, [
+                        'per_page' => $limit,
+                        'image_type' => 'photo',
+                    ]);
+                    if (!empty($response['success']) && !empty($response['data'])) {
+                        foreach ($response['data'] as $img) {
+                            $results[] = [
+                                'url' => $img['src']['large'] ?? $img['src']['original'] ?? '',
+                                'thumbnail' => $img['src']['medium'] ?? $img['src']['small'] ?? '',
+                                'title' => $img['tags'] ?? $query,
+                                'width' => $img['width'] ?? 0,
+                                'height' => $img['height'] ?? 0,
+                                'source' => 'pixabay',
+                                'score' => 2,
+                            ];
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('ImageSourceService: Pixabay photo search failed', ['error' => $e->getMessage()]);
+            }
+        }
+
+        return array_slice($results, 0, $limit);
+    }
+
+    /**
      * Download a video file and store it locally.
      *
      * @return string|null Public URL on success, null on failure
