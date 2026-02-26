@@ -1,14 +1,14 @@
-{{-- Load Video Preview Engine and Controller Scripts using @assets directive --}}
-{{-- @assets ensures scripts load BEFORE component HTML is processed, so previewController is available for Alpine x-data --}}
-@include('appvideowizard::livewire.partials._vw-design-system')
-
-@assets
-<script src="{{ asset('modules/appvideowizard/js/video-preview-engine.js') }}"></script>
-<script src="{{ asset('modules/appvideowizard/js/preview-controller.js') }}"></script>
-@endassets
-
 <div class="video-wizard min-h-screen"
      x-data="{ showPreview: false }">
+
+    {{-- Load Video Preview Engine and Controller Scripts using @assets directive --}}
+    {{-- @assets ensures scripts load BEFORE component HTML is processed, so previewController is available for Alpine x-data --}}
+    @include('appvideowizard::livewire.partials._vw-design-system')
+
+    @assets
+    <script src="{{ asset('modules/appvideowizard/js/video-preview-engine.js') }}"></script>
+    <script src="{{ asset('modules/appvideowizard/js/preview-controller.js') }}"></script>
+    @endassets
 
     {{-- Gradient Mesh Background --}}
     <div class="vw-mesh-bg" aria-hidden="true">
