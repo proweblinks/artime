@@ -89,8 +89,22 @@ class StoryModeOrchestrator
             throw new \Exception('No scenes data available for voiceover generation');
         }
 
-        $voiceId = $project->voice_id ?: get_option('story_mode_default_voice', 'nova');
-        $voiceProvider = $project->voice_provider ?: null;
+        if ($project->voice_id) {
+            // User explicitly chose a voice — respect their choice
+            $voiceId = $project->voice_id;
+            $voiceProvider = $project->voice_provider ?: null;
+        } else {
+            // Auto mode: intelligently select based on story mood + content
+            $smartVoice = $this->selectSmartVoice($scenes);
+            $voiceId = $smartVoice['voice_id'];
+            $voiceProvider = $smartVoice['provider'];
+
+            Log::info('StoryModeOrchestrator: Smart voice selected', [
+                'project_id' => $project->id,
+                'voice_id' => $voiceId,
+                'provider' => $voiceProvider,
+            ]);
+        }
 
         // Create a temporary WizardProject to use with existing VoiceoverService
         $wizardProject = $this->createTempWizardProject($project);
@@ -554,7 +568,8 @@ class StoryModeOrchestrator
 
     /**
      * Calculate clip duration matched to narration audio.
-     * Snaps to Seedance-supported durations: 4, 5, 6, 8, 10.
+     * Snaps UP to Seedance-supported durations: 5, 6, 8, 10.
+     * Always rounds up to ensure narration never gets cut off.
      */
     protected function calculateClipDuration(?float $audioDuration): int
     {
@@ -562,21 +577,19 @@ class StoryModeOrchestrator
             return 8; // Default when no audio duration available
         }
 
-        // Add ~1.5s padding for breathing room
-        $withPadding = $audioDuration + 1.5;
+        // Add 2.0s padding for breathing room (increased from 1.5)
+        $withPadding = $audioDuration + 2.0;
 
-        // Clamp to 5-10 range
-        $clamped = min(10, max(5, round($withPadding)));
+        // Clamp to 5-10 range, ceil to always round UP
+        $clamped = min(10, max(5, (int) ceil($withPadding)));
 
-        // Snap to nearest Seedance-supported duration
-        $supported = [4, 5, 6, 8, 10];
-        $snapped = $supported[0];
-        $minDiff = PHP_INT_MAX;
+        // Snap UP to next Seedance-supported duration (not nearest)
+        $supported = [5, 6, 8, 10];
+        $snapped = 10; // Default to max if nothing fits
         foreach ($supported as $dur) {
-            $diff = abs($clamped - $dur);
-            if ($diff < $minDiff) {
-                $minDiff = $diff;
+            if ($dur >= $clamped) {
                 $snapped = $dur;
+                break;
             }
         }
 
@@ -735,11 +748,18 @@ class StoryModeOrchestrator
         // Build manifest for local FFmpeg assembly (same format as Video Wizard export)
         $manifestScenes = [];
         foreach ($scenes as $i => $scene) {
+            $duration = $scene['audio_duration'] ?? $scene['estimated_duration'] ?? 6;
+
+            // Add tail silence to the LAST scene so fade-out lands on silence, not narration
+            if ($i === count($scenes) - 1) {
+                $duration += 2.5;
+            }
+
             $manifestScenes[] = [
                 'imageUrl' => $scene['image_url'] ?? null,
                 'videoUrl' => $scene['video_url'] ?? null,
                 'voiceoverUrl' => $scene['audio_url'] ?? null,
-                'duration' => $scene['audio_duration'] ?? $scene['estimated_duration'] ?? 6,
+                'duration' => $duration,
                 'narration' => $scene['text'] ?? '',
                 'transition_type' => $scene['transition_type'] ?? $transitionType,
                 'transition_duration' => (float) ($scene['transition_duration'] ?? $crossfadeDuration),
@@ -1019,6 +1039,109 @@ class StoryModeOrchestrator
             Log::warning("StoryModeOrchestrator: Frame upload failed", ['error' => $e->getMessage()]);
             return null;
         }
+    }
+
+    /**
+     * Intelligently select the best narrator voice based on story mood and content.
+     * Analyzes dominant mood across all scenes and narration text for content cues.
+     *
+     * @return array ['voice_id' => string, 'provider' => string]
+     */
+    protected function selectSmartVoice(array $scenes): array
+    {
+        // 1. Collect all moods from scenes
+        $moods = [];
+        $allNarration = '';
+        foreach ($scenes as $scene) {
+            $mood = strtolower(trim($scene['mood'] ?? ''));
+            if (!empty($mood)) {
+                $moods[] = $mood;
+            }
+            $allNarration .= ' ' . ($scene['text'] ?? '');
+        }
+
+        // 2. Find dominant mood (most frequently occurring)
+        $dominantMood = 'default';
+        if (!empty($moods)) {
+            $moodCounts = array_count_values($moods);
+            arsort($moodCounts);
+            $dominantMood = array_key_first($moodCounts);
+        }
+
+        // 3. Map dominant mood to best Kokoro voice
+        $moodVoiceMap = [
+            'mysterious'   => ['voice_id' => 'bm_george', 'provider' => 'kokoro'],   // British sophisticated — deep, atmospheric
+            'horror'       => ['voice_id' => 'bm_george', 'provider' => 'kokoro'],   // British sophisticated — dark, atmospheric
+            'dramatic'     => ['voice_id' => 'am_adam', 'provider' => 'kokoro'],      // American professional — authoritative
+            'epic'         => ['voice_id' => 'am_adam', 'provider' => 'kokoro'],      // American professional — powerful delivery
+            'calm'         => ['voice_id' => 'af_bella', 'provider' => 'kokoro'],     // American warm — gentle storytelling
+            'intimate'     => ['voice_id' => 'af_bella', 'provider' => 'kokoro'],     // American warm — soft, personal
+            'nostalgic'    => ['voice_id' => 'af_bella', 'provider' => 'kokoro'],     // American warm — wistful, tender
+            'tense'        => ['voice_id' => 'am_michael', 'provider' => 'kokoro'],   // American natural — dynamic pacing
+            'energetic'    => ['voice_id' => 'am_michael', 'provider' => 'kokoro'],   // American natural — engaging delivery
+            'playful'      => ['voice_id' => 'af_sky', 'provider' => 'kokoro'],       // American youthful — bright, energetic
+            'hopeful'      => ['voice_id' => 'af_sky', 'provider' => 'kokoro'],       // American youthful — uplifting
+            'professional' => ['voice_id' => 'bf_isabella', 'provider' => 'kokoro'],  // British professional — polished
+        ];
+
+        $selected = $moodVoiceMap[$dominantMood] ?? ['voice_id' => 'bm_lewis', 'provider' => 'kokoro']; // Default: British warm — versatile storyteller
+
+        // 4. Light gender-heuristic override based on narration content
+        $narrationLower = strtolower($allNarration);
+        $femaleIndicators = ["i'm a woman", "i'm a girl", "she looked at her reflection", "as a mother", "her own voice", "she whispered to herself"];
+        $maleIndicators = ["i'm a man", "i'm a guy", "he looked at his reflection", "as a father", "his own voice", "he whispered to himself"];
+
+        $femaleScore = 0;
+        $maleScore = 0;
+        foreach ($femaleIndicators as $indicator) {
+            if (str_contains($narrationLower, $indicator)) {
+                $femaleScore++;
+            }
+        }
+        foreach ($maleIndicators as $indicator) {
+            if (str_contains($narrationLower, $indicator)) {
+                $maleScore++;
+            }
+        }
+
+        // Only override if there's a clear signal (2+ indicators)
+        if ($femaleScore >= 2 && $femaleScore > $maleScore) {
+            // Prefer a female voice matching the mood's energy
+            $femaleAlternatives = [
+                'bm_george'    => 'af_bella',
+                'am_adam'      => 'af_sarah',
+                'am_michael'   => 'af_sky',
+                'bm_lewis'     => 'af_bella',
+                'bf_isabella'  => 'bf_isabella', // Already female
+                'af_bella'     => 'af_bella',     // Already female
+                'af_sky'       => 'af_sky',       // Already female
+                'af_sarah'     => 'af_sarah',     // Already female
+            ];
+            $selected['voice_id'] = $femaleAlternatives[$selected['voice_id']] ?? 'af_bella';
+        } elseif ($maleScore >= 2 && $maleScore > $femaleScore) {
+            // Prefer a male voice matching the mood's energy
+            $maleAlternatives = [
+                'af_bella'     => 'bm_lewis',
+                'af_sky'       => 'am_michael',
+                'af_sarah'     => 'am_adam',
+                'bf_isabella'  => 'bm_george',
+                'bm_george'    => 'bm_george',   // Already male
+                'am_adam'      => 'am_adam',       // Already male
+                'am_michael'   => 'am_michael',   // Already male
+                'bm_lewis'     => 'bm_lewis',     // Already male
+            ];
+            $selected['voice_id'] = $maleAlternatives[$selected['voice_id']] ?? 'bm_lewis';
+        }
+
+        Log::info('StoryModeOrchestrator: Smart voice analysis', [
+            'dominant_mood' => $dominantMood,
+            'mood_distribution' => !empty($moods) ? array_count_values($moods) : [],
+            'female_score' => $femaleScore,
+            'male_score' => $maleScore,
+            'selected_voice' => $selected['voice_id'],
+        ]);
+
+        return $selected;
     }
 
     /**
