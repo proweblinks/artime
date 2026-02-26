@@ -1,8 +1,8 @@
 <div class="story-mode-page" x-data="{ showDetail: @js($detailProjectId) }"
      x-init="$watch('$wire.detailProjectId', v => showDetail = v)">
 
-    {{-- Main Content --}}
-    <div class="story-mode-main py-4 px-3 px-lg-5" style="max-width: 900px; margin: 0 auto;">
+    {{-- ===== TOP ZONE: Header + Styles + Input (centered) ===== --}}
+    <div class="story-top-zone">
 
         {{-- Header --}}
         <div class="text-center mb-4">
@@ -216,10 +216,14 @@
                 {{ session('error') }}
             </div>
         @endif
+    </div>
+
+    {{-- ===== BOTTOM ZONE: Galleries (full width) ===== --}}
+    <div class="story-gallery-zone">
 
         {{-- User's Recent Projects --}}
         @if($this->userProjects->isNotEmpty())
-            <div class="mb-4">
+            <div class="mb-5">
                 <h5 class="fw-bold text-white mb-3" style="font-size: 1.1rem;">{{ __('My Projects') }}</h5>
                 <div class="story-masonry">
                     @foreach($this->userProjects->take(8) as $project)
@@ -268,6 +272,21 @@
             background: #1a1a1a !important;
         }
 
+        /* Top zone — centered, comfortable max-width */
+        .story-top-zone {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 24px 20px 0;
+        }
+
+        /* Gallery zone — full width with padding */
+        .story-gallery-zone {
+            padding: 0 24px 40px;
+        }
+        @media (min-width: 992px) {
+            .story-gallery-zone { padding: 0 40px 40px; }
+        }
+
         /* Input card */
         .story-input-card {
             background: #141414;
@@ -277,7 +296,7 @@
             overflow: visible;
         }
 
-        /* Toolbar buttons — transparent, minimal like Opus Pro */
+        /* Toolbar buttons — transparent, minimal */
         .story-tool-btn {
             display: inline-flex;
             align-items: center;
@@ -397,10 +416,10 @@
             box-shadow: 0 0 0 1px #f97316;
         }
 
-        /* Masonry gallery */
+        /* Masonry gallery — scales with available width */
         .story-masonry {
             column-count: 2;
-            column-gap: 12px;
+            column-gap: 14px;
         }
         @media (min-width: 576px) {
             .story-masonry { column-count: 3; }
@@ -408,14 +427,17 @@
         @media (min-width: 768px) {
             .story-masonry { column-count: 4; }
         }
-        @media (min-width: 992px) {
+        @media (min-width: 1100px) {
             .story-masonry { column-count: 5; }
+        }
+        @media (min-width: 1400px) {
+            .story-masonry { column-count: 6; }
         }
 
         /* Project cards */
         .project-card-wrap {
             break-inside: avoid;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
         }
         .project-card {
             cursor: pointer;
