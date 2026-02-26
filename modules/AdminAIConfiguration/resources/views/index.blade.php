@@ -622,6 +622,53 @@
                         </select>
                     </div>
                 </div>
+
+                <hr class="my-3">
+                <h6 class="fw-bold mb-3">{{ __('Transitions & Continuity') }}</h6>
+
+                <div class="row">
+                    {{-- Transition Type --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('Scene Transition Type') }}</label>
+                        <select class="form-select" name="story_mode_transition_type">
+                            <option value="fade" {{ get_option('story_mode_transition_type', 'fade') == 'fade' ? 'selected' : '' }}>{{ __('Fade') }}</option>
+                            <option value="dissolve" {{ get_option('story_mode_transition_type', 'fade') == 'dissolve' ? 'selected' : '' }}>{{ __('Dissolve') }}</option>
+                            <option value="wipeleft" {{ get_option('story_mode_transition_type', 'fade') == 'wipeleft' ? 'selected' : '' }}>{{ __('Wipe Left') }}</option>
+                            <option value="smoothleft" {{ get_option('story_mode_transition_type', 'fade') == 'smoothleft' ? 'selected' : '' }}>{{ __('Smooth Left') }}</option>
+                            <option value="circlecrop" {{ get_option('story_mode_transition_type', 'fade') == 'circlecrop' ? 'selected' : '' }}>{{ __('Circle Crop') }}</option>
+                            <option value="none" {{ get_option('story_mode_transition_type', 'fade') == 'none' ? 'selected' : '' }}>{{ __('None (Hard Cut)') }}</option>
+                        </select>
+                        <small class="text-muted">{{ __('FFmpeg xfade transition between scenes') }}</small>
+                    </div>
+
+                    {{-- Crossfade Duration --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('Crossfade Duration (seconds)') }}</label>
+                        <input type="number" class="form-control" name="story_mode_crossfade_duration"
+                               value="{{ get_option('story_mode_crossfade_duration', 0.5) }}"
+                               min="0" max="3" step="0.1">
+                        <small class="text-muted">{{ __('0 = hard cut, 0.5 = default smooth transition') }}</small>
+                    </div>
+
+                    {{-- Fade Out Duration --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('Final Fade-to-Black (seconds)') }}</label>
+                        <input type="number" class="form-control" name="story_mode_fadeout_duration"
+                               value="{{ get_option('story_mode_fadeout_duration', 1.5) }}"
+                               min="0" max="5" step="0.1">
+                        <small class="text-muted">{{ __('Video and audio fade-out at the end. 0 = no fade.') }}</small>
+                    </div>
+
+                    {{-- Frame Chaining Mode --}}
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label">{{ __('Sequential Frame Chaining') }}</label>
+                        <select class="form-select" name="story_mode_frame_chaining">
+                            <option value="0" {{ get_option('story_mode_frame_chaining', 0) == 0 ? 'selected' : '' }}>{{ __('Disable (Parallel - Fast)') }}</option>
+                            <option value="1" {{ get_option('story_mode_frame_chaining', 0) == 1 ? 'selected' : '' }}>{{ __('Enable (Sequential - Slow)') }}</option>
+                        </select>
+                        <small class="text-muted">{{ __('Sequential mode extracts last frame of each clip for perfect continuity. ~4x slower.') }}</small>
+                    </div>
+                </div>
             </div>
         </div>
 

@@ -371,27 +371,16 @@ class VideoRenderService
                 throw new Exception('No video clips were produced');
             }
 
-            // Step 3: Concatenate all video clips
-            $this->updateProgress($progressCallback, 58, 'Joining video clips...');
-            $concatListFile = "{$workDir}/concat_list.txt";
-            $concatContent = [];
-            foreach ($normalizedClips as $clipPath) {
-                $concatContent[] = "file '{$clipPath}'";
-            }
-            file_put_contents($concatListFile, implode("\n", $concatContent));
-
-            $concatenatedVideo = "{$workDir}/concatenated.mp4";
-            $cmd = [
-                $this->ffmpegPath,
-                '-f', 'concat',
-                '-safe', '0',
-                '-i', $concatListFile,
-                '-c', 'copy',
-                '-movflags', '+faststart',
-                '-y',
-                $concatenatedVideo,
-            ];
-            $this->runCommand($cmd, $jobId, 'Concat clips');
+            // Step 3: Concatenate video clips with transitions
+            $this->updateProgress($progressCallback, 58, 'Joining video clips with transitions...');
+            $transitions = $manifest['transitions'] ?? [];
+            $concatenatedVideo = $this->concatenateWithXfade(
+                $jobId,
+                $normalizedClips,
+                $transitions,
+                $workDir,
+                $output
+            );
 
             if (!file_exists($concatenatedVideo)) {
                 throw new Exception('Failed to concatenate video clips');
@@ -401,8 +390,11 @@ class VideoRenderService
             $this->updateProgress($progressCallback, 65, 'Processing voiceovers...');
             $voiceoverConcatFile = $this->concatenateVoiceovers($jobId, $scenes, $voiceoverFiles, $workDir);
 
-            // Step 5: Combine video + audio
+            // Step 5: Combine video + audio (pass fade-out duration for audio fade)
             $this->updateProgress($progressCallback, 75, 'Mixing audio...');
+            $outputWithFade = array_merge($output, [
+                'fadeOutDuration' => (float) ($transitions['fadeOutDuration'] ?? 0),
+            ]);
             $finalVideoFile = $this->combineVideoWithAudio(
                 $jobId,
                 $concatenatedVideo,
@@ -411,7 +403,7 @@ class VideoRenderService
                 null, // music file - could add later
                 $music['volume'] ?? 0.15,
                 $workDir,
-                $output
+                $outputWithFade
             );
 
             // Step 6: Upload
@@ -739,6 +731,9 @@ class VideoRenderService
         $filterParts = [];
         $audioStream = null;
 
+        // Determine audio fade-out duration from output config
+        $audioFadeOut = (float) ($output['fadeOutDuration'] ?? 0);
+
         if ($voiceoverConcatFile && file_exists($voiceoverConcatFile)) {
             $inputArgs[] = '-i';
             $inputArgs[] = $voiceoverConcatFile;
@@ -759,6 +754,29 @@ class VideoRenderService
             } else {
                 $filterParts[] = "[{$musicIdx}:a]volume={$musicVolume},aloop=loop=-1:size=2e+09[aout]";
                 $audioStream = '[aout]';
+            }
+        }
+
+        // Apply audio fade-out at the end of the video
+        if ($audioFadeOut > 0) {
+            $videoDuration = $this->getVideoDuration($videoFile);
+            $afadeStart = max(0, round($videoDuration - $audioFadeOut, 3));
+            $currentStream = $audioStream ?? '1:a';
+
+            if (str_starts_with($currentStream, '[')) {
+                // Already a named stream from filter_complex — chain afade onto it
+                $streamName = rtrim(ltrim($currentStream, '['), ']');
+                // Replace the output label of the last filter to chain afade
+                $lastIdx = count($filterParts) - 1;
+                if ($lastIdx >= 0) {
+                    $filterParts[$lastIdx] = str_replace("[{$streamName}]", "[pre_fade]", $filterParts[$lastIdx]);
+                    $filterParts[] = "[pre_fade]afade=t=out:st={$afadeStart}:d={$audioFadeOut}[afaded]";
+                    $audioStream = '[afaded]';
+                }
+            } else {
+                // Raw stream reference — wrap in a filter
+                $filterParts[] = "[{$currentStream}]afade=t=out:st={$afadeStart}:d={$audioFadeOut}[afaded]";
+                $audioStream = '[afaded]';
             }
         }
 
@@ -862,6 +880,200 @@ class VideoRenderService
         }
 
         return $outputFile;
+    }
+
+    /**
+     * Get video duration using ffprobe.
+     *
+     * @param string $filePath Path to video file
+     * @return float Duration in seconds
+     */
+    public function getVideoDuration(string $filePath): float
+    {
+        $cmd = [
+            $this->ffprobePath,
+            '-v', 'error',
+            '-show_entries', 'format=duration',
+            '-of', 'default=noprint_wrappers=1:nokey=1',
+            $filePath,
+        ];
+
+        $output = shell_exec(implode(' ', array_map('escapeshellarg', $cmd)));
+        return (float) trim($output ?: '0');
+    }
+
+    /**
+     * Concatenate video clips with xfade crossfade transitions and final fade-out.
+     *
+     * For N clips, builds N-1 xfade operations chained together.
+     * Falls back to simple concat if only 1 clip or crossfade is disabled.
+     *
+     * @param string $jobId Job identifier for logging
+     * @param array $clipPaths Array of normalized video file paths
+     * @param array $transitions Transition config: type, crossfadeDuration, fadeOutDuration
+     * @param string $workDir Working directory
+     * @param array $output Output settings (quality, etc.)
+     * @return string Path to the concatenated video file
+     */
+    protected function concatenateWithXfade(
+        string $jobId,
+        array $clipPaths,
+        array $transitions,
+        string $workDir,
+        array $output
+    ): string {
+        $crossfadeDuration = (float) ($transitions['crossfadeDuration'] ?? 0.5);
+        $fadeOutDuration = (float) ($transitions['fadeOutDuration'] ?? 1.5);
+        $transitionType = $transitions['type'] ?? 'fade';
+        $outputFile = "{$workDir}/concatenated.mp4";
+
+        // Fall back to simple concat if only 1 clip or crossfade disabled
+        if (count($clipPaths) <= 1 || $crossfadeDuration <= 0 || $transitionType === 'none') {
+            $concatListFile = "{$workDir}/concat_list.txt";
+            $concatContent = array_map(fn($p) => "file '{$p}'", $clipPaths);
+            file_put_contents($concatListFile, implode("\n", $concatContent));
+
+            $cmd = [
+                $this->ffmpegPath,
+                '-f', 'concat',
+                '-safe', '0',
+                '-i', $concatListFile,
+                '-c', 'copy',
+                '-movflags', '+faststart',
+                '-y',
+                $outputFile,
+            ];
+            $this->runCommand($cmd, $jobId, 'Simple Concat');
+
+            // Add fade-out even with simple concat if requested
+            if ($fadeOutDuration > 0 && file_exists($outputFile)) {
+                $outputFile = $this->applyFadeOut($jobId, $outputFile, $fadeOutDuration, $workDir, $output);
+            }
+
+            return $outputFile;
+        }
+
+        // Probe actual durations for each clip (essential for correct xfade offsets)
+        $durations = [];
+        foreach ($clipPaths as $i => $clipPath) {
+            $durations[$i] = $this->getVideoDuration($clipPath);
+            Log::debug("[StoryExport:{$jobId}] Clip {$i} actual duration: {$durations[$i]}s");
+        }
+
+        // Build xfade filter chain
+        // For N clips: N-1 xfade operations
+        // offset_i = sum(d0..di) - (i+1) * crossfadeDuration
+        $clipCount = count($clipPaths);
+        $filterParts = [];
+        $runningDuration = $durations[0];
+
+        // Build inputs
+        $inputArgs = [];
+        foreach ($clipPaths as $clipPath) {
+            $inputArgs[] = '-i';
+            $inputArgs[] = $clipPath;
+        }
+
+        for ($i = 0; $i < $clipCount - 1; $i++) {
+            $offset = $runningDuration - $crossfadeDuration;
+            $offset = max(0, round($offset, 3));
+
+            $inputLabel = ($i === 0) ? '[0:v]' : "[v{$i}]";
+            $nextInput = '[' . ($i + 1) . ':v]';
+
+            $isLast = ($i === $clipCount - 2);
+            $outputLabel = $isLast ? '[vout]' : "[v" . ($i + 1) . "]";
+
+            $xfadePart = "{$inputLabel}{$nextInput}xfade=transition={$transitionType}:duration={$crossfadeDuration}:offset={$offset}";
+
+            // Add final fade-out on the last xfade operation
+            if ($isLast && $fadeOutDuration > 0) {
+                $totalDuration = $offset + $durations[$i + 1];
+                $fadeStart = max(0, round($totalDuration - $fadeOutDuration, 3));
+                $xfadePart .= ",fade=t=out:st={$fadeStart}:d={$fadeOutDuration}";
+            }
+
+            $xfadePart .= $outputLabel;
+            $filterParts[] = $xfadePart;
+
+            // Update running duration: after xfade, the combined duration is
+            // previous_combined + next_clip_duration - crossfade_overlap
+            $runningDuration = $offset + $durations[$i + 1];
+        }
+
+        $filterComplex = implode(';', $filterParts);
+
+        $renderQuality = $output['renderQuality'] ?? $output['quality'] ?? 'balanced';
+        $settings = $this->qualitySettings[$renderQuality] ?? $this->qualitySettings['balanced'];
+
+        $cmd = array_merge(
+            [$this->ffmpegPath],
+            $inputArgs,
+            [
+                '-filter_complex', $filterComplex,
+                '-map', '[vout]',
+                '-c:v', 'libx264',
+                '-preset', $settings['preset'],
+                '-crf', $settings['crf'],
+                '-pix_fmt', 'yuv420p',
+                '-movflags', '+faststart',
+                '-y',
+                $outputFile,
+            ]
+        );
+
+        Log::info("[StoryExport:{$jobId}] Building xfade filter with {$transitionType} transitions, " .
+            "{$crossfadeDuration}s crossfade, {$fadeOutDuration}s fade-out");
+
+        $this->runCommand($cmd, $jobId, 'Xfade Concat');
+
+        if (!file_exists($outputFile)) {
+            throw new Exception('Failed to concatenate video clips with xfade');
+        }
+
+        return $outputFile;
+    }
+
+    /**
+     * Apply fade-out effect to a video file (used when simple concat is used).
+     */
+    protected function applyFadeOut(
+        string $jobId,
+        string $inputFile,
+        float $fadeOutDuration,
+        string $workDir,
+        array $output
+    ): string {
+        $outputFile = "{$workDir}/concat_faded.mp4";
+        $totalDuration = $this->getVideoDuration($inputFile);
+        $fadeStart = max(0, round($totalDuration - $fadeOutDuration, 3));
+
+        $renderQuality = $output['renderQuality'] ?? $output['quality'] ?? 'balanced';
+        $settings = $this->qualitySettings[$renderQuality] ?? $this->qualitySettings['balanced'];
+
+        $cmd = [
+            $this->ffmpegPath,
+            '-i', $inputFile,
+            '-vf', "fade=t=out:st={$fadeStart}:d={$fadeOutDuration}",
+            '-c:v', 'libx264',
+            '-preset', $settings['preset'],
+            '-crf', $settings['crf'],
+            '-pix_fmt', 'yuv420p',
+            '-an',
+            '-movflags', '+faststart',
+            '-y',
+            $outputFile,
+        ];
+
+        $this->runCommand($cmd, $jobId, 'Fade Out');
+
+        if (file_exists($outputFile)) {
+            return $outputFile;
+        }
+
+        // Fall back to original if fade-out fails
+        Log::warning("[StoryExport:{$jobId}] Fade-out failed, using unfaded video");
+        return $inputFile;
     }
 
     /**

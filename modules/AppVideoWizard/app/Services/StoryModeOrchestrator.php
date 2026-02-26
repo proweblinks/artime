@@ -53,7 +53,11 @@ class StoryModeOrchestrator
             $this->stepGenerateImages($project);
 
             // Step 4: Generate Video Clips (70-85%)
-            $this->stepGenerateVideoClips($project);
+            if (get_option('story_mode_frame_chaining', 0)) {
+                $this->stepGenerateVideoClipsSequential($project);
+            } else {
+                $this->stepGenerateVideoClips($project);
+            }
 
             // Step 5: Assemble Final Video (85-100%)
             $this->stepAssembleFinalVideo($project);
@@ -213,6 +217,10 @@ class StoryModeOrchestrator
         $scenes = $project->scenes ?? [];
         $wizardProject = $this->createTempWizardProject($project);
 
+        // Collect image URLs for end_image_url continuity
+        $imageUrls = array_map(fn($s) => $s['image_url'] ?? null, $scenes);
+        $crossfade = (float) get_option('story_mode_crossfade_duration', 0.5);
+
         // Phase 1: Submit all video generation jobs
         $pendingTasks = []; // index => taskId
         foreach ($scenes as $i => $scene) {
@@ -224,12 +232,24 @@ class StoryModeOrchestrator
             try {
                 $clipDuration = min(8, max(4, (int) round($scene['audio_duration'] ?? 6)));
 
-                $result = $this->animationService->generateAnimation($wizardProject, [
+                // Add buffer for crossfade overlap (clips need to be slightly longer)
+                if ($i < count($scenes) - 1 && $crossfade > 0) {
+                    $clipDuration = min(10, $clipDuration + (int) ceil($crossfade));
+                }
+
+                $animationOptions = [
                     'imageUrl' => $imageUrl,
                     'prompt' => $scene['camera_motion'] ?? 'slow zoom in',
                     'duration' => $clipDuration,
                     'sceneIndex' => $i,
-                ]);
+                ];
+
+                // Visual continuity: end frame transitions toward next scene
+                if ($i < count($scenes) - 1 && !empty($imageUrls[$i + 1])) {
+                    $animationOptions['end_image_url'] = $imageUrls[$i + 1];
+                }
+
+                $result = $this->animationService->generateAnimation($wizardProject, $animationOptions);
 
                 if (!empty($result['success']) && !empty($result['taskId'])) {
                     $pendingTasks[$i] = $result['taskId'];
@@ -323,6 +343,9 @@ class StoryModeOrchestrator
         $captionsEnabled = (bool) get_option('story_mode_captions_enabled', 1);
         $musicEnabled = (bool) get_option('story_mode_music_enabled', 1);
         $musicVolume = (float) get_option('story_mode_music_volume', 0.15);
+        $crossfadeDuration = (float) get_option('story_mode_crossfade_duration', 0.5);
+        $fadeOutDuration = (float) get_option('story_mode_fadeout_duration', 1.5);
+        $transitionType = get_option('story_mode_transition_type', 'fade');
 
         $aspectRatio = $project->aspect_ratio ?? '9:16';
         $resMap = [
@@ -361,6 +384,11 @@ class StoryModeOrchestrator
                 'height' => $res['height'],
                 'aspectRatio' => $aspectRatio,
                 'fps' => 30,
+            ],
+            'transitions' => [
+                'type' => $transitionType,
+                'crossfadeDuration' => $crossfadeDuration,
+                'fadeOutDuration' => $fadeOutDuration,
             ],
             'music' => $musicEnabled ? ['volume' => $musicVolume] : null,
             'captions' => $captionsEnabled ? ['enabled' => true, 'style' => 'default'] : null,
@@ -407,6 +435,8 @@ class StoryModeOrchestrator
         foreach ($scenes as $scene) {
             $totalDuration += $scene['audio_duration'] ?? $scene['estimated_duration'] ?? 6;
         }
+        // Subtract crossfade overlaps from total duration
+        $totalDuration -= max(0, count($scenes) - 1) * $crossfadeDuration;
 
         $project->update([
             'status' => 'ready',
@@ -425,6 +455,189 @@ class StoryModeOrchestrator
 
         if ($project->style) {
             $project->style->incrementUsage();
+        }
+    }
+
+    /**
+     * Step 4 (Sequential): Generate video clips with frame-chaining.
+     * Each clip's last frame is extracted and used as the start image for the next clip.
+     * Much slower than parallel but provides perfect visual continuity.
+     */
+    protected function stepGenerateVideoClipsSequential(StoryModeProject $project): void
+    {
+        $project->updateProgress('generating_video', 70, 'Generating video clips (sequential frame-chaining)');
+
+        $scenes = $project->scenes ?? [];
+        $wizardProject = $this->createTempWizardProject($project);
+        $crossfade = (float) get_option('story_mode_crossfade_duration', 0.5);
+        $projectDir = $this->ensureProjectDir($project->id, 'frames');
+        $lastFrameUrl = null;
+
+        foreach ($scenes as $i => $scene) {
+            $imageUrl = $scene['image_url'] ?? null;
+            if (empty($imageUrl)) {
+                continue;
+            }
+
+            $progress = 70 + (int) (($i / count($scenes)) * 15);
+            $project->updateProgress('generating_video', $progress, "Generating clip " . ($i + 1) . "/" . count($scenes) . " (sequential)");
+
+            // Use last frame from previous clip if available
+            $startImage = $lastFrameUrl ?: $imageUrl;
+
+            try {
+                $clipDuration = min(8, max(4, (int) round($scene['audio_duration'] ?? 6)));
+
+                if ($i < count($scenes) - 1 && $crossfade > 0) {
+                    $clipDuration = min(10, $clipDuration + (int) ceil($crossfade));
+                }
+
+                $animationOptions = [
+                    'imageUrl' => $startImage,
+                    'prompt' => $scene['camera_motion'] ?? 'slow zoom in',
+                    'duration' => $clipDuration,
+                    'sceneIndex' => $i,
+                ];
+
+                $result = $this->animationService->generateAnimation($wizardProject, $animationOptions);
+
+                if (!empty($result['success']) && !empty($result['taskId'])) {
+                    // Poll this single task to completion before moving to next
+                    $taskResult = $this->pollSingleTask($result['taskId'], $i);
+
+                    if ($taskResult) {
+                        $scenes[$i]['video_url'] = $taskResult['videoUrl'];
+
+                        // Extract last frame for next clip's start image
+                        if ($i < count($scenes) - 1) {
+                            try {
+                                $lastFramePath = "{$projectDir}/lastframe_{$i}.jpg";
+                                $this->extractLastFrame($taskResult['videoUrl'], $lastFramePath);
+                                if (file_exists($lastFramePath)) {
+                                    // Upload frame and use its URL
+                                    $lastFrameUrl = $this->uploadFrameToStorage($lastFramePath, $project->id, $i);
+                                } else {
+                                    $lastFrameUrl = null;
+                                }
+                            } catch (\Exception $e) {
+                                Log::warning("StoryModeOrchestrator: Frame extraction failed for scene {$i}", [
+                                    'error' => $e->getMessage(),
+                                ]);
+                                $lastFrameUrl = null;
+                            }
+                        }
+                    }
+                } elseif (!empty($result['videoUrl'])) {
+                    $scenes[$i]['video_url'] = $result['videoUrl'];
+                }
+            } catch (\Exception $e) {
+                Log::warning("StoryModeOrchestrator: Sequential video failed for scene {$i}, falling back to original image", [
+                    'error' => $e->getMessage(),
+                ]);
+                $lastFrameUrl = null;
+            }
+
+            $project->update(['scenes' => $scenes]);
+        }
+
+        $project->update(['scenes' => $scenes]);
+        $wizardProject->delete();
+    }
+
+    /**
+     * Poll a single Seedance task until completion.
+     *
+     * @return array|null Task result with videoUrl, or null if failed
+     */
+    protected function pollSingleTask(string $taskId, int $sceneIndex): ?array
+    {
+        $maxAttempts = 96; // 8 minutes
+        for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
+            sleep(5);
+
+            try {
+                $status = $this->animationService->getTaskStatus($taskId);
+                $state = $status['status'] ?? 'unknown';
+
+                if ($state === 'completed' && !empty($status['videoUrl'])) {
+                    Log::info("StoryModeOrchestrator: Sequential clip completed for scene {$sceneIndex}");
+                    return $status;
+                }
+
+                if ($state === 'failed') {
+                    Log::warning("StoryModeOrchestrator: Sequential clip failed for scene {$sceneIndex}");
+                    return null;
+                }
+            } catch (\Exception $e) {
+                // Continue polling
+            }
+        }
+
+        Log::warning("StoryModeOrchestrator: Sequential clip timed out for scene {$sceneIndex}");
+        return null;
+    }
+
+    /**
+     * Extract the last frame from a video file/URL.
+     */
+    protected function extractLastFrame(string $videoUrl, string $outputPath): void
+    {
+        $renderService = app(VideoRenderService::class);
+        $tempDir = sys_get_temp_dir() . '/frame_extract_' . Str::random(8);
+        mkdir($tempDir, 0755, true);
+
+        $tempVideo = "{$tempDir}/video.mp4";
+
+        // Download the video
+        $response = \Illuminate\Support\Facades\Http::timeout(60)->get($videoUrl);
+        if (!$response->successful()) {
+            throw new \Exception('Failed to download video for frame extraction');
+        }
+        file_put_contents($tempVideo, $response->body());
+
+        // Get video duration
+        $duration = $renderService->getVideoDuration($tempVideo);
+
+        // Extract last frame (0.1s before end to avoid black frames)
+        $seekTo = max(0, $duration - 0.1);
+        $ffmpegPath = config('services.video_processor.ffmpeg_path', 'ffmpeg');
+
+        $cmd = implode(' ', array_map('escapeshellarg', [
+            $ffmpegPath,
+            '-ss', (string) $seekTo,
+            '-i', $tempVideo,
+            '-vframes', '1',
+            '-q:v', '2',
+            '-y',
+            $outputPath,
+        ]));
+
+        shell_exec($cmd . ' 2>&1');
+
+        // Cleanup temp
+        @unlink($tempVideo);
+        @rmdir($tempDir);
+    }
+
+    /**
+     * Upload a frame image to storage and return its URL.
+     */
+    protected function uploadFrameToStorage(string $framePath, int $projectId, int $sceneIndex): ?string
+    {
+        $fileName = "story-mode/{$projectId}/frames/lastframe_{$sceneIndex}.jpg";
+
+        try {
+            if (config('filesystems.disks.gcs.bucket')) {
+                \Illuminate\Support\Facades\Storage::disk('gcs')->put($fileName, file_get_contents($framePath), 'public');
+                $bucket = config('filesystems.disks.gcs.bucket');
+                return "https://storage.googleapis.com/{$bucket}/{$fileName}";
+            }
+
+            \Illuminate\Support\Facades\Storage::disk('public')->put($fileName, file_get_contents($framePath));
+            return url('/files/' . $fileName);
+        } catch (\Exception $e) {
+            Log::warning("StoryModeOrchestrator: Frame upload failed", ['error' => $e->getMessage()]);
+            return null;
         }
     }
 
