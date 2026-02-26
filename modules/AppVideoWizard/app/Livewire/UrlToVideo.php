@@ -58,6 +58,9 @@ class UrlToVideo extends Component
     public $uploadedSceneImage;
     public string $uploadTargetScene = '';
 
+    // Per-scene AI animation toggle (opt-in to Seedance)
+    public array $sceneAnimateWithAI = [];
+
     // Crop/position data for 9:16 framing
     public array $sceneCropData = [];
 
@@ -345,6 +348,13 @@ class UrlToVideo extends Component
     public function selectSceneImage(string $sceneId, int $candidateIndex)
     {
         $this->selectedSceneImages[$sceneId] = $candidateIndex;
+
+        // If selecting a video clip, disable animation (already animated content)
+        $candidates = $this->sceneImageCandidates[$sceneId] ?? [];
+        $candidate = $candidates[$candidateIndex] ?? null;
+        if ($candidate && ($candidate['type'] ?? 'image') === 'video') {
+            $this->sceneAnimateWithAI[$sceneId] = false;
+        }
     }
 
     /**
@@ -356,9 +366,19 @@ class UrlToVideo extends Component
             // Toggle off: revert to first candidate or null
             $candidates = $this->sceneImageCandidates[$sceneId] ?? [];
             $this->selectedSceneImages[$sceneId] = !empty($candidates) ? 0 : null;
+            $this->sceneAnimateWithAI[$sceneId] = false;
         } else {
             $this->selectedSceneImages[$sceneId] = 'ai';
+            $this->sceneAnimateWithAI[$sceneId] = true;
         }
+    }
+
+    /**
+     * Toggle per-scene AI animation (Seedance) on/off.
+     */
+    public function toggleSceneAnimation(string $sceneId)
+    {
+        $this->sceneAnimateWithAI[$sceneId] = !($this->sceneAnimateWithAI[$sceneId] ?? false);
     }
 
     /**
@@ -536,12 +556,13 @@ class UrlToVideo extends Component
             }
             unset($scene);
 
-            // Attach crop/position data to scenes
+            // Attach crop/position data and animation flag to scenes
             foreach ($scenes as &$scene) {
                 $sceneId = $scene['id'] ?? '';
                 if (!empty($this->sceneCropData[$sceneId])) {
                     $scene['crop'] = $this->sceneCropData[$sceneId];
                 }
+                $scene['animate_with_ai'] = $this->sceneAnimateWithAI[$sceneId] ?? false;
             }
             unset($scene);
 
@@ -603,6 +624,7 @@ class UrlToVideo extends Component
         $this->sceneImageCandidates = [];
         $this->sceneSearchSuggestions = [];
         $this->selectedSceneImages = [];
+        $this->sceneAnimateWithAI = [];
         $this->sceneCropData = [];
     }
 

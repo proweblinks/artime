@@ -5,8 +5,12 @@
      x-data="{
          searchInputs: {},
          showSearch: {},
+         expandedScenes: {},
          toggleSearch(sceneId) {
              this.showSearch[sceneId] = !this.showSearch[sceneId];
+         },
+         toggleSceneText(sceneId) {
+             this.expandedScenes[sceneId] = !this.expandedScenes[sceneId];
          },
          submitSearch(sceneId) {
              const query = this.searchInputs[sceneId] || '';
@@ -125,42 +129,70 @@
                     }
                     $selection = $selectedSceneImages[$sceneId] ?? null;
                     $isAI = $selection === 'ai';
+                    $isAnimated = $sceneAnimateWithAI[$sceneId] ?? false;
+                    // Check if selected candidate is a video
+                    $selectedCandidate = null;
+                    if (!$isAI && $selection !== null) {
+                        $candidatesList = $sceneImageCandidates[$sceneId] ?? [];
+                        $selectedCandidate = (is_int($selection) || (is_string($selection) && ctype_digit($selection)))
+                            ? ($candidatesList[(int) $selection] ?? null) : null;
+                    }
+                    $isVideoSelected = $selectedCandidate && ($selectedCandidate['type'] ?? 'image') === 'video';
                 @endphp
 
                 <div class="utv-scene-row mb-4">
                     {{-- Scene header --}}
-                    <div class="d-flex align-items-start justify-content-between mb-2">
-                        <div class="flex-grow-1" style="min-width: 0;">
-                            <div class="d-flex align-items-center gap-2 mb-1">
-                                <span class="badge" style="background: #2a2a2a; color: #f97316; font-size: 0.7rem; font-weight: 600;">
-                                    {{ __('Scene') }} {{ $sceneIndex + 1 }}
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex align-items-center gap-2 flex-grow-1" style="min-width: 0;">
+                            <span class="badge" style="background: #2a2a2a; color: #f97316; font-size: 0.7rem; font-weight: 600;">
+                                {{ __('Scene') }} {{ $sceneIndex + 1 }}
+                            </span>
+                            @if($isAI)
+                                <span class="badge" style="background: #7c3aed20; color: #a78bfa; font-size: 0.65rem;">
+                                    <i class="fa-light fa-wand-magic-sparkles me-1"></i>{{ __('AI Image') }}
                                 </span>
-                                @if($isAI)
-                                    <span class="badge" style="background: #7c3aed20; color: #a78bfa; font-size: 0.65rem;">
-                                        <i class="fa-light fa-wand-magic-sparkles me-1"></i>{{ __('AI will generate') }}
-                                    </span>
-                                @elseif($selection !== null && $selection !== 'ai')
-                                    <span class="badge" style="background: #f9731620; color: #f97316; font-size: 0.65rem;">
-                                        <i class="fa-light fa-check me-1"></i>{{ __('Selected') }}
-                                    </span>
-                                @elseif(empty($candidates))
-                                    <span class="badge" style="background: #ef444420; color: #f87171; font-size: 0.65rem;">
-                                        <i class="fa-light fa-triangle-exclamation me-1"></i>{{ __('No images') }}
-                                    </span>
-                                @endif
-                            </div>
-                            <p class="mb-0" style="color: rgba(255,255,255,0.7); font-size: 0.8rem; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">
-                                {{ Str::limit($sceneText, 180) }}
-                            </p>
+                            @elseif($selection !== null && $selection !== 'ai')
+                                <span class="badge" style="background: #f9731620; color: #f97316; font-size: 0.65rem;">
+                                    <i class="fa-light fa-check me-1"></i>{{ __('Selected') }}
+                                </span>
+                            @elseif(empty($candidates))
+                                <span class="badge" style="background: #ef444420; color: #f87171; font-size: 0.65rem;">
+                                    <i class="fa-light fa-triangle-exclamation me-1"></i>{{ __('No images') }}
+                                </span>
+                            @endif
+                            @if($isAnimated)
+                                <span class="badge" style="background: #f59e0b20; color: #fbbf24; font-size: 0.65rem;">
+                                    <i class="fa-light fa-sparkles me-1"></i>{{ __('Animated') }}
+                                </span>
+                            @endif
+                            {{-- Text toggle button --}}
+                            @if(!empty($sceneText))
+                                <button @click="toggleSceneText('{{ $sceneId }}')" type="button"
+                                        class="utv-text-toggle-btn"
+                                        :class="{ 'active': expandedScenes['{{ $sceneId }}'] }">
+                                    <i class="fa-light fa-align-left"></i>
+                                </button>
+                            @endif
                         </div>
 
                         {{-- Action buttons --}}
                         <div class="d-flex align-items-center gap-1 flex-shrink-0 ms-3">
+                            {{-- AI Image pill button --}}
                             <button wire:click="markSceneForAI('{{ $sceneId }}')" type="button"
-                                    class="utv-img-action-btn {{ $isAI ? 'active-ai' : '' }}"
+                                    class="utv-pill-btn {{ $isAI ? 'active-ai' : '' }}"
                                     title="{{ __('Use AI Image') }}">
                                 <i class="fa-light fa-wand-magic-sparkles"></i>
+                                <span>{{ __('AI Image') }}</span>
                             </button>
+                            {{-- Animate toggle (hidden for video clips) --}}
+                            @if(!$isVideoSelected)
+                                <button wire:click="toggleSceneAnimation('{{ $sceneId }}')" type="button"
+                                        class="utv-pill-btn {{ $isAnimated ? 'active-animate' : '' }}"
+                                        title="{{ $isAnimated ? __('Animation enabled (Seedance)') : __('Enable AI animation') }}">
+                                    <i class="fa-light fa-sparkles"></i>
+                                    <span>{{ __('Animate') }}</span>
+                                </button>
+                            @endif
                             <button @click="toggleSearch('{{ $sceneId }}')" type="button"
                                     class="utv-img-action-btn"
                                     title="{{ __('Search More') }}">
@@ -174,6 +206,20 @@
                             </label>
                         </div>
                     </div>
+
+                    {{-- Collapsible scene text --}}
+                    @if(!empty($sceneText))
+                        <div x-show="expandedScenes['{{ $sceneId }}']" x-cloak
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 transform -translate-y-1"
+                             x-transition:enter-end="opacity-100 transform translate-y-0"
+                             x-transition:leave="transition ease-in duration-150"
+                             x-transition:leave-start="opacity-100"
+                             x-transition:leave-end="opacity-0"
+                             class="mb-2">
+                            <p class="utv-scene-text-full mb-0">{{ $sceneText }}</p>
+                        </div>
+                    @endif
 
                     {{-- Search input (toggled) --}}
                     <div x-show="showSearch['{{ $sceneId }}']" x-cloak class="mb-2">
@@ -194,6 +240,14 @@
                     {{-- Image thumbnails row --}}
                     @if(!empty($candidates))
                         <div class="utv-thumb-row-wrap">
+                            {{-- AI overlay when AI image selected --}}
+                            @if($isAI)
+                                <div class="utv-ai-overlay" wire:click="markSceneForAI('{{ $sceneId }}')">
+                                    <i class="fa-light fa-wand-magic-sparkles"></i>
+                                    <span>{{ __('Will Generate with AI') }}</span>
+                                    <small>{{ __('Click to choose a stock image instead') }}</small>
+                                </div>
+                            @endif
                             <div class="utv-thumb-row"
                                  x-data="{
                                      isDragging: false,
@@ -309,6 +363,7 @@
                 $realCount = 0;
                 $videoCount = 0;
                 $aiCount = 0;
+                $animatedCount = 0;
                 $unselected = 0;
                 foreach ($selectedSceneImages as $sid => $sel) {
                     if ($sel === 'ai') {
@@ -325,6 +380,10 @@
                     } else {
                         $unselected++;
                     }
+                    // Count animated scenes
+                    if (!empty($sceneAnimateWithAI[$sid])) {
+                        $animatedCount++;
+                    }
                 }
             @endphp
             <div class="d-flex align-items-center gap-3 p-3 mt-2" style="background: #111; border-radius: 10px; font-size: 0.82rem;">
@@ -338,6 +397,12 @@
                     <span style="color: #ccc;">
                         <i class="fa-light fa-clapperboard-play me-1" style="color: #38bdf8;"></i>
                         {{ $videoCount }} {{ __('free clip') }}{{ $videoCount > 1 ? 's' : '' }}
+                    </span>
+                @endif
+                @if($animatedCount > 0)
+                    <span style="color: #ccc;">
+                        <i class="fa-light fa-sparkles me-1" style="color: #fbbf24;"></i>
+                        {{ $animatedCount }} {{ __('animated') }}
                     </span>
                 @endif
                 @if($aiCount > 0)
@@ -513,6 +578,7 @@
         border-radius: 4px;
         white-space: nowrap;
     }
+    /* Small icon-only action buttons (search, upload) */
     .utv-img-action-btn {
         display: inline-flex;
         align-items: center;
@@ -531,9 +597,107 @@
         background: #333;
         color: #ccc;
     }
-    .utv-img-action-btn.active-ai {
-        background: #7c3aed30;
+    /* Pill button style for AI Image + Animate */
+    .utv-pill-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 0 10px;
+        height: 30px;
+        border-radius: 15px;
+        border: 1px solid #333;
+        background: #2a2a2a;
+        color: #888;
+        font-size: 0.72rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+    .utv-pill-btn i {
+        font-size: 0.72rem;
+    }
+    .utv-pill-btn:hover {
+        background: #333;
+        color: #ccc;
+        border-color: #444;
+    }
+    .utv-pill-btn.active-ai {
+        background: rgba(124, 58, 237, 0.15);
         color: #a78bfa;
+        border-color: rgba(124, 58, 237, 0.4);
+        box-shadow: 0 0 8px rgba(124, 58, 237, 0.2);
+    }
+    .utv-pill-btn.active-animate {
+        background: rgba(245, 158, 11, 0.15);
+        color: #fbbf24;
+        border-color: rgba(245, 158, 11, 0.4);
+        box-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
+    }
+    /* AI overlay on thumbnails */
+    .utv-ai-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        background: rgba(124, 58, 237, 0.15);
+        backdrop-filter: blur(4px);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .utv-ai-overlay:hover {
+        background: rgba(124, 58, 237, 0.22);
+    }
+    .utv-ai-overlay > i {
+        font-size: 1.5rem;
+        color: #a78bfa;
+    }
+    .utv-ai-overlay > span {
+        color: #c4b5fd;
+        font-size: 0.82rem;
+        font-weight: 600;
+    }
+    .utv-ai-overlay > small {
+        color: rgba(196, 181, 253, 0.6);
+        font-size: 0.68rem;
+    }
+    /* Text toggle button */
+    .utv-text-toggle-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 5px;
+        border: none;
+        background: transparent;
+        color: #555;
+        font-size: 0.7rem;
+        cursor: pointer;
+        transition: color 0.15s, background 0.15s;
+    }
+    .utv-text-toggle-btn:hover {
+        color: #999;
+        background: #2a2a2a;
+    }
+    .utv-text-toggle-btn.active {
+        color: #f97316;
+        background: rgba(249, 115, 22, 0.1);
+    }
+    /* Expanded scene text */
+    .utv-scene-text-full {
+        color: rgba(255,255,255,0.55);
+        font-size: 0.78rem;
+        line-height: 1.5;
+        padding: 8px 10px;
+        background: rgba(255,255,255,0.03);
+        border-radius: 8px;
+        border-left: 2px solid rgba(249, 115, 22, 0.3);
     }
     .utv-suggestion-chip {
         display: inline-flex;

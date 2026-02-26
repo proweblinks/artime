@@ -256,6 +256,14 @@ class UrlToVideoOrchestrator
                 continue;
             }
 
+            // Skip if user chose NOT to animate this scene (will use Ken Burns instead)
+            if (empty($scene['animate_with_ai'])) {
+                Log::info('UrlToVideoOrchestrator: Scene uses static image (no animation)', [
+                    'scene_id' => $scene['id'] ?? "scene_{$i}",
+                ]);
+                continue;
+            }
+
             $imageUrl = $scene['image_url'] ?? null;
             if (empty($imageUrl)) {
                 continue;
