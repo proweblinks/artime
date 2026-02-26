@@ -185,8 +185,8 @@ class VideoRenderService
             $result = $this->uploadToStorage(
                 $jobId,
                 $finalVideoFile,
-                $manifest['userId'] ?? 'anonymous',
-                $manifest['projectId'] ?? $jobId
+                (string) ($manifest['userId'] ?? 'anonymous'),
+                (string) ($manifest['projectId'] ?? $jobId)
             );
 
             // Cleanup
@@ -419,8 +419,8 @@ class VideoRenderService
             $result = $this->uploadToStorage(
                 $jobId,
                 $finalVideoFile,
-                $manifest['userId'] ?? 'anonymous',
-                $manifest['projectId'] ?? $jobId
+                (string) ($manifest['userId'] ?? 'anonymous'),
+                (string) ($manifest['projectId'] ?? $jobId)
             );
 
             $this->cleanupWorkDir($workDir);
