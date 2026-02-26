@@ -430,10 +430,20 @@ PROMPT;
             ];
         }
 
-        // Last resort: treat the entire response as the transcript
+        // Last resort: if the content looks like JSON, refuse to use it as transcript
+        // (prevents narrator from reading raw JSON aloud)
+        $trimmed = trim($content);
+        if (str_starts_with($trimmed, '{') || str_starts_with($trimmed, '[')) {
+            Log::error('StoryModeScriptService: Raw JSON would have been used as transcript — rejecting', [
+                'content_preview' => substr($trimmed, 0, 200),
+            ]);
+            throw new \Exception('Script generation returned unparseable JSON — cannot extract transcript');
+        }
+
+        // Only use raw content as transcript if it's actual plain text
         return [
             'title' => 'Untitled Story',
-            'transcript' => trim($content),
+            'transcript' => $trimmed,
             'segments' => [],
         ];
     }
@@ -507,9 +517,22 @@ PROMPT;
             return $decoded;
         }
 
+        // If direct decode failed due to control characters, sanitize and retry.
+        // AI responses often contain literal newlines/tabs inside JSON string values.
+        if (json_last_error() === JSON_ERROR_CTRL_CHAR) {
+            $sanitized = $this->sanitizeJsonControlChars($content);
+            $decoded = json_decode($sanitized, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
         // Try extracting JSON object with character_bible (visual script format)
         if (preg_match('/\{[\s\S]*"character_bible"[\s\S]*\}/', $content, $matches)) {
             $decoded = json_decode($matches[0], true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $decoded = json_decode($this->sanitizeJsonControlChars($matches[0]), true);
+            }
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                 return $decoded;
             }
@@ -518,6 +541,9 @@ PROMPT;
         // Try extracting JSON object from mixed content
         if (preg_match('/\{[\s\S]*"transcript"[\s\S]*\}/', $content, $matches)) {
             $decoded = json_decode($matches[0], true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $decoded = json_decode($this->sanitizeJsonControlChars($matches[0]), true);
+            }
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                 return $decoded;
             }
@@ -526,6 +552,9 @@ PROMPT;
         // Try extracting JSON array from mixed content
         if (preg_match('/\[[\s\S]*\]/', $content, $matches)) {
             $decoded = json_decode($matches[0], true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $decoded = json_decode($this->sanitizeJsonControlChars($matches[0]), true);
+            }
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                 return $decoded;
             }
@@ -537,5 +566,56 @@ PROMPT;
         ]);
 
         return null;
+    }
+
+    /**
+     * Sanitize control characters that break json_decode.
+     * Replaces literal newlines/tabs/etc. inside JSON string values with spaces,
+     * while preserving structural whitespace between JSON keys.
+     */
+    protected function sanitizeJsonControlChars(string $json): string
+    {
+        // Replace literal \r\n and \r with \n first
+        $json = str_replace(["\r\n", "\r"], "\n", $json);
+
+        // Replace control characters inside string values:
+        // Walk through the string, tracking whether we're inside a JSON string
+        $result = '';
+        $inString = false;
+        $escaped = false;
+        $len = strlen($json);
+
+        for ($i = 0; $i < $len; $i++) {
+            $char = $json[$i];
+            $ord = ord($char);
+
+            if ($escaped) {
+                $result .= $char;
+                $escaped = false;
+                continue;
+            }
+
+            if ($char === '\\' && $inString) {
+                $result .= $char;
+                $escaped = true;
+                continue;
+            }
+
+            if ($char === '"') {
+                $inString = !$inString;
+                $result .= $char;
+                continue;
+            }
+
+            // Inside a string value, replace control chars with space
+            if ($inString && $ord < 0x20) {
+                $result .= ' ';
+                continue;
+            }
+
+            $result .= $char;
+        }
+
+        return $result;
     }
 }
