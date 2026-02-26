@@ -57,13 +57,18 @@
             {{-- Video Settings --}}
             <div class="d-flex align-items-center gap-3 mt-3 p-3" style="background: #2a2a2a; border-radius: 10px;"
                  x-data="{
-                     resolution: @entangle('videoResolution'),
-                     quality: @entangle('videoQuality'),
+                     resolution: @js($videoResolution),
+                     quality: @js($videoQuality),
                      init() {
                          this.$watch('quality', (val) => {
                              if (val === 'fast' && this.resolution === '480p') {
                                  this.resolution = '720p';
+                                 $wire.set('videoResolution', '720p');
                              }
+                             $wire.set('videoQuality', val);
+                         });
+                         this.$watch('resolution', (val) => {
+                             $wire.set('videoResolution', val);
                          });
                      }
                  }">

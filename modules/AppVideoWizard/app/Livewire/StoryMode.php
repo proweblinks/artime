@@ -3,7 +3,9 @@
 namespace Modules\AppVideoWizard\Livewire;
 
 use Livewire\Component;
+use Livewire\Attributes\Computed;
 use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Modules\AppVideoWizard\Models\StoryModeProject;
 use Modules\AppVideoWizard\Models\StoryModeStyle;
@@ -158,6 +160,7 @@ class StoryMode extends Component
 
             $this->activeProjectId = $project->id;
             $this->detailProjectId = $project->id;
+            Cache::forget('story-mode-projects-' . auth()->id());
 
             // Dispatch the pipeline as a background job
             StoryModeGenerationJob::dispatch($project->id)
@@ -270,6 +273,7 @@ class StoryMode extends Component
 
         if ($project) {
             $project->deleteWithFiles();
+            Cache::forget('story-mode-projects-' . auth()->id());
             if ($this->detailProjectId === $projectId) {
                 $this->detailProjectId = null;
             }
@@ -281,8 +285,10 @@ class StoryMode extends Component
 
     /**
      * Get the active project for polling.
+     * #[Computed] memoizes within a single request — no duplicate queries per render cycle.
      */
-    public function getActiveProjectProperty()
+    #[Computed]
+    public function activeProject()
     {
         if ($this->activeProjectId) {
             return StoryModeProject::with('style')->find($this->activeProjectId);
@@ -293,7 +299,8 @@ class StoryMode extends Component
     /**
      * Get the detail project for overlay.
      */
-    public function getDetailProjectProperty()
+    #[Computed]
+    public function detailProject()
     {
         if ($this->detailProjectId) {
             return StoryModeProject::with('style')->find($this->detailProjectId);
@@ -302,15 +309,20 @@ class StoryMode extends Component
     }
 
     /**
-     * Get user's projects.
+     * Get user's projects — cached for 60 seconds to avoid re-querying on every poll.
      */
-    public function getUserProjectsProperty()
+    #[Computed]
+    public function userProjects()
     {
-        return StoryModeProject::forUser(auth()->id())
-            ->with('style')
-            ->orderBy('updated_at', 'desc')
-            ->limit(20)
-            ->get();
+        return Cache::remember(
+            'story-mode-projects-' . auth()->id(),
+            60,
+            fn () => StoryModeProject::forUser(auth()->id())
+                ->with('style')
+                ->orderBy('updated_at', 'desc')
+                ->limit(20)
+                ->get()
+        );
     }
 
     /**
@@ -335,9 +347,11 @@ class StoryMode extends Component
 
     public function render()
     {
-        $styles = StoryModeStyle::active()
-            ->orderBy('sort_order')
-            ->get();
+        $styles = Cache::remember('story-mode-styles', 3600, function () {
+            return StoryModeStyle::active()
+                ->orderBy('sort_order')
+                ->get();
+        });
 
         return view('appvideowizard::livewire.story-mode', [
             'styles' => $styles,

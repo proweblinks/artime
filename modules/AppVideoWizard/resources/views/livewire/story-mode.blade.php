@@ -1,4 +1,5 @@
-<div class="story-mode-page" x-data="{ showDetail: @entangle('detailProjectId') }">
+<div class="story-mode-page" x-data="{ showDetail: @js($detailProjectId) }"
+     x-init="$watch('$wire.detailProjectId', v => showDetail = v)">
 
     {{-- Main Content --}}
     <div class="story-mode-main py-4 px-3 px-lg-5" style="max-width: 960px; margin: 0 auto;">
@@ -11,9 +12,9 @@
             <p class="text-muted mb-0">{{ __('Enter a prompt, pick a style and voice, and get a professionally edited video.') }}</p>
         </div>
 
-        {{-- Active Project Progress --}}
+        {{-- Active Project Progress — poll only when actually generating --}}
         @if($this->activeProject && $this->activeProject->isGenerating())
-            <div wire:poll.5s class="card border-0 mb-4" style="background: #1a1a1a; border-radius: 12px;">
+            <div wire:poll.10s class="card border-0 mb-4" style="background: #1a1a1a; border-radius: 12px;">
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <div>
@@ -45,7 +46,19 @@
         @include('appvideowizard::livewire.story-mode.partials._style-picker')
 
         {{-- Input Area --}}
-        <div class="border-0 mb-4 p-4" style="background: #1a1a1a !important; border-radius: 12px;" x-data="{ promptText: @entangle('prompt') }">
+        <div class="border-0 mb-4 p-4" style="background: #1a1a1a !important; border-radius: 12px;"
+             x-data="{
+                 promptText: @js($prompt),
+                 resolution: @js($videoResolution),
+                 quality: @js($videoQuality),
+                 init() {
+                     this.$watch('quality', (val) => {
+                         if (val === 'fast' && this.resolution === '480p') {
+                             this.resolution = '720p';
+                         }
+                     });
+                 }
+             }">
                 <textarea
                     x-model="promptText"
                     wire:model.live.debounce.500ms="prompt"
@@ -58,17 +71,7 @@
 
                 {{-- Bottom Toolbar --}}
                 <div class="d-flex align-items-center justify-content-between mt-3 pt-3" style="border-top: 1px solid #333;">
-                    <div class="d-flex align-items-center gap-3" x-data="{
-                        resolution: @entangle('videoResolution'),
-                        quality: @entangle('videoQuality'),
-                        init() {
-                            this.$watch('quality', (val) => {
-                                if (val === 'fast' && this.resolution === '480p') {
-                                    this.resolution = '720p';
-                                }
-                            });
-                        }
-                    }">
+                    <div class="d-flex align-items-center gap-3">
                         {{-- Aspect Ratio --}}
                         <select wire:model="aspectRatio" class="form-select form-select-sm border-0"
                                 style="width: auto; background: #2a2a2a !important; color: #ccc; border-radius: 8px; font-size: 0.8rem;">
@@ -78,7 +81,8 @@
                         </select>
 
                         {{-- Resolution --}}
-                        <select x-model="resolution" class="form-select form-select-sm border-0"
+                        <select x-model="resolution" wire:model.lazy="videoResolution"
+                                class="form-select form-select-sm border-0"
                                 style="width: auto; background: #2a2a2a !important; color: #ccc; border-radius: 8px; font-size: 0.8rem;">
                             <option value="480p" x-show="quality !== 'fast'">480p</option>
                             <option value="720p">720p</option>
@@ -86,7 +90,8 @@
                         </select>
 
                         {{-- Quality --}}
-                        <select x-model="quality" class="form-select form-select-sm border-0"
+                        <select x-model="quality" wire:model.lazy="videoQuality"
+                                class="form-select form-select-sm border-0"
                                 style="width: auto; background: #2a2a2a !important; color: #ccc; border-radius: 8px; font-size: 0.8rem;">
                             <option value="pro">Pro</option>
                             <option value="fast">Fast</option>
@@ -131,7 +136,9 @@
                 </div>
                 <div class="row g-3">
                     @foreach($this->userProjects->take(8) as $project)
-                        @include('appvideowizard::livewire.story-mode.partials._project-card', ['project' => $project])
+                        <div wire:key="project-{{ $project->id }}">
+                            @include('appvideowizard::livewire.story-mode.partials._project-card', ['project' => $project])
+                        </div>
                     @endforeach
                 </div>
             </div>
@@ -143,7 +150,9 @@
                 <h5 class="fw-bold text-white mb-3">{{ __('Top story mode') }}</h5>
                 <div class="row g-3">
                     @foreach($galleryProjects as $project)
-                        @include('appvideowizard::livewire.story-mode.partials._project-card', ['project' => $project])
+                        <div wire:key="gallery-{{ $project->id }}">
+                            @include('appvideowizard::livewire.story-mode.partials._project-card', ['project' => $project])
+                        </div>
                     @endforeach
                 </div>
             </div>
