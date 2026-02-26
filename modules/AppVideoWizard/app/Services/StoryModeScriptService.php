@@ -125,7 +125,7 @@ class StoryModeScriptService
      * @param string $aspectRatio Target aspect ratio (e.g. '9:16', '16:9', '1:1')
      * @return array Visual script with image prompts per segment
      */
-    public function buildVisualScript(array $segments, string $styleInstruction = '', string $aspectRatio = '9:16'): array
+    public function buildVisualScript(array $segments, string $styleInstruction = '', string $aspectRatio = '9:16', ?int $teamId = null): array
     {
         $engine = get_option('story_mode_ai_engine', 'gemini');
         $model = get_option('story_mode_ai_model', 'gemini-2.5-flash');
@@ -158,7 +158,7 @@ For each, provide a detailed visual identity sheet so the character looks IDENTI
 ## PHASE 2 — PER-SCENE DIRECTION
 For each narration segment, output detailed creative direction:
 
-1. **image_prompt**: Detailed image generation prompt (1-3 sentences) with subject, setting, lighting, mood, composition, camera perspective{$styleContext}
+1. **image_prompt**: Detailed image generation prompt (1-3 sentences) with subject, setting, lighting, mood, composition, camera perspective. CRITICAL: All images will be generated in {$aspectRatioLabel} format — compose every scene accordingly. For portrait (9:16): use vertical compositions, tall framing, subjects centered vertically, close-up or medium shots, avoid wide panoramas. For landscape (16:9): use wide horizontal compositions, cinematic widescreen framing. For square (1:1): use centered balanced compositions.{$styleContext}
 2. **characters_in_scene**: Array of character IDs (from the bible) that appear in this scene
 3. **camera_motion**: Select from this list based on scene content:
    - "slow zoom in" — builds intimacy/focus (emotional moments, portraits, detail)
@@ -244,6 +244,8 @@ PROMPT;
         try {
             $fullPrompt = "You are a cinematic director. Respond only with valid JSON.\n\n{$prompt}";
 
+            $effectiveTeamId = $teamId ?? auth()->user()?->team_id ?? 0;
+
             $response = AI::processWithOverride(
                 $fullPrompt,
                 $engine,
@@ -253,7 +255,7 @@ PROMPT;
                     'temperature' => 0.6,
                     'max_tokens' => 6000,
                 ],
-                auth()->user()?->team_id ?? 0
+                $effectiveTeamId
             );
 
             if (!empty($response['error'])) {
@@ -355,9 +357,9 @@ PROMPT;
     protected function buildAspectRatioFraming(string $aspectRatio, string $aspectRatioLabel): string
     {
         return match($aspectRatio) {
-            '9:16' => "Compose in {$aspectRatioLabel} format. Frame subjects vertically with headroom at top.",
-            '1:1' => "Compose in {$aspectRatioLabel} format. Center subjects with balanced framing.",
-            default => "Compose in {$aspectRatioLabel} format. Use wide horizontal framing with cinematic composition.",
+            '9:16' => "MANDATORY: Compose in {$aspectRatioLabel} format. Use TALL vertical composition — subjects must fill the frame vertically. Use close-up or medium shots, NOT wide shots. Frame subjects centered with headroom at top. Never compose as if this were a landscape or square image.",
+            '1:1' => "MANDATORY: Compose in {$aspectRatioLabel} format. Center subjects with balanced framing in a square composition.",
+            default => "MANDATORY: Compose in {$aspectRatioLabel} format. Use wide horizontal cinematic composition with subjects spread across the frame.",
         };
     }
 

@@ -368,11 +368,11 @@ class GeminiService
         // Aspect ratio guidance
         $requestedAspectRatio = $options['aspectRatio'] ?? '16:9';
         $aspectRatioGuidance = match($requestedAspectRatio) {
-            '9:16' => 'Portrait orientation (9:16 aspect ratio).',
-            '1:1' => 'Square format (1:1 aspect ratio).',
-            '4:5' => 'Portrait format (4:5 aspect ratio).',
-            '3:4' => 'Portrait format (3:4 aspect ratio).',
-            default => 'Widescreen landscape format (16:9 aspect ratio).',
+            '9:16' => 'Portrait orientation (9:16 aspect ratio). Compose vertically — use tall framing with subjects filling the vertical space. Use close-up or medium shots, NOT wide panoramic shots.',
+            '1:1' => 'Square format (1:1 aspect ratio). Center subjects with balanced composition.',
+            '4:5' => 'Portrait format (4:5 aspect ratio). Use vertical framing with subjects centered.',
+            '3:4' => 'Portrait format (3:4 aspect ratio). Use vertical framing with subjects centered.',
+            default => 'Widescreen landscape format (16:9 aspect ratio). Use wide horizontal cinematic framing.',
         };
 
         // --- 3. Build the final prompt based on type ---

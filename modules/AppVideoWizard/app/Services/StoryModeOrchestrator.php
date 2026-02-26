@@ -167,7 +167,7 @@ class StoryModeOrchestrator
             'estimated_duration' => $s['audio_duration'] ?? $s['estimated_duration'] ?? 6,
         ], $scenes);
 
-        $visualScript = $this->scriptService->buildVisualScript($segments, $styleInstruction, $aspectRatio);
+        $visualScript = $this->scriptService->buildVisualScript($segments, $styleInstruction, $aspectRatio, $project->team_id);
         $characterBible = $this->scriptService->lastCharacterBible;
 
         // Merge visual script data back into scenes (includes mood, voice_emotion, transitions)
