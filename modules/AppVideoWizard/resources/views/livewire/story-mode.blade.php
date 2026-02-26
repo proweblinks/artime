@@ -416,28 +416,15 @@
             box-shadow: 0 0 0 1px #f97316;
         }
 
-        /* Masonry gallery — scales with available width */
+        /* Gallery grid — auto-fill centered */
         .story-masonry {
-            column-count: 2;
-            column-gap: 14px;
-        }
-        @media (min-width: 576px) {
-            .story-masonry { column-count: 3; }
-        }
-        @media (min-width: 768px) {
-            .story-masonry { column-count: 4; }
-        }
-        @media (min-width: 1100px) {
-            .story-masonry { column-count: 5; }
-        }
-        @media (min-width: 1400px) {
-            .story-masonry { column-count: 6; }
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 14px;
         }
 
         /* Project cards */
         .project-card-wrap {
-            break-inside: avoid;
-            margin-bottom: 14px;
         }
         .project-card {
             cursor: pointer;
