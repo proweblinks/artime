@@ -638,7 +638,7 @@
                             <option value="circlecrop" {{ get_option('story_mode_transition_type', 'fade') == 'circlecrop' ? 'selected' : '' }}>{{ __('Circle Crop') }}</option>
                             <option value="none" {{ get_option('story_mode_transition_type', 'fade') == 'none' ? 'selected' : '' }}>{{ __('None (Hard Cut)') }}</option>
                         </select>
-                        <small class="text-muted">{{ __('FFmpeg xfade transition between scenes') }}</small>
+                        <small class="text-muted">{{ __('Default fallback transition type. AI will select per-scene transitions dynamically based on content mood.') }}</small>
                     </div>
 
                     {{-- Crossfade Duration --}}

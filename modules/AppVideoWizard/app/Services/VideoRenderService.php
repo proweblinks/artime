@@ -379,7 +379,8 @@ class VideoRenderService
                 $normalizedClips,
                 $transitions,
                 $workDir,
-                $output
+                $output,
+                $scenes
             );
 
             if (!file_exists($concatenatedVideo)) {
@@ -920,7 +921,8 @@ class VideoRenderService
         array $clipPaths,
         array $transitions,
         string $workDir,
-        array $output
+        array $output,
+        array $scenes = []
     ): string {
         $crossfadeDuration = (float) ($transitions['crossfadeDuration'] ?? 0.5);
         $fadeOutDuration = (float) ($transitions['fadeOutDuration'] ?? 1.5);
@@ -975,7 +977,11 @@ class VideoRenderService
         }
 
         for ($i = 0; $i < $clipCount - 1; $i++) {
-            $offset = $runningDuration - $crossfadeDuration;
+            // Use per-scene transition if available, otherwise fall back to global
+            $sceneTransType = $scenes[$i + 1]['transition_type'] ?? $transitionType;
+            $sceneTransDuration = (float) ($scenes[$i + 1]['transition_duration'] ?? $crossfadeDuration);
+
+            $offset = $runningDuration - $sceneTransDuration;
             $offset = max(0, round($offset, 3));
 
             $inputLabel = ($i === 0) ? '[0:v]' : "[v{$i}]";
@@ -984,7 +990,7 @@ class VideoRenderService
             $isLast = ($i === $clipCount - 2);
             $outputLabel = $isLast ? '[vout]' : "[v" . ($i + 1) . "]";
 
-            $xfadePart = "{$inputLabel}{$nextInput}xfade=transition={$transitionType}:duration={$crossfadeDuration}:offset={$offset}";
+            $xfadePart = "{$inputLabel}{$nextInput}xfade=transition={$sceneTransType}:duration={$sceneTransDuration}:offset={$offset}";
 
             // Add final fade-out on the last xfade operation
             if ($isLast && $fadeOutDuration > 0) {
@@ -995,6 +1001,11 @@ class VideoRenderService
 
             $xfadePart .= $outputLabel;
             $filterParts[] = $xfadePart;
+
+            $nextIdx = $i + 1;
+            Log::debug("[StoryExport:{$jobId}] Scene {$i}→{$nextIdx}: {$sceneTransType} ({$sceneTransDuration}s)", [
+                'offset' => $offset,
+            ]);
 
             // Update running duration: after xfade, the combined duration is
             // previous_combined + next_clip_duration - crossfade_overlap
@@ -1022,8 +1033,8 @@ class VideoRenderService
             ]
         );
 
-        Log::info("[StoryExport:{$jobId}] Building xfade filter with {$transitionType} transitions, " .
-            "{$crossfadeDuration}s crossfade, {$fadeOutDuration}s fade-out");
+        Log::info("[StoryExport:{$jobId}] Building xfade filter with per-scene transitions, " .
+            "fallback={$transitionType}, {$fadeOutDuration}s fade-out");
 
         $this->runCommand($cmd, $jobId, 'Xfade Concat');
 

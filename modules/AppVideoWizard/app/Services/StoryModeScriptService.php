@@ -23,7 +23,7 @@ class StoryModeScriptService
      * @param int $maxWords Maximum word count for transcript
      * @return array{transcript: string, segments: array, word_count: int}
      */
-    public function generateScript(string $prompt, int $targetDuration = 35, int $maxWords = 450): array
+    public function generateScript(string $prompt, int $targetDuration = 60, int $maxWords = 700): array
     {
         $engine = get_option('story_mode_ai_engine', 'gemini');
         $model = get_option('story_mode_ai_model', 'gemini-2.5-flash');
@@ -133,28 +133,62 @@ class StoryModeScriptService
             : '';
 
         $prompt = <<<PROMPT
-You are a visual director creating image prompts for a narrated video.
+You are a cinematic director creating a visual and emotional script for a narrated video.
 
-For each narration segment below, write a detailed image generation prompt that:
-1. Visually illustrates the key concept of the narration
-2. Is self-contained (doesn't reference other segments)
-3. Includes specific visual details: subject, setting, lighting, mood, composition
-4. Includes camera perspective (wide shot, close-up, overhead, etc.)
-5. Is 1-3 sentences long{$styleContext}
+For each narration segment below, output a detailed creative direction that includes:
+
+1. **image_prompt**: Detailed image generation prompt (1-3 sentences) with subject, setting, lighting, mood, composition, camera perspective{$styleContext}
+2. **camera_motion**: Select from this list based on scene content:
+   - "slow zoom in" — builds intimacy/focus (emotional moments, portraits, detail)
+   - "slow zoom out" — reveals context/scale (establishing shots, conclusions, landscapes)
+   - "dramatic zoom in" — intense focus (climax, shock, tension)
+   - "pan left" / "pan right" — scanning/progression (landscapes, journeys, timelines)
+   - "pan left slow" / "pan right slow" — gentle drift (calm, contemplative scenes)
+   - "tilt up" — aspiration, height (tall subjects, sky, looking up)
+   - "tilt down" — grounding, detail (settling, water, close inspection)
+   - "zoom in pan right" — dynamic tracking (following subject, discovery)
+   - "zoom out pan left" — revealing context (pulling away, showing bigger picture)
+   - "diagonal drift" — floating feeling (ambient, dreamy, contemplative)
+   - "push to subject" — emotional closeup (character focus, portraits)
+   - "rise and reveal" — epic opening (establishing shots, landscapes, reveals)
+   - "settle in" — subtle settling (minimal motion, text-friendly)
+   - "breathe" — very subtle zoom keeping image alive (default/safe choice)
+3. **mood**: The emotional tone of this scene. Pick ONE from: calm, dramatic, energetic, tense, mysterious, epic, playful, nostalgic, professional, horror, intimate, hopeful
+4. **voice_emotion**: How the narrator should deliver this scene. Pick ONE from: neutral, dramatic, funny, excited, calm, mysterious, sad, confident, urgent, contemplative, storytelling, whisper
+5. **transition_type**: FFmpeg xfade transition TO THE NEXT scene. Pick based on mood:
+   - Calm/nostalgic: "fade", "dissolve", "smoothleft", "smoothright", "fadewhite"
+   - Dramatic/epic: "fadeblack", "radial", "zoomin", "circleclose"
+   - Energetic/playful: "wipeleft", "wiperight", "coverleft", "pixelize", "squeezeh"
+   - Tense/horror: "fadeblack", "hblur", "distance", "circleclose"
+   - Mysterious: "dissolve", "distance", "fadegrays", "hblur"
+   - Professional: "fade", "wipeleft", "dissolve", "smoothleft"
+   - For the LAST scene: use "fade" (will be the fade-to-black)
+6. **transition_duration**: Duration in seconds (0.3 for energetic, 0.5 for normal, 0.8 for calm, 1.0 for mysterious/dramatic)
+
+IMPORTANT RULES:
+- Never use the same transition_type for more than 2 consecutive scenes — variety is key
+- Never use the same camera_motion for consecutive scenes — alternate between zoom/pan/tilt
+- Match voice_emotion to the scene content, NOT to a single global mood
+- The first scene should grab attention (energetic camera, confident voice)
+- The last scene should feel conclusive (slow camera, calm/storytelling voice)
 
 NARRATION SEGMENTS:
 {$allSegments}
 
 Respond ONLY with a JSON array where each element has:
-- "segment_index": the segment number (1-based)
-- "image_prompt": the detailed image generation prompt
-- "camera_motion": suggested camera movement for video animation (e.g., "slow zoom in", "pan left", "static", "dolly forward")
+- "segment_index": (1-based)
+- "image_prompt": string
+- "camera_motion": string (from list above)
+- "mood": string
+- "voice_emotion": string
+- "transition_type": string (FFmpeg xfade name)
+- "transition_duration": float
 
 Output ONLY valid JSON, no markdown.
 PROMPT;
 
         try {
-            $fullPrompt = "You are a visual director. Respond only with valid JSON arrays.\n\n{$prompt}";
+            $fullPrompt = "You are a cinematic director. Respond only with valid JSON arrays.\n\n{$prompt}";
 
             $response = AI::processWithOverride(
                 $fullPrompt,
@@ -186,6 +220,10 @@ PROMPT;
                 $result[] = array_merge($segment, [
                     'image_prompt' => $visual['image_prompt'] ?? "A visual scene depicting: {$segment['text']}",
                     'camera_motion' => $visual['camera_motion'] ?? 'slow zoom in',
+                    'mood' => $visual['mood'] ?? 'professional',
+                    'voice_emotion' => $visual['voice_emotion'] ?? 'neutral',
+                    'transition_type' => $visual['transition_type'] ?? 'fade',
+                    'transition_duration' => (float) ($visual['transition_duration'] ?? 0.5),
                 ]);
             }
 
@@ -195,12 +233,16 @@ PROMPT;
                 'error' => $e->getMessage(),
             ]);
 
-            // Fallback: create basic image prompts from narration
+            // Fallback: create basic image prompts from narration with default creative metadata
             return array_map(function ($segment) use ($styleInstruction) {
                 $stylePrefix = $styleInstruction ? "{$styleInstruction}. " : '';
                 return array_merge($segment, [
                     'image_prompt' => "{$stylePrefix}A cinematic scene depicting: {$segment['text']}",
                     'camera_motion' => 'slow zoom in',
+                    'mood' => 'professional',
+                    'voice_emotion' => 'neutral',
+                    'transition_type' => 'fade',
+                    'transition_duration' => 0.5,
                 ]);
             }, $segments);
         }
@@ -219,7 +261,7 @@ Write a narration script for a {$targetDuration}-second video about the followin
 REQUIREMENTS:
 - Write exactly {$targetWords} words (maximum {$maxWords} words)
 - Write in a conversational, engaging narration style (NOT dialogue)
-- Structure with natural break points every 5-8 seconds of spoken content
+- Structure with natural break points every 6-10 seconds of spoken content
 - Start with a hook that grabs attention in the first sentence
 - End with a memorable closing thought or call-to-action
 - Each segment should paint a vivid visual scene

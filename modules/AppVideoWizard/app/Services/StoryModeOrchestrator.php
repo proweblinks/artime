@@ -43,13 +43,13 @@ class StoryModeOrchestrator
         Log::info('StoryModeOrchestrator: Starting pipeline', ['project_id' => $project->id]);
 
         try {
-            // Step 1: Generate Voiceover (15-30%)
-            $this->stepGenerateVoiceover($project);
-
-            // Step 2: Build Visual Script (30-45%)
+            // Step 1: Build Visual Script FIRST (15-35%) — generates mood/emotion metadata
             $this->stepBuildVisualScript($project);
 
-            // Step 3: Generate Images (45-70%)
+            // Step 2: Generate Voiceover WITH emotion data (35-50%)
+            $this->stepGenerateVoiceover($project);
+
+            // Step 3: Generate Images (50-70%)
             $this->stepGenerateImages($project);
 
             // Step 4: Generate Video Clips (70-85%)
@@ -74,11 +74,12 @@ class StoryModeOrchestrator
     }
 
     /**
-     * Step 1: Generate voiceover audio for each transcript segment.
+     * Step 2: Generate voiceover audio for each transcript segment.
+     * Now runs AFTER visual script so voice_emotion metadata is available.
      */
     protected function stepGenerateVoiceover(StoryModeProject $project): void
     {
-        $project->updateProgress('generating_voiceover', 15, 'Generating voiceover');
+        $project->updateProgress('generating_voiceover', 35, 'Generating voiceover');
 
         $scenes = $project->scenes ?? [];
         if (empty($scenes)) {
@@ -95,7 +96,7 @@ class StoryModeOrchestrator
         $updatedScenes = [];
 
         foreach ($scenes as $i => $scene) {
-            $progress = 15 + (int) (($i / count($scenes)) * 15);
+            $progress = 35 + (int) (($i / count($scenes)) * 15);
             $project->updateProgress('generating_voiceover', $progress, "Generating voiceover ({$i}/{" . count($scenes) . "})");
 
             try {
@@ -108,6 +109,7 @@ class StoryModeOrchestrator
                     'voice' => $voiceId,
                     'provider' => $voiceProvider,
                     'sceneIndex' => $i,
+                    'emotion' => $scene['voice_emotion'] ?? null,
                 ]);
 
                 $scene['audio_url'] = $result['audioUrl'] ?? $result['audio_url'] ?? null;
@@ -130,11 +132,12 @@ class StoryModeOrchestrator
     }
 
     /**
-     * Step 2: Build visual script (image prompts) from transcript segments.
+     * Step 1: Build visual script (image prompts + creative metadata) from transcript segments.
+     * Runs FIRST so mood/emotion data is available for voiceover generation.
      */
     protected function stepBuildVisualScript(StoryModeProject $project): void
     {
-        $project->updateProgress('generating_visual_script', 30, 'Creating visual script');
+        $project->updateProgress('generating_visual_script', 15, 'Creating visual script');
 
         $scenes = $project->scenes ?? [];
         $styleInstruction = $project->getEffectiveStyleInstruction();
@@ -147,12 +150,16 @@ class StoryModeOrchestrator
 
         $visualScript = $this->scriptService->buildVisualScript($segments, $styleInstruction);
 
-        // Merge visual script data back into scenes
+        // Merge visual script data back into scenes (includes mood, voice_emotion, transitions)
         $updatedScenes = [];
         foreach ($scenes as $i => $scene) {
             $visual = $visualScript[$i] ?? [];
             $scene['image_prompt'] = $visual['image_prompt'] ?? "A cinematic scene: {$scene['text']}";
             $scene['camera_motion'] = $visual['camera_motion'] ?? 'slow zoom in';
+            $scene['mood'] = $visual['mood'] ?? 'professional';
+            $scene['voice_emotion'] = $visual['voice_emotion'] ?? 'neutral';
+            $scene['transition_type'] = $visual['transition_type'] ?? 'fade';
+            $scene['transition_duration'] = (float) ($visual['transition_duration'] ?? 0.5);
             $updatedScenes[] = $scene;
         }
 
@@ -167,7 +174,7 @@ class StoryModeOrchestrator
      */
     protected function stepGenerateImages(StoryModeProject $project): void
     {
-        $project->updateProgress('generating_images', 45, 'Generating images');
+        $project->updateProgress('generating_images', 50, 'Generating images');
 
         $scenes = $project->scenes ?? [];
         $imageModel = get_option('story_mode_image_model', 'nanobanana-pro');
@@ -176,7 +183,7 @@ class StoryModeOrchestrator
         $updatedScenes = [];
 
         foreach ($scenes as $i => $scene) {
-            $progress = 45 + (int) (($i / count($scenes)) * 25);
+            $progress = 50 + (int) (($i / count($scenes)) * 20);
             $project->updateProgress('generating_images', $progress, "Generating image ({$i}/{" . count($scenes) . "})");
 
             try {
@@ -230,18 +237,15 @@ class StoryModeOrchestrator
             }
 
             try {
-                $clipDuration = min(8, max(4, (int) round($scene['audio_duration'] ?? 6)));
-
-                // Add buffer for crossfade overlap (clips need to be slightly longer)
-                if ($i < count($scenes) - 1 && $crossfade > 0) {
-                    $clipDuration = min(10, $clipDuration + (int) ceil($crossfade));
-                }
+                $clipDuration = 10;
 
                 $animationOptions = [
                     'imageUrl' => $imageUrl,
                     'prompt' => $scene['camera_motion'] ?? 'slow zoom in',
                     'duration' => $clipDuration,
                     'sceneIndex' => $i,
+                    'resolution' => '480p',
+                    'generate_audio' => false,
                 ];
 
                 // Visual continuity: end frame transitions toward next scene
@@ -364,6 +368,8 @@ class StoryModeOrchestrator
                 'voiceoverUrl' => $scene['audio_url'] ?? null,
                 'duration' => $scene['audio_duration'] ?? $scene['estimated_duration'] ?? 6,
                 'narration' => $scene['text'] ?? '',
+                'transition_type' => $scene['transition_type'] ?? $transitionType,
+                'transition_duration' => (float) ($scene['transition_duration'] ?? $crossfadeDuration),
                 'kenBurns' => [
                     'startScale' => 1.0,
                     'endScale' => 1.2,
@@ -486,17 +492,15 @@ class StoryModeOrchestrator
             $startImage = $lastFrameUrl ?: $imageUrl;
 
             try {
-                $clipDuration = min(8, max(4, (int) round($scene['audio_duration'] ?? 6)));
-
-                if ($i < count($scenes) - 1 && $crossfade > 0) {
-                    $clipDuration = min(10, $clipDuration + (int) ceil($crossfade));
-                }
+                $clipDuration = 10;
 
                 $animationOptions = [
                     'imageUrl' => $startImage,
                     'prompt' => $scene['camera_motion'] ?? 'slow zoom in',
                     'duration' => $clipDuration,
                     'sceneIndex' => $i,
+                    'resolution' => '480p',
+                    'generate_audio' => false,
                 ];
 
                 $result = $this->animationService->generateAnimation($wizardProject, $animationOptions);
