@@ -471,7 +471,9 @@ class UrlToVideo extends Component
                 }
 
                 $candidates = $this->sceneImageCandidates[$sceneId] ?? [];
-                $candidate = is_int($selection) ? ($candidates[$selection] ?? null) : null;
+                $candidate = (is_int($selection) || (is_string($selection) && ctype_digit($selection)))
+                    ? ($candidates[(int) $selection] ?? null)
+                    : null;
 
                 if ($candidate && !empty($candidate['url'])) {
                     // If it's an uploaded image, use URL directly
@@ -491,6 +493,14 @@ class UrlToVideo extends Component
                 }
             }
             unset($scene);
+
+            // Log how many scenes got real images
+            $realCount = collect($scenes)->filter(fn($s) => !empty($s['image_url']))->count();
+            \Log::info('UrlToVideo: Real images assigned', [
+                'total_scenes' => count($scenes),
+                'real_images' => $realCount,
+                'scene_urls' => collect($scenes)->pluck('image_url', 'id')->toArray(),
+            ]);
         }
 
         $project = UrlToVideoProject::create([

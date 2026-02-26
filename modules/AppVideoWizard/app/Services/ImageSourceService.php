@@ -488,7 +488,9 @@ class ImageSourceService
     public function downloadAndStore(string $imageUrl, int $projectId, string $sceneId): ?string
     {
         try {
-            $response = Http::timeout(30)->get($imageUrl);
+            $response = Http::timeout(30)->withHeaders([
+                'User-Agent' => 'ArtimeVideoWizard/1.0 (https://artime.ai; contact@artime.ai)',
+            ])->get($imageUrl);
 
             if (!$response->ok()) {
                 Log::warning('ImageSourceService: Download failed', [
