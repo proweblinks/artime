@@ -435,10 +435,12 @@ PROMPT;
         }
 
         // If JSON parsing fails, try to extract transcript via regex
-        if (preg_match('/"transcript"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $content, $m)) {
+        // Pre-sanitize: collapse control chars so regex can match across newlines in values
+        $sanitized = preg_replace('/[\x00-\x1F\x7F]+/', ' ', $content);
+        if (preg_match('/"transcript"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $sanitized, $m)) {
             $transcript = stripcslashes($m[1]);
             $title = 'Untitled Story';
-            if (preg_match('/"title"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $content, $tm)) {
+            if (preg_match('/"title"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $sanitized, $tm)) {
                 $title = stripcslashes($tm[1]);
             }
             return [
@@ -535,32 +537,26 @@ PROMPT;
             return $decoded;
         }
 
-        // If direct decode failed due to control characters, sanitize and retry.
+        // Always try aggressive control char removal — collapse ALL control chars to spaces.
         // AI responses often contain literal newlines/tabs inside JSON string values.
-        if (json_last_error() === JSON_ERROR_CTRL_CHAR) {
-            // Try 1: Smart sanitizer (replaces control chars only inside string values)
-            $sanitized = $this->sanitizeJsonControlChars($content);
-            $decoded = json_decode($sanitized, true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                return $decoded;
-            }
+        // This turns pretty-printed JSON into a single line, which is still valid JSON.
+        $aggressive = preg_replace('/[\x00-\x1F\x7F]+/', ' ', $content);
+        $decoded = json_decode($aggressive, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            Log::info('StoryModeScriptService: JSON parsed via aggressive control char removal');
+            return $decoded;
+        }
 
-            // Try 2: Aggressive — collapse ALL control chars to spaces
-            // This turns pretty-printed JSON into a single line, which is still valid
-            $aggressive = preg_replace('/[\x00-\x1F\x7F]+/', ' ', $content);
-            $decoded = json_decode($aggressive, true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                Log::info('StoryModeScriptService: JSON parsed via aggressive control char removal');
-                return $decoded;
-            }
+        // Try smart sanitizer (replaces control chars only inside string values)
+        $sanitized = $this->sanitizeJsonControlChars($content);
+        $decoded = json_decode($sanitized, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            return $decoded;
         }
 
         // Try extracting JSON object with character_bible (visual script format)
         if (preg_match('/\{[\s\S]*"character_bible"[\s\S]*\}/', $content, $matches)) {
-            $decoded = json_decode($matches[0], true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                $decoded = json_decode($this->sanitizeJsonControlChars($matches[0]), true);
-            }
+            $decoded = json_decode(preg_replace('/[\x00-\x1F\x7F]+/', ' ', $matches[0]), true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                 return $decoded;
             }
@@ -568,10 +564,7 @@ PROMPT;
 
         // Try extracting JSON object from mixed content
         if (preg_match('/\{[\s\S]*"transcript"[\s\S]*\}/', $content, $matches)) {
-            $decoded = json_decode($matches[0], true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                $decoded = json_decode($this->sanitizeJsonControlChars($matches[0]), true);
-            }
+            $decoded = json_decode(preg_replace('/[\x00-\x1F\x7F]+/', ' ', $matches[0]), true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                 return $decoded;
             }
@@ -579,10 +572,7 @@ PROMPT;
 
         // Try extracting JSON array from mixed content
         if (preg_match('/\[[\s\S]*\]/', $content, $matches)) {
-            $decoded = json_decode($matches[0], true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                $decoded = json_decode($this->sanitizeJsonControlChars($matches[0]), true);
-            }
+            $decoded = json_decode(preg_replace('/[\x00-\x1F\x7F]+/', ' ', $matches[0]), true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                 return $decoded;
             }
