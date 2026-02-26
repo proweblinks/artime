@@ -357,8 +357,7 @@
 
         {{-- Crop Position Modal --}}
         <div x-show="showCropModal" x-cloak
-             class="d-flex align-items-center justify-content-center"
-             style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 10200;"
+             style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 10200; display: flex; align-items: center; justify-content: center;"
              @click.self="showCropModal = false">
             <div class="utv-crop-dialog">
                 <div class="d-flex align-items-center justify-content-between mb-3">
