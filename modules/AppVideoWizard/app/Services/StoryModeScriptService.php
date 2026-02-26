@@ -520,9 +520,19 @@ PROMPT;
         // If direct decode failed due to control characters, sanitize and retry.
         // AI responses often contain literal newlines/tabs inside JSON string values.
         if (json_last_error() === JSON_ERROR_CTRL_CHAR) {
+            // Try 1: Smart sanitizer (replaces control chars only inside string values)
             $sanitized = $this->sanitizeJsonControlChars($content);
             $decoded = json_decode($sanitized, true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+
+            // Try 2: Aggressive — collapse ALL control chars to spaces
+            // This turns pretty-printed JSON into a single line, which is still valid
+            $aggressive = preg_replace('/[\x00-\x1F\x7F]+/', ' ', $content);
+            $decoded = json_decode($aggressive, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                Log::info('StoryModeScriptService: JSON parsed via aggressive control char removal');
                 return $decoded;
             }
         }
