@@ -80,9 +80,7 @@
                         {{-- Resolution --}}
                         <select x-model="resolution" class="form-select form-select-sm border-0"
                                 style="width: auto; background: #2a2a2a !important; color: #ccc; border-radius: 8px; font-size: 0.8rem;">
-                            <template x-if="quality !== 'fast'">
-                                <option value="480p">480p</option>
-                            </template>
+                            <option value="480p" x-show="quality !== 'fast'">480p</option>
                             <option value="720p">720p</option>
                             <option value="1080p">1080p</option>
                         </select>

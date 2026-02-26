@@ -73,9 +73,7 @@
                     <select x-model="resolution"
                             class="form-select form-select-sm border-0 text-white"
                             style="background: #1a1a1a; border-radius: 6px; font-size: 0.8rem; width: auto; padding: 4px 28px 4px 10px;">
-                        <template x-if="quality !== 'fast'">
-                            <option value="480p">480p</option>
-                        </template>
+                        <option value="480p" x-show="quality !== 'fast'">480p</option>
                         <option value="720p">720p</option>
                         <option value="1080p">1080p</option>
                     </select>
