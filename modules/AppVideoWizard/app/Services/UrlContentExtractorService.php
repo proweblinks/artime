@@ -123,6 +123,7 @@ class UrlContentExtractorService
 
     /**
      * AI-analyze extracted content to produce a structured content brief.
+     * Extracts the TOPIC/SUBJECT — not a description of the source itself.
      */
     public function analyzeContent(array $extractedContent, ?string $userPrompt = null): array
     {
@@ -136,18 +137,23 @@ class UrlContentExtractorService
         $meta = json_encode($extractedContent['meta'] ?? []);
 
         $prompt = <<<PROMPT
-You are a content analyst for a video production platform. Analyze the following content and return a structured JSON brief.
+You are a content researcher for a video production platform. Your job is to extract the REAL TOPIC from source material — the people, events, ideas, and stories WITHIN the content — NOT to describe the source itself.
 
-SOURCE TYPE: {$sourceType}
-TITLE: {$title}
-CONTENT:
-{$textContent}
+CRITICAL RULES:
+- If the source is a YouTube video, the topic is what the video is ABOUT (the artist, the song, the event, the subject matter), NOT the video itself (never mention views, likes, 4K quality, thumbnails, subscribe, video duration, or "this video").
+- If the source is a news article, the topic is the EVENT or STORY being reported, NOT "this article discusses..."
+- If the source is a social media post, the topic is the IDEA or OPINION expressed, NOT "this post says..."
+- Extract facts about the SUBJECT MATTER, not about the source medium.
+- The output will be used to create an ORIGINAL narrated video — not a review or summary of the source.
 
-METADATA: {$meta}
+SOURCE MATERIAL:
+Title: {$title}
+Content: {$textContent}
+Context: {$meta}
 PROMPT;
 
         if ($userPrompt) {
-            $prompt .= "\n\nUSER'S ANGLE/INSTRUCTION: {$userPrompt}";
+            $prompt .= "\n\nUSER'S CREATIVE DIRECTION: {$userPrompt}";
         }
 
         $prompt .= <<<'PROMPT'
@@ -155,16 +161,23 @@ PROMPT;
 
 Return ONLY valid JSON with this structure:
 {
+  "subject": "The real-world topic/subject this content is about (a person, event, idea, phenomenon — NOT the source itself)",
   "key_facts": [{"fact": "...", "importance": 1-10}],
-  "narrative_angle": "explainer|news|opinion|promo|tutorial|entertainment",
-  "suggested_title": "Short catchy title for the video",
-  "content_category": "technology|business|health|science|politics|entertainment|lifestyle|sports|education|other",
-  "tone": "formal|casual|dramatic|inspirational|humorous|urgent|conversational",
+  "narrative_angle": "explainer|news|opinion|story|tutorial|entertainment|biography|cultural|historical",
+  "suggested_title": "Short catchy title about the SUBJECT (never reference the source)",
+  "content_category": "technology|business|health|science|politics|entertainment|lifestyle|sports|education|culture|music|history|other",
+  "tone": "formal|casual|dramatic|inspirational|humorous|urgent|conversational|nostalgic|mysterious",
   "target_audience": "Brief description of ideal viewer",
-  "summary": "2-3 sentence core message of the content"
+  "summary": "2-3 sentence summary about the SUBJECT/TOPIC (not about the source material)"
 }
 
-Extract 5-10 key facts, ranked by importance. The suggested_title should be punchy and video-friendly (under 60 characters). The narrative_angle should reflect the best way to present this content as a short video.
+Rules for key_facts:
+- Extract 5-10 facts about the SUBJECT, not about the source medium
+- Include interesting backstory, context, and lesser-known details
+- For music: artist history, song creation story, cultural impact, fan reactions
+- For news: the actual event, key players, consequences, broader context
+- For people: biography highlights, achievements, controversies, legacy
+- Rank by how interesting/compelling each fact would be in a video narrative
 PROMPT;
 
         $response = \AI::processWithOverride(
@@ -189,6 +202,7 @@ PROMPT;
             ]);
             // Return minimal fallback
             return [
+                'subject' => $extractedContent['title'] ?? 'Unknown topic',
                 'key_facts' => [['fact' => $extractedContent['title'] ?? 'Content from URL', 'importance' => 8]],
                 'narrative_angle' => 'explainer',
                 'suggested_title' => $extractedContent['title'] ?? 'Video Summary',
@@ -204,9 +218,11 @@ PROMPT;
 
     /**
      * Build an enhanced prompt for StoryModeScriptService from content brief + user prompt.
+     * Creates ORIGINAL narration about the topic — never references the source.
      */
     public function buildEnhancedPrompt(array $contentBrief, ?string $userPrompt = null): string
     {
+        $subject = $contentBrief['subject'] ?? $contentBrief['suggested_title'] ?? 'this topic';
         $title = $contentBrief['suggested_title'] ?? 'Video Summary';
         $summary = $contentBrief['summary'] ?? '';
         $tone = $contentBrief['tone'] ?? 'conversational';
@@ -223,17 +239,25 @@ PROMPT;
             array_keys($topFacts)
         ));
 
-        $prompt = "Create a narrated video script about: {$title}\n\n";
-        $prompt .= "CORE MESSAGE: {$summary}\n\n";
-        $prompt .= "KEY FACTS:\n{$factsText}\n\n";
-        $prompt .= "STYLE: {$angle} format, {$tone} tone, for {$audience}.\n";
+        $prompt = "Create an ORIGINAL narrated video script about: {$subject}\n\n";
+        $prompt .= "VIDEO TITLE: {$title}\n\n";
+        $prompt .= "CORE NARRATIVE: {$summary}\n\n";
+        $prompt .= "RESEARCH FACTS (use as source material, weave into the narrative naturally):\n{$factsText}\n\n";
+        $prompt .= "STYLE: {$angle} format, {$tone} tone, for {$audience}.\n\n";
 
         if ($userPrompt) {
-            $prompt .= "\nADDITIONAL DIRECTION: {$userPrompt}\n";
+            $prompt .= "USER'S CREATIVE DIRECTION: {$userPrompt}\n\n";
         }
 
-        $prompt .= "\nMake it engaging, visual, and suitable for a short narrated video (30-60 seconds). "
-                 . "Focus on the most compelling facts. Use vivid language that pairs well with visual imagery.";
+        $prompt .= "CRITICAL RULES:\n";
+        $prompt .= "- Write as if YOU are telling this story — original narration, not a summary of something else.\n";
+        $prompt .= "- NEVER mention or reference: the source URL, article, video, post, YouTube, website, channel, \"this video\", \"click the link\", \"subscribe\", \"check out\", video quality, view counts, or any platform.\n";
+        $prompt .= "- NEVER use promotional language like \"grab your copy\", \"follow the link\", \"available now\".\n";
+        $prompt .= "- DO tell a compelling story using the facts provided. Add context, emotion, and vivid imagery.\n";
+        $prompt .= "- Make it sound like a mini-documentary narrator, NOT like someone describing a webpage.\n";
+        $prompt .= "- Focus on the most compelling human angle — what makes this story interesting to PEOPLE.\n";
+        $prompt .= "- Use vivid, visual language that pairs well with cinematic imagery.\n";
+        $prompt .= "- Target 30-60 seconds of spoken narration.\n";
 
         return $prompt;
     }
