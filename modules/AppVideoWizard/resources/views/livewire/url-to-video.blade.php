@@ -224,6 +224,13 @@
                             <i class="fa-light fa-waveform-lines"></i>
                             <span>{{ $selectedVoice === 'auto' ? __('Voice') : $selectedVoice }}</span>
                         </button>
+
+                        {{-- Real Images Toggle --}}
+                        <button wire:click="$toggle('useRealImages')" type="button"
+                                class="utv-tool-btn {{ $useRealImages ? 'active' : '' }}">
+                            <i class="fa-light fa-camera"></i>
+                            <span>{{ $useRealImages ? __('Real Images') : __('AI Images') }}</span>
+                        </button>
                     </div>
 
                     {{-- Submit Button --}}
@@ -265,8 +272,21 @@
         @endif
     </div>
 
+    {{-- Image Sourcing Overlay --}}
+    @if($isSourcingImages)
+        <div class="d-flex align-items-center justify-content-center"
+             style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 10100;">
+            <div class="text-center">
+                <i class="fa-light fa-spinner-third fa-spin mb-3" style="font-size: 2rem; color: #f97316;"></i>
+                <p class="text-white fw-semibold mb-1">{{ __('Finding real images for your scenes...') }}</p>
+                <p class="text-muted" style="font-size: 0.85rem;">{{ __('Searching article photos and Wikimedia Commons') }}</p>
+            </div>
+        </div>
+    @endif
+
     {{-- Modals --}}
     @include('appvideowizard::livewire.url-to-video.partials._transcript-modal')
+    @include('appvideowizard::livewire.url-to-video.partials._image-selection-modal')
 
     {{-- Voice Modal (reuse same structure) --}}
     @if($showVoiceModal)

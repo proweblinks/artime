@@ -191,6 +191,16 @@ class UrlToVideoOrchestrator
         $updatedScenes = [];
 
         foreach ($scenes as $i => $scene) {
+            // Skip AI generation if scene already has a real image assigned
+            if (!empty($scene['image_url'])) {
+                Log::info('UrlToVideoOrchestrator: Using pre-assigned image for scene', [
+                    'scene_id' => $scene['id'] ?? "scene_{$i}",
+                    'image_url' => $scene['image_url'],
+                ]);
+                $updatedScenes[] = $scene;
+                continue;
+            }
+
             $progress = 50 + (int) (($i / count($scenes)) * 20);
             $project->updateProgress('generating_images', $progress, "Generating image (" . ($i + 1) . "/" . count($scenes) . ")");
 

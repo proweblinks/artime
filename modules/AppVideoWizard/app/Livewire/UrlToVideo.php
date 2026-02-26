@@ -4,15 +4,19 @@ namespace Modules\AppVideoWizard\Livewire;
 
 use Livewire\Component;
 use Livewire\Attributes\Computed;
+use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Modules\AppVideoWizard\Models\UrlToVideoProject;
 use Modules\AppVideoWizard\Services\UrlContentExtractorService;
 use Modules\AppVideoWizard\Services\StoryModeScriptService;
+use Modules\AppVideoWizard\Services\ImageSourceService;
 use Modules\AppVideoWizard\Jobs\UrlToVideoGenerationJob;
 
 class UrlToVideo extends Component
 {
+    use WithFileUploads;
+
     // Input state
     public string $prompt = '';
     public string $sourceUrl = '';
@@ -43,6 +47,15 @@ class UrlToVideo extends Component
     public bool $showVoiceModal = false;
     public bool $isGeneratingScript = false;
     public bool $isGenerating = false;
+
+    // Real Images mode
+    public bool $useRealImages = false;
+    public bool $showImageSelectionModal = false;
+    public bool $isSourcingImages = false;
+    public array $sceneImageCandidates = [];
+    public array $selectedSceneImages = [];
+    public $uploadedSceneImage;
+    public string $uploadTargetScene = '';
 
     // Active project tracking
     public ?int $activeProjectId = null;
@@ -200,6 +213,7 @@ class UrlToVideo extends Component
 
     /**
      * Confirm transcript and dispatch generation pipeline.
+     * If Real Images mode is on, fork to image sourcing flow instead.
      */
     public function confirmTranscript()
     {
@@ -207,68 +221,260 @@ class UrlToVideo extends Component
             return;
         }
 
+        // If Real Images mode is enabled, source images first
+        if ($this->useRealImages) {
+            $this->showTranscriptModal = false;
+            $this->isSourcingImages = true;
+
+            try {
+                $scriptService = new StoryModeScriptService();
+                $targetDuration = (int) get_option('story_mode_default_duration', 35);
+                $segments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
+
+                $scenes = [];
+                foreach ($segments as $i => $segment) {
+                    $scenes[] = [
+                        'id' => 'scene_' . $i,
+                        'index' => $i,
+                        'text' => $segment['text'],
+                        'estimated_duration' => $segment['estimated_duration'],
+                    ];
+                }
+
+                $imageService = new ImageSourceService();
+                $candidates = $imageService->sourceForScenes(
+                    $scenes,
+                    $this->storedExtractedContent,
+                    $this->storedContentBrief
+                );
+
+                $this->sceneImageCandidates = $candidates;
+
+                // Auto-select first candidate per scene
+                $this->selectedSceneImages = [];
+                foreach ($candidates as $sceneId => $sceneCandidates) {
+                    if (!empty($sceneCandidates)) {
+                        $this->selectedSceneImages[$sceneId] = 0; // Index of first candidate
+                    } else {
+                        $this->selectedSceneImages[$sceneId] = 'ai'; // No candidates → AI fallback
+                    }
+                }
+
+                $this->showImageSelectionModal = true;
+            } catch (\Exception $e) {
+                Log::error('UrlToVideo: Image sourcing failed', ['error' => $e->getMessage()]);
+                session()->flash('error', 'Failed to source images: ' . $e->getMessage());
+            } finally {
+                $this->isSourcingImages = false;
+            }
+
+            return;
+        }
+
+        // Standard flow: create project and dispatch immediately
         $this->showTranscriptModal = false;
         $this->isGenerating = true;
 
         try {
-            $scriptService = new StoryModeScriptService();
-            $targetDuration = (int) get_option('story_mode_default_duration', 35);
-            $segments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
-            $wordCount = str_word_count($this->editableTranscript);
-
-            $scenes = [];
-            foreach ($segments as $i => $segment) {
-                $scenes[] = [
-                    'id' => 'scene_' . $i,
-                    'index' => $i,
-                    'text' => $segment['text'],
-                    'estimated_duration' => $segment['estimated_duration'],
-                ];
-            }
-
-            $sourceType = $this->detectedSourceType ?: 'prompt';
-
-            $project = UrlToVideoProject::create([
-                'user_id' => auth()->id(),
-                'team_id' => session('current_team_id'),
-                'title' => $this->generatedTitle ?: 'Untitled Video',
-                'prompt' => $this->prompt ?: null,
-                'source_url' => $this->sourceUrl ?: '',
-                'source_type' => $sourceType,
-                'extracted_content' => $this->storedExtractedContent ?: null,
-                'content_brief' => $this->storedContentBrief ?: null,
-                'aspect_ratio' => $this->aspectRatio,
-                'voice_id' => $this->selectedVoice !== 'auto' ? $this->selectedVoice : null,
-                'voice_provider' => $this->voiceProvider ?: null,
-                'transcript' => $this->editableTranscript,
-                'transcript_word_count' => $wordCount,
-                'scenes' => $scenes,
-                'status' => 'generating_voiceover',
-                'progress_percent' => 15,
-                'current_stage' => 'Starting pipeline',
-                'metadata' => [
-                    'started_at' => now()->toIso8601String(),
-                    'ai_engine' => get_option('story_mode_ai_engine', 'gemini'),
-                    'video_resolution' => $this->videoResolution,
-                    'video_quality' => $this->videoQuality,
-                    'narrative_style' => $this->narrativeStyle,
-                ],
-            ]);
-
-            $this->activeProjectId = $project->id;
-            $this->detailProjectId = $project->id;
-            Cache::forget('url-to-video-projects-' . auth()->id());
-
-            UrlToVideoGenerationJob::dispatch($project->id)
-                ->onQueue('video-wizard-images');
-
-            Log::info('UrlToVideo: Generation job dispatched', ['project_id' => $project->id]);
+            $this->dispatchGenerationPipeline();
         } catch (\Exception $e) {
             Log::error('UrlToVideo: Pipeline dispatch failed', ['error' => $e->getMessage()]);
             session()->flash('error', 'Video generation failed: ' . $e->getMessage());
         } finally {
             $this->isGenerating = false;
         }
+    }
+
+    /**
+     * Select a specific image candidate for a scene.
+     */
+    public function selectSceneImage(string $sceneId, int $candidateIndex)
+    {
+        $this->selectedSceneImages[$sceneId] = $candidateIndex;
+    }
+
+    /**
+     * Mark a scene to use AI-generated image instead of a real one.
+     */
+    public function markSceneForAI(string $sceneId)
+    {
+        $this->selectedSceneImages[$sceneId] = 'ai';
+    }
+
+    /**
+     * Search Wikimedia Commons for additional images for a scene.
+     */
+    public function searchMoreImages(string $sceneId, string $query)
+    {
+        try {
+            $imageService = new ImageSourceService();
+            $results = $imageService->searchWikimedia($query, 5);
+
+            foreach ($results as $result) {
+                $this->sceneImageCandidates[$sceneId][] = array_merge($result, [
+                    'source' => 'wikimedia',
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::warning('UrlToVideo: Additional image search failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Handle uploaded scene image.
+     */
+    public function updatedUploadedSceneImage()
+    {
+        $sceneId = $this->uploadTargetScene;
+        if (empty($sceneId) || !$this->uploadedSceneImage) {
+            return;
+        }
+
+        try {
+            $path = $this->uploadedSceneImage->store('url-to-video/uploads', 'public');
+            $publicUrl = url('/public/storage/' . $path);
+
+            // Add as new candidate and auto-select it
+            $newCandidate = [
+                'url' => $publicUrl,
+                'thumbnail' => $publicUrl,
+                'source' => 'upload',
+                'title' => $this->uploadedSceneImage->getClientOriginalName(),
+                'width' => 0,
+                'height' => 0,
+            ];
+
+            $this->sceneImageCandidates[$sceneId][] = $newCandidate;
+            $newIndex = count($this->sceneImageCandidates[$sceneId]) - 1;
+            $this->selectedSceneImages[$sceneId] = $newIndex;
+
+            $this->uploadedSceneImage = null;
+            $this->uploadTargetScene = '';
+        } catch (\Exception $e) {
+            Log::warning('UrlToVideo: Image upload failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Confirm image selection and dispatch generation pipeline with pre-assigned images.
+     */
+    public function confirmImageSelection()
+    {
+        $this->showImageSelectionModal = false;
+        $this->isGenerating = true;
+
+        try {
+            $this->dispatchGenerationPipeline();
+        } catch (\Exception $e) {
+            Log::error('UrlToVideo: Pipeline dispatch failed after image selection', ['error' => $e->getMessage()]);
+            session()->flash('error', 'Video generation failed: ' . $e->getMessage());
+        } finally {
+            $this->isGenerating = false;
+        }
+    }
+
+    /**
+     * Create project and dispatch the generation job.
+     * Downloads selected real images and assigns image_url to scenes.
+     */
+    protected function dispatchGenerationPipeline(): void
+    {
+        $scriptService = new StoryModeScriptService();
+        $targetDuration = (int) get_option('story_mode_default_duration', 35);
+        $segments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
+        $wordCount = str_word_count($this->editableTranscript);
+
+        $scenes = [];
+        foreach ($segments as $i => $segment) {
+            $scenes[] = [
+                'id' => 'scene_' . $i,
+                'index' => $i,
+                'text' => $segment['text'],
+                'estimated_duration' => $segment['estimated_duration'],
+            ];
+        }
+
+        $sourceType = $this->detectedSourceType ?: 'prompt';
+        $imageSource = $this->useRealImages ? 'real_images' : 'ai';
+
+        // If real images mode, download selected images and assign URLs to scenes
+        if ($this->useRealImages && !empty($this->selectedSceneImages)) {
+            $imageService = new ImageSourceService();
+
+            // Create a temporary project ID for file storage
+            $tempProjectId = time();
+
+            foreach ($scenes as &$scene) {
+                $sceneId = $scene['id'];
+                $selection = $this->selectedSceneImages[$sceneId] ?? null;
+
+                if ($selection === 'ai' || $selection === null) {
+                    // Scene will use AI generation — leave image_url empty
+                    continue;
+                }
+
+                $candidates = $this->sceneImageCandidates[$sceneId] ?? [];
+                $candidate = is_int($selection) ? ($candidates[$selection] ?? null) : null;
+
+                if ($candidate && !empty($candidate['url'])) {
+                    // If it's an uploaded image, use URL directly
+                    if (($candidate['source'] ?? '') === 'upload') {
+                        $scene['image_url'] = $candidate['url'];
+                    } else {
+                        // Download external image
+                        $localUrl = $imageService->downloadAndStore(
+                            $candidate['url'],
+                            $tempProjectId,
+                            $sceneId
+                        );
+                        if ($localUrl) {
+                            $scene['image_url'] = $localUrl;
+                        }
+                    }
+                }
+            }
+            unset($scene);
+        }
+
+        $project = UrlToVideoProject::create([
+            'user_id' => auth()->id(),
+            'team_id' => session('current_team_id'),
+            'title' => $this->generatedTitle ?: 'Untitled Video',
+            'prompt' => $this->prompt ?: null,
+            'source_url' => $this->sourceUrl ?: '',
+            'source_type' => $sourceType,
+            'extracted_content' => $this->storedExtractedContent ?: null,
+            'content_brief' => $this->storedContentBrief ?: null,
+            'aspect_ratio' => $this->aspectRatio,
+            'voice_id' => $this->selectedVoice !== 'auto' ? $this->selectedVoice : null,
+            'voice_provider' => $this->voiceProvider ?: null,
+            'transcript' => $this->editableTranscript,
+            'transcript_word_count' => $wordCount,
+            'scenes' => $scenes,
+            'status' => 'generating_voiceover',
+            'progress_percent' => 15,
+            'current_stage' => 'Starting pipeline',
+            'metadata' => [
+                'started_at' => now()->toIso8601String(),
+                'ai_engine' => get_option('story_mode_ai_engine', 'gemini'),
+                'video_resolution' => $this->videoResolution,
+                'video_quality' => $this->videoQuality,
+                'narrative_style' => $this->narrativeStyle,
+                'image_source' => $imageSource,
+            ],
+        ]);
+
+        $this->activeProjectId = $project->id;
+        $this->detailProjectId = $project->id;
+        Cache::forget('url-to-video-projects-' . auth()->id());
+
+        UrlToVideoGenerationJob::dispatch($project->id)
+            ->onQueue('video-wizard-images');
+
+        Log::info('UrlToVideo: Generation job dispatched', [
+            'project_id' => $project->id,
+            'image_source' => $imageSource,
+        ]);
     }
 
     public function updatedNarrativeStyle()
