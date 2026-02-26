@@ -50,6 +50,9 @@
              x-data="{
                  promptText: @js($prompt),
                  aspectRatio: @js($aspectRatio),
+                 resolution: @js($videoResolution),
+                 quality: @js($videoQuality),
+                 showSettings: false,
                  placeholders: [
                      '{{ __("A cat astronaut floating through a neon galaxy...") }}',
                      '{{ __("Morning routine of a robot barista in Tokyo...") }}',
@@ -59,6 +62,12 @@
                  ],
                  placeholderIdx: 0,
                  init() {
+                     this.$watch('quality', (val) => {
+                         if (val === 'fast' && this.resolution === '480p') {
+                             this.resolution = '720p';
+                             $wire.set('videoResolution', '720p');
+                         }
+                     });
                      setInterval(() => {
                          this.placeholderIdx = (this.placeholderIdx + 1) % this.placeholders.length;
                      }, 4000);
@@ -67,6 +76,19 @@
                      const cycle = { '9:16': '16:9', '16:9': '1:1', '1:1': '9:16' };
                      this.aspectRatio = cycle[this.aspectRatio] || '9:16';
                      $wire.set('aspectRatio', this.aspectRatio);
+                 },
+                 cycleResolution() {
+                     if (this.quality === 'fast') {
+                         this.resolution = this.resolution === '720p' ? '1080p' : '720p';
+                     } else {
+                         const cycle = { '480p': '720p', '720p': '1080p', '1080p': '480p' };
+                         this.resolution = cycle[this.resolution] || '480p';
+                     }
+                     $wire.set('videoResolution', this.resolution);
+                 },
+                 cycleQuality() {
+                     this.quality = this.quality === 'pro' ? 'fast' : 'pro';
+                     $wire.set('videoQuality', this.quality);
                  }
              }">
                 <textarea
@@ -109,11 +131,60 @@
                             <i class="fa-light fa-paperclip"></i>
                         </button>
 
-                        {{-- Aspect Ratio --}}
-                        <button @click="cycleAspect()" type="button" class="story-tool-btn">
-                            <i class="fa-light fa-mobile-screen"></i>
-                            <span x-text="aspectRatio"></span>
-                        </button>
+                        {{-- Settings Popover (Aspect, Resolution, Quality) --}}
+                        <div class="position-relative">
+                            <button @click="showSettings = !showSettings" type="button"
+                                    class="story-tool-btn" :class="showSettings ? 'active' : ''">
+                                <i class="fa-light fa-sliders"></i>
+                            </button>
+                            <div x-show="showSettings" x-cloak
+                                 @click.away="showSettings = false"
+                                 x-transition:enter="transition ease-out duration-150"
+                                 x-transition:enter-start="opacity-0"
+                                 x-transition:enter-end="opacity-100"
+                                 x-transition:leave="transition ease-in duration-100"
+                                 x-transition:leave-start="opacity-100"
+                                 x-transition:leave-end="opacity-0"
+                                 class="story-settings-popover">
+                                <div class="story-settings-label">{{ __('Settings') }}</div>
+
+                                {{-- Aspect Ratio --}}
+                                <button @click="cycleAspect()" type="button" class="story-settings-row">
+                                    <span class="d-flex align-items-center gap-2">
+                                        <i class="fa-light fa-mobile-screen story-settings-icon"></i>
+                                        {{ __('Aspect Ratio') }}
+                                    </span>
+                                    <span class="story-settings-value">
+                                        <span x-text="aspectRatio"></span>
+                                        <i class="fa-light fa-chevron-right" style="font-size: 0.65rem; opacity: 0.4;"></i>
+                                    </span>
+                                </button>
+
+                                {{-- Resolution --}}
+                                <button @click="cycleResolution()" type="button" class="story-settings-row">
+                                    <span class="d-flex align-items-center gap-2">
+                                        <i class="fa-light fa-display story-settings-icon"></i>
+                                        {{ __('Resolution') }}
+                                    </span>
+                                    <span class="story-settings-value">
+                                        <span x-text="resolution"></span>
+                                        <i class="fa-light fa-chevron-right" style="font-size: 0.65rem; opacity: 0.4;"></i>
+                                    </span>
+                                </button>
+
+                                {{-- Quality --}}
+                                <button @click="cycleQuality()" type="button" class="story-settings-row">
+                                    <span class="d-flex align-items-center gap-2">
+                                        <i class="fa-light fa-gauge-high story-settings-icon"></i>
+                                        {{ __('Quality') }}
+                                    </span>
+                                    <span class="story-settings-value">
+                                        <span x-text="quality.charAt(0).toUpperCase() + quality.slice(1)"></span>
+                                        <i class="fa-light fa-chevron-right" style="font-size: 0.65rem; opacity: 0.4;"></i>
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
 
                         {{-- Voice Button --}}
                         <button wire:click="openVoiceModal" type="button" class="story-tool-btn">
@@ -226,6 +297,62 @@
         }
         .story-tool-btn i {
             font-size: 0.9rem;
+        }
+        .story-tool-btn.active {
+            background: rgba(255,255,255,0.1);
+            color: #f97316;
+        }
+
+        /* Settings popover */
+        .story-settings-popover {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 0;
+            z-index: 50;
+            background: #1a1a1a;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 10px;
+            min-width: 220px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+        }
+        .story-settings-label {
+            font-size: 0.6rem;
+            font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 2px 6px 6px;
+        }
+        .story-settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 7px 6px;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            color: #ccc;
+            font-size: 0.82rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .story-settings-row:hover {
+            background: rgba(255,255,255,0.06);
+        }
+        .story-settings-icon {
+            width: 16px;
+            text-align: center;
+            color: #666;
+            font-size: 0.8rem;
+        }
+        .story-settings-value {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #f97316;
+            font-size: 0.8rem;
         }
 
         /* Submit button */
