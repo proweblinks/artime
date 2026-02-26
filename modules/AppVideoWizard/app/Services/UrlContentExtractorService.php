@@ -180,7 +180,7 @@ PROMPT;
             throw new \Exception('AI analysis failed: ' . $response['error']);
         }
 
-        $text = $response['text'] ?? $response['result'] ?? '';
+        $text = $response['data'][0] ?? $response['text'] ?? $response['result'] ?? '';
         $json = $this->extractJson($text);
 
         if (!$json) {
