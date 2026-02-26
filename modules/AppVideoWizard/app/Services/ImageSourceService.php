@@ -23,15 +23,19 @@ class ImageSourceService
         $articleImages = $extractedContent['images'] ?? [];
         $subject = $contentBrief['subject'] ?? '';
         $results = [];
+        $usedWikiUrls = []; // Track Wikimedia URLs across scenes to prevent duplicates
 
         foreach ($scenes as $scene) {
             $sceneId = $scene['id'] ?? 'scene_0';
             $sceneText = $scene['text'] ?? '';
             $candidates = [];
 
-            // 1. Score article images against scene text
+            // 1. Score article images against scene text (only include relevant ones)
             $rankedArticle = $this->rankArticleImages($sceneText, $articleImages);
             foreach ($rankedArticle as $img) {
+                if (($img['_score'] ?? 0) <= 0) {
+                    continue; // Skip article images with no relevance to this scene
+                }
                 $candidates[] = [
                     'url' => $img['url'],
                     'thumbnail' => $img['url'],
@@ -45,10 +49,21 @@ class ImageSourceService
 
             // 2. Search Wikimedia Commons for key entities
             $searchQuery = $this->extractSearchTerms($sceneText, $subject);
+            Log::info('ImageSourceService: Search query for scene', [
+                'scene_id' => $sceneId,
+                'query' => $searchQuery,
+                'scene_text_preview' => Str::limit($sceneText, 80),
+            ]);
+
             if (!empty($searchQuery)) {
                 try {
-                    $wikiResults = $this->searchWikimedia($searchQuery, 5);
+                    $wikiResults = $this->searchWikimedia($searchQuery, 8); // Fetch extra to allow for dedup filtering
                     foreach ($wikiResults as $wImg) {
+                        $url = $wImg['url'] ?? '';
+                        // Skip images already used in previous scenes
+                        if (in_array($url, $usedWikiUrls)) {
+                            continue;
+                        }
                         $candidates[] = array_merge($wImg, [
                             'source' => 'wikimedia',
                             'score' => $wImg['score'] ?? 0,
@@ -66,13 +81,21 @@ class ImageSourceService
             // 3. Sort by score descending, best first
             usort($candidates, fn($a, $b) => ($b['score'] ?? 0) <=> ($a['score'] ?? 0));
 
-            // Remove internal score from output
+            // Remove internal score from output, limit to top 5 per scene
+            $candidates = array_slice($candidates, 0, 5);
             $candidates = array_map(function ($c) {
                 unset($c['_score']);
                 return $c;
             }, $candidates);
 
             $results[$sceneId] = array_values($candidates);
+
+            // Track all Wiki URLs from this scene to avoid cross-scene duplicates
+            foreach ($candidates as $c) {
+                if (($c['source'] ?? '') === 'wikimedia' && !empty($c['url'])) {
+                    $usedWikiUrls[] = $c['url'];
+                }
+            }
         }
 
         return $results;
@@ -227,12 +250,35 @@ class ImageSourceService
 
     /**
      * Extract search terms from scene text.
-     * Finds proper nouns (capitalized word sequences) and combines with subject.
+     * Finds proper noun phrases (multi-word names) and combines with subject for context.
      */
     protected function extractSearchTerms(string $sceneText, string $subject): string
     {
-        // Extract proper nouns (capitalized words not at sentence start)
-        $properNouns = [];
+        // Common words that should NOT be treated as proper nouns even when capitalized
+        $stopWords = array_flip(array_map('strtolower', [
+            'The', 'This', 'That', 'These', 'Those', 'When', 'Where', 'Which',
+            'What', 'How', 'Who', 'Why', 'Not', 'But', 'And', 'For', 'With',
+            'From', 'Into', 'Over', 'After', 'Before', 'Between', 'Under',
+            'About', 'Through', 'During', 'Without', 'Again', 'Once', 'Here',
+            'There', 'Some', 'Such', 'Very', 'Just', 'Also', 'Than', 'Other',
+            'Even', 'Most', 'More', 'Many', 'Much', 'Each', 'Every', 'Both',
+            'Few', 'All', 'Any', 'Its', 'His', 'Her', 'Our', 'Your', 'Their',
+            'Have', 'Has', 'Had', 'Will', 'Would', 'Could', 'Should', 'May',
+            'Might', 'Must', 'Shall', 'Can', 'Did', 'Does', 'Was', 'Were',
+            'Been', 'Being', 'Are', 'New', 'Now', 'Get', 'Got', 'Make',
+            'Made', 'Still', 'Yet', 'Already', 'Since', 'While', 'Then',
+            'Found', 'Error', 'However', 'Although', 'Despite', 'According',
+            'Meanwhile', 'Furthermore', 'Moreover', 'Like', 'Only', 'Well',
+            'Take', 'Took', 'Come', 'Came', 'Going', 'Gone', 'Said', 'Says',
+            'Tell', 'Told', 'Know', 'Known', 'Think', 'Thought', 'Give',
+            'Given', 'First', 'Last', 'Next', 'Another', 'Perhaps', 'Nearly',
+            'Almost', 'Along', 'Already', 'Across', 'Around', 'Away', 'Back',
+            'Down', 'Enough', 'Else', 'Instead', 'Often', 'Rather', 'Soon',
+            'Whether', 'Whose', 'Whom',
+        ]));
+
+        // Extract multi-word proper noun phrases (consecutive capitalized words)
+        $properNounPhrases = [];
         $sentences = preg_split('/[.!?]+/', $sceneText);
 
         foreach ($sentences as $sentence) {
@@ -242,41 +288,70 @@ class ImageSourceService
             }
 
             $words = preg_split('/\s+/', $sentence);
+            $currentPhrase = [];
             $isFirst = true;
 
             foreach ($words as $word) {
                 $clean = preg_replace('/[^a-zA-Z\'-]/', '', $word);
                 if (empty($clean)) {
+                    if (!empty($currentPhrase)) {
+                        $properNounPhrases[] = implode(' ', $currentPhrase);
+                        $currentPhrase = [];
+                    }
                     $isFirst = false;
                     continue;
                 }
 
-                // Capitalized word that isn't the first word of the sentence
-                if (!$isFirst && ctype_upper($clean[0]) && mb_strlen($clean) >= 3) {
-                    $properNouns[] = $clean;
+                $isCapitalized = ctype_upper($clean[0]) && mb_strlen($clean) >= 3;
+                $isStop = isset($stopWords[strtolower($clean)]);
+
+                if (!$isFirst && $isCapitalized && !$isStop) {
+                    $currentPhrase[] = $clean;
+                } else {
+                    if (!empty($currentPhrase)) {
+                        $properNounPhrases[] = implode(' ', $currentPhrase);
+                        $currentPhrase = [];
+                    }
                 }
                 $isFirst = false;
             }
+            if (!empty($currentPhrase)) {
+                $properNounPhrases[] = implode(' ', $currentPhrase);
+            }
         }
 
-        $properNouns = array_unique($properNouns);
+        $properNounPhrases = array_unique($properNounPhrases);
 
-        // Build query: proper nouns + subject
+        // Sort by length desc (longer phrases = more specific = better search results)
+        usort($properNounPhrases, fn($a, $b) => strlen($b) <=> strlen($a));
+
+        // Build query: top proper noun phrases + subject for context
         $parts = [];
-        if (!empty($properNouns)) {
-            $parts[] = implode(' ', array_slice($properNouns, 0, 3));
+        if (!empty($properNounPhrases)) {
+            $parts = array_merge($parts, array_slice($properNounPhrases, 0, 2));
         }
-        if (!empty($subject) && empty($properNouns)) {
+
+        // Always include subject for Wikimedia search context
+        if (!empty($subject)) {
             $parts[] = $subject;
         }
 
         $query = implode(' ', $parts);
 
-        // Fallback: use first few significant words from scene text
+        // Fallback: use key content words (5+ chars, not common verbs)
         if (empty(trim($query))) {
+            $commonVerbs = array_flip([
+                'would', 'could', 'should', 'might', 'about', 'after', 'before',
+                'being', 'between', 'during', 'through', 'under', 'until', 'without',
+                'which', 'where', 'while', 'their', 'there', 'these', 'those', 'other',
+                'still', 'already', 'really', 'never', 'always', 'often', 'every',
+            ]);
             $words = array_filter(
                 preg_split('/\s+/', $sceneText),
-                fn($w) => mb_strlen(preg_replace('/[^a-zA-Z]/', '', $w)) >= 4
+                function ($w) use ($commonVerbs) {
+                    $clean = strtolower(preg_replace('/[^a-zA-Z]/', '', $w));
+                    return mb_strlen($clean) >= 5 && !isset($commonVerbs[$clean]);
+                }
             );
             $query = implode(' ', array_slice(array_values($words), 0, 4));
         }
