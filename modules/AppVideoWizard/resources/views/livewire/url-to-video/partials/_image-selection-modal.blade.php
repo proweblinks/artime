@@ -118,32 +118,71 @@
 
                     {{-- Image thumbnails row --}}
                     @if(!empty($candidates))
-                        <div class="utv-thumb-row">
-                            @foreach($candidates as $idx => $candidate)
-                                @php
-                                    $isSelected = false;
-                                    if (!$isAI && is_array($selection) && ($selection['url'] ?? '') === ($candidate['url'] ?? '')) {
-                                        $isSelected = true;
-                                    } elseif (!$isAI && is_int($selection) && $selection === $idx) {
-                                        $isSelected = true;
-                                    }
-                                @endphp
-                                <button wire:click="selectSceneImage('{{ $sceneId }}', {{ $idx }})"
-                                        type="button"
-                                        class="utv-image-thumb {{ $isSelected ? 'selected' : '' }}">
-                                    <img src="{{ $candidate['thumbnail'] ?? $candidate['url'] }}"
-                                         alt="{{ $candidate['title'] ?? 'Image ' . ($idx + 1) }}"
-                                         loading="lazy">
-                                    @if($isSelected)
-                                        <div class="utv-thumb-check">
-                                            <i class="fa-solid fa-check"></i>
-                                        </div>
-                                    @endif
-                                    <span class="utv-source-badge">
-                                        {{ $candidate['source'] === 'article' ? __('Article') : __('Wiki') }}
-                                    </span>
-                                </button>
-                            @endforeach
+                        <div class="utv-thumb-row-wrap">
+                            <div class="utv-thumb-row"
+                                 x-data="{
+                                     isDragging: false,
+                                     startX: 0,
+                                     scrollStart: 0,
+                                     hasDragged: false,
+                                     init() {
+                                         const el = this.$el;
+                                         el.addEventListener('mousedown', (e) => {
+                                             this.isDragging = true;
+                                             this.hasDragged = false;
+                                             this.startX = e.pageX;
+                                             this.scrollStart = el.scrollLeft;
+                                             el.style.cursor = 'grabbing';
+                                             el.style.userSelect = 'none';
+                                         });
+                                         window.addEventListener('mousemove', (e) => {
+                                             if (!this.isDragging) return;
+                                             const dx = e.pageX - this.startX;
+                                             if (Math.abs(dx) > 3) this.hasDragged = true;
+                                             el.scrollLeft = this.scrollStart - dx;
+                                         });
+                                         window.addEventListener('mouseup', () => {
+                                             if (this.isDragging) {
+                                                 this.isDragging = false;
+                                                 el.style.cursor = 'grab';
+                                                 el.style.userSelect = '';
+                                             }
+                                         });
+                                         el.addEventListener('click', (e) => {
+                                             if (this.hasDragged) {
+                                                 e.stopPropagation();
+                                                 e.preventDefault();
+                                             }
+                                         }, true);
+                                     }
+                                 }">
+                                @foreach($candidates as $idx => $candidate)
+                                    @php
+                                        $isSelected = false;
+                                        if (!$isAI && is_array($selection) && ($selection['url'] ?? '') === ($candidate['url'] ?? '')) {
+                                            $isSelected = true;
+                                        } elseif (!$isAI && is_int($selection) && $selection === $idx) {
+                                            $isSelected = true;
+                                        }
+                                    @endphp
+                                    <button wire:click="selectSceneImage('{{ $sceneId }}', {{ $idx }})"
+                                            type="button"
+                                            class="utv-image-thumb {{ $isSelected ? 'selected' : '' }}">
+                                        <img src="{{ $candidate['thumbnail'] ?? $candidate['url'] }}"
+                                             alt="{{ $candidate['title'] ?? 'Image ' . ($idx + 1) }}"
+                                             loading="lazy"
+                                             draggable="false">
+                                        @if($isSelected)
+                                            <div class="utv-thumb-check">
+                                                <i class="fa-solid fa-check"></i>
+                                            </div>
+                                        @endif
+                                        <span class="utv-source-badge">
+                                            {{ $candidate['source'] === 'article' ? __('Article') : __('Wiki') }}
+                                        </span>
+                                    </button>
+                                @endforeach
+                            </div>
                         </div>
                     @else
                         <div class="d-flex align-items-center gap-2 p-3" style="background: #111; border-radius: 10px;">
@@ -210,11 +249,33 @@
         border-radius: 12px;
         border: 1px solid rgba(255,255,255,0.04);
     }
+    .utv-thumb-row-wrap {
+        position: relative;
+    }
+    .utv-thumb-row-wrap::before,
+    .utv-thumb-row-wrap::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 24px;
+        z-index: 2;
+        pointer-events: none;
+    }
+    .utv-thumb-row-wrap::before {
+        left: 0;
+        background: linear-gradient(to right, #111, transparent);
+    }
+    .utv-thumb-row-wrap::after {
+        right: 0;
+        background: linear-gradient(to left, #111, transparent);
+    }
     .utv-thumb-row {
         display: flex;
-        gap: 8px;
+        gap: 10px;
         overflow-x: auto;
         padding: 4px 0;
+        cursor: grab;
         scrollbar-width: none;
         -ms-overflow-style: none;
     }
@@ -222,8 +283,8 @@
     .utv-image-thumb {
         position: relative;
         flex-shrink: 0;
-        width: 80px;
-        height: 80px;
+        width: 140px;
+        height: 100px;
         border-radius: 8px;
         overflow: hidden;
         border: 2px solid transparent;
@@ -246,29 +307,29 @@
     }
     .utv-thumb-check {
         position: absolute;
-        top: 4px;
-        right: 4px;
-        width: 20px;
-        height: 20px;
+        top: 5px;
+        right: 5px;
+        width: 22px;
+        height: 22px;
         border-radius: 50%;
         background: #f97316;
         color: #fff;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.55rem;
+        font-size: 0.6rem;
     }
     .utv-source-badge {
         position: absolute;
-        bottom: 2px;
+        bottom: 3px;
         left: 50%;
         transform: translateX(-50%);
-        font-size: 0.55rem;
+        font-size: 0.6rem;
         font-weight: 600;
         color: #ccc;
         background: rgba(0,0,0,0.7);
-        padding: 1px 5px;
-        border-radius: 3px;
+        padding: 2px 6px;
+        border-radius: 4px;
         white-space: nowrap;
     }
     .utv-img-action-btn {
