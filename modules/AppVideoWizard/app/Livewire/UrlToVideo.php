@@ -58,6 +58,9 @@ class UrlToVideo extends Component
     public $uploadedSceneImage;
     public string $uploadTargetScene = '';
 
+    // Crop/position data for 9:16 framing
+    public array $sceneCropData = [];
+
     // Active project tracking
     public ?int $activeProjectId = null;
     public ?int $detailProjectId = null;
@@ -359,21 +362,39 @@ class UrlToVideo extends Component
     }
 
     /**
+     * Update crop/position focal point for a scene image.
+     */
+    public function updateSceneCrop(string $sceneId, float $focalX, float $focalY)
+    {
+        $this->sceneCropData[$sceneId] = [
+            'focalX' => max(0, min(1, $focalX)),
+            'focalY' => max(0, min(1, $focalY)),
+        ];
+    }
+
+    /**
      * Search Wikimedia Commons for additional images for a scene.
      */
     public function searchMoreImages(string $sceneId, string $query)
     {
         try {
             $imageService = new ImageSourceService();
-            $results = $imageService->searchWikimedia($query, 5);
 
+            // Search Wikimedia images
+            $results = $imageService->searchWikimedia($query, 5);
             foreach ($results as $result) {
                 $this->sceneImageCandidates[$sceneId][] = array_merge($result, [
-                    'source' => 'wikimedia',
+                    'source' => $result['source'] ?? 'wikimedia',
                 ]);
             }
+
+            // Also search for free video clips
+            $videoResults = $imageService->searchVideoClips($query, 3);
+            foreach ($videoResults as $vClip) {
+                $this->sceneImageCandidates[$sceneId][] = $vClip;
+            }
         } catch (\Exception $e) {
-            Log::warning('UrlToVideo: Additional image search failed', ['error' => $e->getMessage()]);
+            Log::warning('UrlToVideo: Additional image/video search failed', ['error' => $e->getMessage()]);
         }
     }
 
@@ -476,8 +497,29 @@ class UrlToVideo extends Component
                     : null;
 
                 if ($candidate && !empty($candidate['url'])) {
-                    // If it's an uploaded image, use URL directly
-                    if (($candidate['source'] ?? '') === 'upload') {
+                    $isVideo = ($candidate['type'] ?? 'image') === 'video';
+
+                    if ($isVideo) {
+                        // Download video clip
+                        $localUrl = $imageService->downloadAndStoreVideo(
+                            $candidate['url'],
+                            $tempProjectId,
+                            $sceneId
+                        );
+                        if ($localUrl) {
+                            $scene['video_url'] = $localUrl;
+                            // Use thumbnail as fallback image for assembly
+                            if (!empty($candidate['thumbnail'])) {
+                                $thumbUrl = $imageService->downloadAndStore(
+                                    $candidate['thumbnail'],
+                                    $tempProjectId,
+                                    $sceneId
+                                );
+                                $scene['image_url'] = $thumbUrl;
+                            }
+                        }
+                    } elseif (($candidate['source'] ?? '') === 'upload') {
+                        // Uploaded image — use URL directly
                         $scene['image_url'] = $candidate['url'];
                     } else {
                         // Download external image
@@ -490,6 +532,15 @@ class UrlToVideo extends Component
                             $scene['image_url'] = $localUrl;
                         }
                     }
+                }
+            }
+            unset($scene);
+
+            // Attach crop/position data to scenes
+            foreach ($scenes as &$scene) {
+                $sceneId = $scene['id'] ?? '';
+                if (!empty($this->sceneCropData[$sceneId])) {
+                    $scene['crop'] = $this->sceneCropData[$sceneId];
                 }
             }
             unset($scene);
@@ -552,6 +603,7 @@ class UrlToVideo extends Component
         $this->sceneImageCandidates = [];
         $this->sceneSearchSuggestions = [];
         $this->selectedSceneImages = [];
+        $this->sceneCropData = [];
     }
 
     public function updatedEditableTranscript()

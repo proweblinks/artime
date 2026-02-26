@@ -309,11 +309,20 @@ class VideoRenderService
                 $normalizedPath = "{$workDir}/norm_{$i}.mp4";
 
                 if ($clip['type'] === 'video') {
-                    // Normalize video clip: scale to target resolution, set fps, re-encode
+                    // Normalize video clip: crop-aware or standard scale
+                    $cropData = $scenes[$i]['crop'] ?? null;
+                    if ($cropData) {
+                        // Crop to 9:16 region centered on focal point, then scale
+                        $fx = $cropData['focalX'] ?? 0.5;
+                        $fy = $cropData['focalY'] ?? 0.5;
+                        $videoFilter = "crop=ih*9/16:ih:({$fx})*iw-ih*9/32:({$fy})*ih-ih/2,scale={$width}:{$height},fps={$fps},setsar=1";
+                    } else {
+                        $videoFilter = "scale={$width}:{$height}:force_original_aspect_ratio=decrease,pad={$width}:{$height}:(ow-iw)/2:(oh-ih)/2:color=black,fps={$fps},setsar=1";
+                    }
                     $cmd = [
                         $this->ffmpegPath,
                         '-i', $clip['path'],
-                        '-vf', "scale={$width}:{$height}:force_original_aspect_ratio=decrease,pad={$width}:{$height}:(ow-iw)/2:(oh-ih)/2:color=black,fps={$fps},setsar=1",
+                        '-vf', $videoFilter,
                         '-c:v', 'libx264',
                         '-preset', $settings['preset'],
                         '-crf', $settings['crf'],

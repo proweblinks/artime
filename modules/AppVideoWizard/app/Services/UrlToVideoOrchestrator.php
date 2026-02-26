@@ -247,6 +247,15 @@ class UrlToVideoOrchestrator
         // Phase 1: Submit all jobs
         $pendingTasks = [];
         foreach ($scenes as $i => $scene) {
+            // Skip AI video generation if scene already has a pre-assigned video clip
+            if (!empty($scene['video_url'])) {
+                Log::info('UrlToVideoOrchestrator: Using pre-assigned video clip', [
+                    'scene_id' => $scene['id'] ?? "scene_{$i}",
+                    'video_url' => $scene['video_url'],
+                ]);
+                continue;
+            }
+
             $imageUrl = $scene['image_url'] ?? null;
             if (empty($imageUrl)) {
                 continue;
@@ -371,6 +380,11 @@ class UrlToVideoOrchestrator
                 $duration += 2.5;
             }
 
+            // Use crop focal point if set, otherwise default to center
+            $crop = $scene['crop'] ?? null;
+            $focalX = $crop ? $crop['focalX'] : 0.5;
+            $focalY = $crop ? $crop['focalY'] : 0.5;
+
             $manifestScenes[] = [
                 'imageUrl' => $scene['image_url'] ?? null,
                 'videoUrl' => $scene['video_url'] ?? null,
@@ -379,13 +393,14 @@ class UrlToVideoOrchestrator
                 'narration' => $scene['text'] ?? '',
                 'transition_type' => $scene['transition_type'] ?? $transitionType,
                 'transition_duration' => (float) ($scene['transition_duration'] ?? $crossfadeDuration),
+                'crop' => $crop,
                 'kenBurns' => [
                     'startScale' => 1.0,
                     'endScale' => 1.2,
-                    'startX' => 0.5,
-                    'startY' => 0.5,
-                    'endX' => 0.5 + (($i % 2 === 0) ? 0.05 : -0.05),
-                    'endY' => 0.5 + (($i % 3 === 0) ? 0.05 : -0.05),
+                    'startX' => $focalX,
+                    'startY' => $focalY,
+                    'endX' => $focalX + (($i % 2 === 0) ? 0.05 : -0.05),
+                    'endY' => $focalY + (($i % 3 === 0) ? 0.05 : -0.05),
                 ],
             ];
         }

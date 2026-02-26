@@ -2,6 +2,8 @@
 
 namespace Modules\AppVideoWizard\Services;
 
+use App\Services\PexelsService;
+use App\Services\PixabayService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -78,11 +80,30 @@ class ImageSourceService
                 }
             }
 
-            // 3. Sort by score descending, best first
+            // 3. Search for free video clips from Pexels/Pixabay
+            if (!empty($searchQuery)) {
+                try {
+                    $videoResults = $this->searchVideoClips($searchQuery, 3);
+                    foreach ($videoResults as $vClip) {
+                        $url = $vClip['url'] ?? '';
+                        if (in_array($url, $usedWikiUrls)) {
+                            continue;
+                        }
+                        $candidates[] = $vClip;
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('ImageSourceService: Video clip search failed', [
+                        'scene_id' => $sceneId,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            // 4. Sort by score descending, best first
             usort($candidates, fn($a, $b) => ($b['score'] ?? 0) <=> ($a['score'] ?? 0));
 
-            // Remove internal score from output, limit to top 5 per scene
-            $candidates = array_slice($candidates, 0, 5);
+            // Remove internal score from output, limit to top 8 per scene (images + videos)
+            $candidates = array_slice($candidates, 0, 8);
             $candidates = array_map(function ($c) {
                 unset($c['_score']);
                 return $c;
@@ -264,11 +285,11 @@ class ImageSourceService
      * Two-step: search files → get imageinfo for each result.
      * Results are cached for 1 hour.
      */
-    public function searchWikimedia(string $query, int $limit = 5): array
+    public function searchWikimedia(string $query, int $limit = 5, bool $includeVideo = false): array
     {
-        $cacheKey = 'wikimedia_search_' . md5($query . '_' . $limit);
+        $cacheKey = 'wikimedia_search_' . md5($query . '_' . $limit . '_' . ($includeVideo ? 'v' : 'i'));
 
-        return Cache::remember($cacheKey, 3600, function () use ($query, $limit) {
+        return Cache::remember($cacheKey, 3600, function () use ($query, $limit, $includeVideo) {
             $http = Http::timeout(15)->withHeaders([
                 'User-Agent' => 'ArtimeVideoWizard/1.0 (https://artime.ai; contact@artime.ai)',
             ]);
@@ -328,25 +349,47 @@ class ImageSourceService
                 $width = $imageInfo['width'] ?? 0;
                 $height = $imageInfo['height'] ?? 0;
 
-                // Filter: only jpeg/png/webp, min 400x300
+                // Filter by allowed MIME types
                 $allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+                if ($includeVideo) {
+                    $allowedMimes = array_merge($allowedMimes, ['video/mp4', 'video/webm', 'video/ogg']);
+                }
                 if (!in_array($mime, $allowedMimes)) {
                     continue;
                 }
-                if ($width < 400 || $height < 300) {
+
+                $isVideo = str_starts_with($mime, 'video/');
+
+                if (!$isVideo && ($width < 400 || $height < 300)) {
                     continue;
                 }
 
-                $results[] = [
-                    'url' => $imageInfo['url'] ?? '',
-                    'thumbnail' => $imageInfo['thumburl'] ?? $imageInfo['url'] ?? '',
-                    'title' => $page['title'] ?? '',
-                    'width' => $width,
-                    'height' => $height,
-                    'author' => $imageInfo['user'] ?? null,
-                    'license' => 'CC',
-                    'score' => 1, // Base score for wiki results
-                ];
+                if ($isVideo) {
+                    $results[] = [
+                        'type' => 'video',
+                        'url' => $imageInfo['url'] ?? '',
+                        'thumbnail' => $imageInfo['thumburl'] ?? '',
+                        'title' => $page['title'] ?? '',
+                        'width' => $width,
+                        'height' => $height,
+                        'duration' => 0,
+                        'source' => 'wikimedia',
+                        'author' => $imageInfo['user'] ?? null,
+                        'license' => 'CC',
+                        'score' => 1,
+                    ];
+                } else {
+                    $results[] = [
+                        'url' => $imageInfo['url'] ?? '',
+                        'thumbnail' => $imageInfo['thumburl'] ?? $imageInfo['url'] ?? '',
+                        'title' => $page['title'] ?? '',
+                        'width' => $width,
+                        'height' => $height,
+                        'author' => $imageInfo['user'] ?? null,
+                        'license' => 'CC',
+                        'score' => 1,
+                    ];
+                }
 
                 if (count($results) >= $limit) {
                     break;
@@ -478,6 +521,207 @@ class ImageSourceService
         }
 
         return trim($query);
+    }
+
+    /**
+     * Search free video clips from Pexels and Pixabay.
+     * Returns a unified array of video candidates.
+     */
+    public function searchVideoClips(string $query, int $limit = 5): array
+    {
+        $results = [];
+        $seenUrls = [];
+
+        // Search Pexels Videos
+        $pexelsEnabled = get_option('file_pexels_status', 1) == 1;
+        if ($pexelsEnabled) {
+            try {
+                $pexels = new PexelsService();
+                if ($pexels->isConfigured()) {
+                    $pexelsResult = $pexels->searchVideos($query, [
+                        'per_page' => $limit,
+                        'orientation' => 'portrait',
+                    ]);
+
+                    if (!empty($pexelsResult['success']) && !empty($pexelsResult['data'])) {
+                        foreach ($pexelsResult['data'] as $video) {
+                            $videoUrl = $video['video_url_hd'] ?? $video['video_url_sd'] ?? null;
+                            if (empty($videoUrl) || isset($seenUrls[$videoUrl])) {
+                                continue;
+                            }
+                            $duration = $video['duration'] ?? 0;
+                            // Prefer clips 5-20 seconds
+                            if ($duration > 0 && ($duration < 3 || $duration > 30)) {
+                                continue;
+                            }
+                            $seenUrls[$videoUrl] = true;
+                            $results[] = [
+                                'type' => 'video',
+                                'url' => $videoUrl,
+                                'thumbnail' => $video['thumbnail'] ?? '',
+                                'title' => 'Pexels Video #' . ($video['id'] ?? ''),
+                                'duration' => $duration,
+                                'width' => $video['width'] ?? 0,
+                                'height' => $video['height'] ?? 0,
+                                'source' => 'pexels',
+                                'score' => 2, // Higher base score for stock video
+                            ];
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('ImageSourceService: Pexels video search failed', ['error' => $e->getMessage()]);
+            }
+        }
+
+        // Search Pixabay Videos
+        $pixabayEnabled = get_option('file_pixabay_status', 1) == 1;
+        if ($pixabayEnabled) {
+            try {
+                $pixabay = new PixabayService();
+                if ($pixabay->isConfigured()) {
+                    $pixabayResult = $pixabay->searchVideos($query, [
+                        'per_page' => $limit,
+                    ]);
+
+                    if (!empty($pixabayResult['success']) && !empty($pixabayResult['data'])) {
+                        foreach ($pixabayResult['data'] as $video) {
+                            // Prefer medium quality for reasonable file size
+                            $videoUrl = $video['videos']['medium']['url']
+                                ?? $video['videos']['small']['url']
+                                ?? $video['videos']['large']['url']
+                                ?? null;
+                            if (empty($videoUrl) || isset($seenUrls[$videoUrl])) {
+                                continue;
+                            }
+                            $duration = $video['duration'] ?? 0;
+                            if ($duration > 0 && ($duration < 3 || $duration > 30)) {
+                                continue;
+                            }
+                            $seenUrls[$videoUrl] = true;
+                            $w = $video['videos']['medium']['width'] ?? $video['videos']['small']['width'] ?? 0;
+                            $h = $video['videos']['medium']['height'] ?? $video['videos']['small']['height'] ?? 0;
+                            $results[] = [
+                                'type' => 'video',
+                                'url' => $videoUrl,
+                                'thumbnail' => $video['thumbnail'] ?? '',
+                                'title' => $video['tags'] ?? ('Pixabay Video #' . ($video['id'] ?? '')),
+                                'duration' => $duration,
+                                'width' => $w,
+                                'height' => $h,
+                                'source' => 'pixabay',
+                                'score' => 2,
+                            ];
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('ImageSourceService: Pixabay video search failed', ['error' => $e->getMessage()]);
+            }
+        }
+
+        // Sort by portrait preference, then by duration (prefer 5-15s clips)
+        usort($results, function ($a, $b) {
+            $aPortrait = ($a['height'] ?? 0) > ($a['width'] ?? 0) ? 1 : 0;
+            $bPortrait = ($b['height'] ?? 0) > ($b['width'] ?? 0) ? 1 : 0;
+            if ($aPortrait !== $bPortrait) {
+                return $bPortrait - $aPortrait;
+            }
+            // Prefer clips 5-15s
+            $aDur = abs(($a['duration'] ?? 10) - 10);
+            $bDur = abs(($b['duration'] ?? 10) - 10);
+            return $aDur <=> $bDur;
+        });
+
+        return array_slice($results, 0, $limit);
+    }
+
+    /**
+     * Download a video file and store it locally.
+     *
+     * @return string|null Public URL on success, null on failure
+     */
+    public function downloadAndStoreVideo(string $videoUrl, int $projectId, string $sceneId): ?string
+    {
+        try {
+            $response = Http::timeout(60)->withHeaders([
+                'User-Agent' => 'ArtimeVideoWizard/1.0 (https://artime.ai; contact@artime.ai)',
+            ])->get($videoUrl);
+
+            if (!$response->ok()) {
+                Log::warning('ImageSourceService: Video download failed', [
+                    'url' => $videoUrl,
+                    'status' => $response->status(),
+                ]);
+                return null;
+            }
+
+            $contentType = $response->header('Content-Type') ?? 'video/mp4';
+            $ext = match (true) {
+                str_contains($contentType, 'webm') => 'webm',
+                str_contains($contentType, 'ogg') || str_contains($contentType, 'ogv') => 'ogv',
+                default => 'mp4',
+            };
+
+            $hash = substr(md5($videoUrl), 0, 8);
+            $filename = "{$sceneId}-video-{$hash}.{$ext}";
+            $path = "url-to-video/{$projectId}/{$filename}";
+
+            Storage::disk('public')->put($path, $response->body());
+
+            // If WebM or OGV, convert to MP4 via ffmpeg
+            if ($ext !== 'mp4') {
+                $inputPath = Storage::disk('public')->path($path);
+                $mp4Filename = "{$sceneId}-video-{$hash}.mp4";
+                $mp4Path = "url-to-video/{$projectId}/{$mp4Filename}";
+                $mp4FullPath = Storage::disk('public')->path($mp4Path);
+
+                $ffmpeg = $this->findFfmpeg();
+                $cmd = "{$ffmpeg} -i " . escapeshellarg($inputPath) . " -c:v libx264 -crf 23 -preset fast -an -y " . escapeshellarg($mp4FullPath) . " 2>&1";
+                exec($cmd, $output, $returnCode);
+
+                if ($returnCode === 0 && file_exists($mp4FullPath)) {
+                    Storage::disk('public')->delete($path);
+                    $path = $mp4Path;
+                } else {
+                    Log::warning('ImageSourceService: FFmpeg conversion failed', [
+                        'cmd' => $cmd,
+                        'return_code' => $returnCode,
+                    ]);
+                    // Keep original file as fallback
+                }
+            }
+
+            return url('/public/storage/' . $path);
+        } catch (\Exception $e) {
+            Log::warning('ImageSourceService: Video download exception', [
+                'url' => $videoUrl,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Find ffmpeg binary path.
+     */
+    protected function findFfmpeg(): string
+    {
+        // Check common locations
+        $paths = [
+            '/home/artime/bin/ffmpeg',
+            '/usr/local/bin/ffmpeg',
+            '/usr/bin/ffmpeg',
+            'ffmpeg',
+        ];
+
+        foreach ($paths as $path) {
+            if ($path === 'ffmpeg' || file_exists($path)) {
+                return $path;
+            }
+        }
+
+        return 'ffmpeg';
     }
 
     /**
