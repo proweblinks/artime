@@ -311,10 +311,6 @@ class VideoRenderService
             $xfadeOverlap = max(0, ($validClipCount - 1)) * $crossfadeDuration;
             $lastSceneBuffer = $xfadeOverlap + 2.0;
 
-            // Optimal zoompan scale: 2.5x output width gives sharp quality with
-            // full pan range, while being ~9x faster than the old 8000px approach.
-            $zoompanScale = (int) max($width * 2.5, $height * 1.5);
-
             $clipKeys = array_keys(array_filter($clipFiles));
             $lastClipKey = !empty($clipKeys) ? end($clipKeys) : -1;
 
@@ -361,6 +357,12 @@ class VideoRenderService
                     $startY = $kb['startY'] ?? 0.5;
                     $endX = $kb['endX'] ?? 0.5;
                     $endY = $kb['endY'] ?? 0.5;
+
+                    // Calculate optimal zoompan scale per-image:
+                    // Must be large enough that after scaling, the image fills the
+                    // target frame (width x height) at minimum zoom. For landscape
+                    // images in portrait output, height is the bottleneck.
+                    $zoompanScale = $this->calculateZoompanScale($clip['path'], $width, $height, $startScale);
 
                     $zoompanFps = $settings['zoompanFps'];
                     $zoompanFrames = (int) round($duration * $zoompanFps);
@@ -652,8 +654,8 @@ class VideoRenderService
             $zoompanFps = $settings['zoompanFps'];
             $zoompanFrames = (int) round($duration * $zoompanFps);
 
-            // Build Ken Burns filter with optimal pre-scaling (2.5x output width)
-            $zoompanScale = (int) max($width * 2.5, $height * 1.5);
+            // Calculate optimal zoompan scale per-image
+            $zoompanScale = $this->calculateZoompanScale($imageFile, $width, $height, $startScale);
             $progressExpr = "(on/" . ($zoompanFrames - 1) . ")";
             $zoomExpr = "{$startScale}+({$endScale}-{$startScale})*{$progressExpr}";
             $xExpr = "({$startX}+({$endX}-{$startX})*{$progressExpr})*(iw-iw/zoom)";
@@ -1314,6 +1316,41 @@ class VideoRenderService
             'outputPath' => $fileName,
             'outputSize' => $fileSize,
         ];
+    }
+
+    /**
+     * Calculate optimal zoompan pre-scale width for a source image.
+     *
+     * Ensures the scaled image is large enough to fill the target frame
+     * (width x height) at minimum zoom. For landscape images in portrait
+     * output, the height is the bottleneck — we must scale wide enough
+     * that the proportional height covers the target.
+     *
+     * Returns just enough resolution for quality + fill, staying fast.
+     */
+    protected function calculateZoompanScale(string $imagePath, int $targetW, int $targetH, float $minZoom = 1.0): int
+    {
+        // Baseline: 2.5x output width for pan headroom + sharpness
+        $baseScale = (int) max($targetW * 2.5, $targetH * 1.5);
+
+        // Try to read source image dimensions
+        $imgSize = @getimagesize($imagePath);
+        if (!$imgSize || $imgSize[0] <= 0 || $imgSize[1] <= 0) {
+            return $baseScale;
+        }
+
+        $srcW = $imgSize[0];
+        $srcH = $imgSize[1];
+        $srcAspect = $srcW / $srcH; // e.g. 1.78 for 16:9
+
+        // After `scale=S:-1`, the image becomes S x (S / srcAspect).
+        // Zoompan at zoom=Z extracts a (targetW/Z) x (targetH/Z) window.
+        // For the image to fill the frame: scaledH >= targetH / minZoom
+        // => (S / srcAspect) >= targetH / minZoom
+        // => S >= (targetH / minZoom) * srcAspect
+        $minScaleForFill = (int) ceil(($targetH / max($minZoom, 0.5)) * $srcAspect * 1.1); // 10% margin
+
+        return max($baseScale, $minScaleForFill);
     }
 
     /**
