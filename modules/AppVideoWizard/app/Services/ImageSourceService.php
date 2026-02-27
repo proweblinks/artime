@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Modules\AppVideoWizard\Services\ArtimeStockService;
 
 class ImageSourceService
 {
@@ -31,6 +32,23 @@ class ImageSourceService
             $sceneId = $scene['id'] ?? 'scene_0';
             $sceneText = $scene['text'] ?? '';
             $candidates = [];
+
+            // 0. Search Artime Stock (local curated media — primary source)
+            $searchQuery = $this->extractSearchTerms($sceneText, $subject);
+            if (!empty($searchQuery)) {
+                try {
+                    $stockService = new ArtimeStockService();
+                    $stockResults = $stockService->search($searchQuery, 6);
+                    foreach ($stockResults as $stockItem) {
+                        $candidates[] = $stockItem;
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('ImageSourceService: Artime Stock search failed', [
+                        'scene_id' => $sceneId,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
 
             // 1. Score article images against scene text (only include relevant ones)
             $rankedArticle = $this->rankArticleImages($sceneText, $articleImages);

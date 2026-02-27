@@ -284,6 +284,7 @@ class AppVideoWizardServiceProvider extends ServiceProvider
     {
         $this->commands([
             \Modules\AppVideoWizard\Console\Commands\NormalizeProjectData::class,
+            \Modules\AppVideoWizard\Console\Commands\IndexStockMedia::class,
         ]);
     }
 

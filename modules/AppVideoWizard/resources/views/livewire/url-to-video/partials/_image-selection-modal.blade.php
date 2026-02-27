@@ -332,7 +332,9 @@
                                             @endif
                                         @endif
                                         <span class="utv-source-badge">
-                                            @if($candidate['source'] === 'article')
+                                            @if($candidate['source'] === 'artime_stock')
+                                                {{ __('Stock') }}
+                                            @elseif($candidate['source'] === 'article')
                                                 {{ __('Article') }}
                                             @elseif($candidate['source'] === 'pexels')
                                                 {{ __('Pexels') }}

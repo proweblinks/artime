@@ -421,9 +421,18 @@ class UrlToVideo extends Component
         ]);
 
         $imageService = new ImageSourceService();
+        $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
         $added = 0;
 
         try {
+            // Search Artime Stock first (local curated media — primary source)
+            $stockType = ($type === 'videos') ? 'video' : (($type === 'images') ? 'image' : null);
+            $stockResults = $stockService->search($query, 6, $stockType);
+            foreach ($stockResults as $r) {
+                $this->sceneImageCandidates[$sceneId][] = $r;
+                $added++;
+            }
+
             // Search images (Wikimedia + Pexels/Pixabay photos)
             if ($type !== 'videos') {
                 $wikiResults = $imageService->searchWikimedia($query, 5);
@@ -578,26 +587,34 @@ class UrlToVideo extends Component
                     $isVideo = ($candidate['type'] ?? 'image') === 'video';
 
                     if ($isVideo) {
-                        // Download video clip
-                        $localUrl = $imageService->downloadAndStoreVideo(
-                            $candidate['url'],
-                            $tempProjectId,
-                            $sceneId
-                        );
-                        if ($localUrl) {
-                            $scene['video_url'] = $localUrl;
-                            // Use thumbnail as fallback image for assembly
+                        if (($candidate['source'] ?? '') === 'artime_stock') {
+                            // Local stock video — use URL directly
+                            $scene['video_url'] = $candidate['url'];
                             if (!empty($candidate['thumbnail'])) {
-                                $thumbUrl = $imageService->downloadAndStore(
-                                    $candidate['thumbnail'],
-                                    $tempProjectId,
-                                    $sceneId
-                                );
-                                $scene['image_url'] = $thumbUrl;
+                                $scene['image_url'] = $candidate['thumbnail'];
+                            }
+                        } else {
+                            // Download external video clip
+                            $localUrl = $imageService->downloadAndStoreVideo(
+                                $candidate['url'],
+                                $tempProjectId,
+                                $sceneId
+                            );
+                            if ($localUrl) {
+                                $scene['video_url'] = $localUrl;
+                                // Use thumbnail as fallback image for assembly
+                                if (!empty($candidate['thumbnail'])) {
+                                    $thumbUrl = $imageService->downloadAndStore(
+                                        $candidate['thumbnail'],
+                                        $tempProjectId,
+                                        $sceneId
+                                    );
+                                    $scene['image_url'] = $thumbUrl;
+                                }
                             }
                         }
-                    } elseif (($candidate['source'] ?? '') === 'upload') {
-                        // Uploaded image — use URL directly
+                    } elseif (in_array($candidate['source'] ?? '', ['upload', 'artime_stock'])) {
+                        // Local file (upload or Artime Stock) — use URL directly
                         $scene['image_url'] = $candidate['url'];
                     } else {
                         // Download external image
