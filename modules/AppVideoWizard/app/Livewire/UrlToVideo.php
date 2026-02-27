@@ -244,6 +244,7 @@ class UrlToVideo extends Component
 
                 if ($currentCount === $cachedCount) {
                     // Scene count matches — safe to reuse cached candidates
+                    $this->generatedSegments = $currentSegments;
                     $this->showTranscriptModal = false;
                     $this->showImageSelectionModal = true;
                     return;
@@ -275,6 +276,9 @@ class UrlToVideo extends Component
                         'estimated_duration' => $segment['estimated_duration'],
                     ];
                 }
+
+                // Sync generatedSegments with actual scene segmentation so modal shows text for all scenes
+                $this->generatedSegments = $segments;
 
                 $imageService = new ImageSourceService();
                 $result = $imageService->sourceForScenes(
