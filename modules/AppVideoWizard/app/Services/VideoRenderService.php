@@ -317,11 +317,13 @@ class VideoRenderService
                         $fy = $cropData['focalY'] ?? 0.5;
                         $videoFilter = "crop=ih*9/16:ih:({$fx})*iw-ih*9/32:({$fy})*ih-ih/2,scale={$width}:{$height},fps={$fps},setsar=1";
                     } else {
-                        $videoFilter = "scale={$width}:{$height}:force_original_aspect_ratio=decrease,pad={$width}:{$height}:(ow-iw)/2:(oh-ih)/2:color=black,fps={$fps},setsar=1";
+                        $videoFilter = "scale={$width}:{$height}:force_original_aspect_ratio=increase,crop={$width}:{$height},fps={$fps},setsar=1";
                     }
+                    $duration = $clip['duration'];
                     $cmd = [
                         $this->ffmpegPath,
                         '-i', $clip['path'],
+                        '-t', (string) $duration,
                         '-vf', $videoFilter,
                         '-c:v', 'libx264',
                         '-preset', $settings['preset'],
@@ -331,6 +333,7 @@ class VideoRenderService
                         '-y',
                         $normalizedPath,
                     ];
+                    Log::info("[StoryExport:{$jobId}] Video clip {$i}: duration={$duration}s, filter={$videoFilter}");
                     $this->runCommand($cmd, $jobId, "Normalize clip {$i}");
                 } else {
                     // Generate Ken Burns from image
