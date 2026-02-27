@@ -303,10 +303,26 @@ class VideoRenderService
             $settings = $this->qualitySettings[$renderQuality] ?? $this->qualitySettings['balanced'];
             $fps = $output['fps'] ?? $settings['fps'];
 
+            // Calculate extra duration for the last scene to compensate for
+            // xfade transition overlaps + a 2s safety buffer so nothing is cut off.
+            $transitions = $manifest['transitions'] ?? [];
+            $crossfadeDuration = (float) ($transitions['crossfadeDuration'] ?? 0.5);
+            $validClipCount = count(array_filter($clipFiles));
+            $xfadeOverlap = max(0, ($validClipCount - 1)) * $crossfadeDuration;
+            $lastSceneBuffer = $xfadeOverlap + 2.0;
+
+            // Optimal zoompan scale: 2.5x output width gives sharp quality with
+            // full pan range, while being ~9x faster than the old 8000px approach.
+            $zoompanScale = (int) max($width * 2.5, $height * 1.5);
+
+            $clipKeys = array_keys(array_filter($clipFiles));
+            $lastClipKey = !empty($clipKeys) ? end($clipKeys) : -1;
+
             foreach ($clipFiles as $i => $clip) {
                 if (!$clip) continue;
 
                 $normalizedPath = "{$workDir}/norm_{$i}.mp4";
+                $isLastClip = ($i === $lastClipKey);
 
                 if ($clip['type'] === 'video') {
                     // Normalize video clip: crop-aware or standard scale
@@ -319,7 +335,7 @@ class VideoRenderService
                     } else {
                         $videoFilter = "scale={$width}:{$height}:force_original_aspect_ratio=increase,crop={$width}:{$height},fps={$fps},setsar=1";
                     }
-                    $duration = $clip['duration'];
+                    $duration = $clip['duration'] + ($isLastClip ? $lastSceneBuffer : 0);
                     $cmd = [
                         $this->ffmpegPath,
                         '-i', $clip['path'],
@@ -337,7 +353,7 @@ class VideoRenderService
                     $this->runCommand($cmd, $jobId, "Normalize clip {$i}");
                 } else {
                     // Generate Ken Burns from image
-                    $duration = $clip['duration'];
+                    $duration = $clip['duration'] + ($isLastClip ? $lastSceneBuffer : 0);
                     $kb = $scenes[$i]['kenBurns'] ?? [];
                     $startScale = $kb['startScale'] ?? 1.0;
                     $endScale = $kb['endScale'] ?? 1.2;
@@ -353,7 +369,7 @@ class VideoRenderService
                     $xExpr = "({$startX}+({$endX}-{$startX})*{$progressExpr})*(iw-iw/zoom)";
                     $yExpr = "({$startY}+({$endY}-{$startY})*{$progressExpr})*(ih-ih/zoom)";
 
-                    $filter = "scale=8000:-1:flags=lanczos,zoompan=z='{$zoomExpr}':x='{$xExpr}':y='{$yExpr}':d={$zoompanFrames}:s={$width}x{$height}:fps={$zoompanFps},fps={$fps},setsar=1";
+                    $filter = "scale={$zoompanScale}:-1:flags=lanczos,zoompan=z='{$zoomExpr}':x='{$xExpr}':y='{$yExpr}':d={$zoompanFrames}:s={$width}x{$height}:fps={$zoompanFps},fps={$fps},setsar=1";
 
                     $cmd = [
                         $this->ffmpegPath,
@@ -636,13 +652,14 @@ class VideoRenderService
             $zoompanFps = $settings['zoompanFps'];
             $zoompanFrames = (int) round($duration * $zoompanFps);
 
-            // Build Ken Burns filter (8000px pre-scaling for smooth zoompan)
+            // Build Ken Burns filter with optimal pre-scaling (2.5x output width)
+            $zoompanScale = (int) max($width * 2.5, $height * 1.5);
             $progressExpr = "(on/" . ($zoompanFrames - 1) . ")";
             $zoomExpr = "{$startScale}+({$endScale}-{$startScale})*{$progressExpr}";
             $xExpr = "({$startX}+({$endX}-{$startX})*{$progressExpr})*(iw-iw/zoom)";
             $yExpr = "({$startY}+({$endY}-{$startY})*{$progressExpr})*(ih-ih/zoom)";
 
-            $filter = "scale=8000:-1:flags=lanczos,zoompan=z='{$zoomExpr}':x='{$xExpr}':y='{$yExpr}':d={$zoompanFrames}:s={$width}x{$height}:fps={$zoompanFps},fps={$fps},setsar=1";
+            $filter = "scale={$zoompanScale}:-1:flags=lanczos,zoompan=z='{$zoomExpr}':x='{$xExpr}':y='{$yExpr}':d={$zoompanFrames}:s={$width}x{$height}:fps={$zoompanFps},fps={$fps},setsar=1";
 
             // Build FFmpeg command
             $cmd = [
