@@ -48,8 +48,8 @@ class UrlToVideo extends Component
     public bool $isGeneratingScript = false;
     public bool $isGenerating = false;
 
-    // Real Images mode
-    public bool $useRealImages = false;
+    // Real Images mode (default: true — show image selection modal, user can opt-in to AI Images)
+    public bool $useRealImages = true;
     public bool $showImageSelectionModal = false;
     public bool $isSourcingImages = false;
     public array $sceneImageCandidates = [];
