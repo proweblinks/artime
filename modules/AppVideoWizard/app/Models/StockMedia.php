@@ -117,6 +117,7 @@ class StockMedia extends Model
 
     /**
      * Scope: keyword search using FULLTEXT (MySQL) or LIKE fallback (SQLite).
+     * Uses OR logic so matching ANY word returns results, ranked by relevance.
      */
     public function scopeSearch(Builder $query, string $keyword): Builder
     {
@@ -128,31 +129,35 @@ class StockMedia extends Model
         $driver = $query->getConnection()->getDriverName();
 
         if ($driver === 'mysql') {
+            $ftQuery = $this->buildFulltextQuery($keyword);
+            // Use MATCH for both filtering (WHERE) and ranking (ORDER BY relevance)
             return $query->whereRaw(
                 'MATCH(title, tags, description) AGAINST(? IN BOOLEAN MODE)',
-                [$this->buildFulltextQuery($keyword)]
+                [$ftQuery]
+            )->orderByRaw(
+                'MATCH(title, tags, description) AGAINST(? IN BOOLEAN MODE) DESC',
+                [$ftQuery]
             );
         }
 
-        // SQLite / fallback: LIKE-based search
+        // SQLite / fallback: LIKE-based search (OR across words, OR across columns)
         $words = preg_split('/\s+/', $keyword);
         return $query->where(function (Builder $q) use ($words) {
             foreach ($words as $word) {
                 $word = trim($word);
                 if (strlen($word) < 2) continue;
                 $like = '%' . $word . '%';
-                $q->where(function (Builder $inner) use ($like) {
-                    $inner->where('title', 'LIKE', $like)
-                          ->orWhere('tags', 'LIKE', $like)
-                          ->orWhere('description', 'LIKE', $like);
-                });
+                $q->orWhere('title', 'LIKE', $like)
+                  ->orWhere('tags', 'LIKE', $like)
+                  ->orWhere('description', 'LIKE', $like);
             }
         });
     }
 
     /**
      * Build a MySQL FULLTEXT boolean mode query string.
-     * Prefix each word with + for AND matching.
+     * Words are optional (OR logic) with wildcard for prefix matching.
+     * This returns results matching ANY word, ranked by how many match.
      */
     protected function buildFulltextQuery(string $keyword): string
     {
@@ -161,8 +166,8 @@ class StockMedia extends Model
         foreach ($words as $word) {
             $word = trim($word);
             if (strlen($word) < 2) continue;
-            // Add wildcard for partial matching
-            $parts[] = '+' . $word . '*';
+            // No + prefix = optional (OR). Wildcard * for prefix matching.
+            $parts[] = $word . '*';
         }
         return implode(' ', $parts);
     }
