@@ -304,9 +304,11 @@ class Authentication
     public function registerSidebar(): void
     {
         // PERF: Cache sidebar in session keyed by login_as + permissions hash
+        // Bump this version when module menus change to bust stale session caches
+        $sidebarVersion = 'v2';
         $loginAs = session()->has("login_as") ? session("login_as") : "client";
         $permissions = app()->bound('permissions') ? app('permissions') : [];
-        $cacheKey = $loginAs . ':' . md5(serialize($permissions));
+        $cacheKey = $sidebarVersion . ':' . $loginAs . ':' . md5(serialize($permissions));
 
         if (session('_sidebar_cache_key') === $cacheKey && session('_sidebar_cache')) {
             view()->share('sidebar', session('_sidebar_cache'));
