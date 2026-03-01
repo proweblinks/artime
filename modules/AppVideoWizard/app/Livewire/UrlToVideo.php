@@ -281,10 +281,15 @@ class UrlToVideo extends Component
                 $this->generatedSegments = $segments;
 
                 $imageService = new ImageSourceService();
+                // Ensure content brief has a subject for stock search
+                $contentBrief = $this->storedContentBrief;
+                if (empty($contentBrief['subject'])) {
+                    $contentBrief['subject'] = $this->generatedTitle ?: $this->prompt;
+                }
                 $result = $imageService->sourceForScenes(
                     $scenes,
                     $this->storedExtractedContent,
-                    $this->storedContentBrief
+                    $contentBrief
                 );
 
                 // Split structured result into candidates and suggestions

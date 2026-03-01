@@ -34,11 +34,18 @@ class ImageSourceService
 
             // Search Artime Stock ONLY (local curated media — primary source)
             // External sources (Pexels/Pixabay/Wiki) are available on-demand via "Browse External" in the UI
-            $searchQuery = $this->extractSearchTerms($sceneText, $subject);
-            if (!empty($searchQuery)) {
+            $stockService = new ArtimeStockService();
+            $stockQuery = $this->buildStockSearchQuery($sceneText, $subject);
+
+            Log::info('ImageSourceService: Stock search for scene', [
+                'scene_id' => $sceneId,
+                'query' => $stockQuery,
+                'scene_text_preview' => Str::limit($sceneText, 80),
+            ]);
+
+            if (!empty($stockQuery)) {
                 try {
-                    $stockService = new ArtimeStockService();
-                    $stockResults = $stockService->search($searchQuery, 8);
+                    $stockResults = $stockService->search($stockQuery, 8);
                     foreach ($stockResults as $stockItem) {
                         $candidates[] = $stockItem;
                     }
@@ -50,10 +57,9 @@ class ImageSourceService
                 }
             }
 
-            // Fallback: if no stock results, try broader category search
+            // Fallback: try subject/title directly if scene-specific search found nothing
             if (empty($candidates) && !empty($subject)) {
                 try {
-                    $stockService = $stockService ?? new ArtimeStockService();
                     $fallbackResults = $stockService->search($subject, 8);
                     foreach ($fallbackResults as $stockItem) {
                         $candidates[] = $stockItem;
@@ -355,6 +361,62 @@ class ImageSourceService
 
             return $results;
         });
+    }
+
+    /**
+     * Build a search query optimized for the local stock media library.
+     * Uses broader keyword extraction (not just proper nouns) since stock
+     * media is tagged with category keywords like "space", "galaxy", "nature", etc.
+     */
+    protected function buildStockSearchQuery(string $sceneText, string $subject): string
+    {
+        $stopWords = array_flip([
+            'the', 'this', 'that', 'these', 'those', 'when', 'where', 'which',
+            'what', 'how', 'who', 'why', 'not', 'but', 'and', 'for', 'with',
+            'from', 'into', 'over', 'after', 'before', 'between', 'under',
+            'about', 'through', 'during', 'without', 'again', 'once', 'here',
+            'there', 'some', 'such', 'very', 'just', 'also', 'than', 'other',
+            'even', 'most', 'more', 'many', 'much', 'each', 'every', 'both',
+            'few', 'all', 'any', 'its', 'his', 'her', 'our', 'your', 'their',
+            'have', 'has', 'had', 'will', 'would', 'could', 'should', 'may',
+            'might', 'must', 'shall', 'can', 'did', 'does', 'was', 'were',
+            'been', 'being', 'are', 'new', 'now', 'get', 'got', 'make',
+            'made', 'still', 'yet', 'already', 'since', 'while', 'then',
+            'look', 'see', 'know', 'think', 'like', 'only', 'well',
+            'take', 'took', 'come', 'came', 'going', 'gone', 'said', 'says',
+            'tell', 'told', 'give', 'given', 'first', 'last', 'next',
+            'another', 'really', 'truly', 'exactly', 'actually', 'just',
+            'show', 'showing', 'shows', 'imagine', 'right', 'tonight',
+            'every', 'you', 'your', 'we', 'they', 'one', 'two', 'three',
+        ]);
+
+        $parts = [];
+
+        // 1. Extract key words from subject/title (highest priority)
+        if (!empty($subject)) {
+            $subjectWords = preg_split('/[\s,\-:]+/', strtolower($subject));
+            foreach ($subjectWords as $w) {
+                $clean = preg_replace('/[^a-z]/', '', $w);
+                if (mb_strlen($clean) >= 3 && !isset($stopWords[$clean])) {
+                    $parts[] = $clean;
+                }
+            }
+        }
+
+        // 2. Extract nouns/adjectives from scene text (content words 4+ chars)
+        $textWords = preg_split('/[\s,\.\!\?\;\:\(\)\[\]\"\']+/', strtolower($sceneText));
+        foreach ($textWords as $w) {
+            $clean = preg_replace('/[^a-z]/', '', $w);
+            if (mb_strlen($clean) >= 4 && !isset($stopWords[$clean])) {
+                $parts[] = $clean;
+            }
+        }
+
+        // Deduplicate and take top 6 terms
+        $parts = array_values(array_unique($parts));
+        $parts = array_slice($parts, 0, 6);
+
+        return implode(' ', $parts);
     }
 
     /**
