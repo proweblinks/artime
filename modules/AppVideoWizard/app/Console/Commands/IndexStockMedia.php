@@ -73,9 +73,9 @@ class IndexStockMedia extends Command
         $skipped = 0;
         $errors = 0;
 
-        foreach ($files as $file) {
+        foreach ($files as $fileIndex => $file) {
             try {
-                $result = $this->processFile($file, $isForce, $isDryRun);
+                $result = $this->processFile($file, $isForce, $isDryRun, $fileIndex);
                 if ($result === 'indexed') {
                     $indexed++;
                 } elseif ($result === 'skipped') {
@@ -161,7 +161,7 @@ class IndexStockMedia extends Command
     /**
      * Process a single file: compute checksum, extract metadata, insert/update DB.
      */
-    protected function processFile(array $file, bool $force, bool $dryRun): string
+    protected function processFile(array $file, bool $force, bool $dryRun, int $index = 0): string
     {
         $checksum = hash_file('sha256', $file['absolute']);
 
@@ -194,7 +194,7 @@ class IndexStockMedia extends Command
 
         // Derive title and tags from filename
         $nameWithoutExt = pathinfo($file['filename'], PATHINFO_FILENAME);
-        $title = $this->filenameToTitle($nameWithoutExt);
+        $title = $this->filenameToTitle($nameWithoutExt, $file['category'], $index);
         $tags = $this->filenameToTags($nameWithoutExt, $file['category']);
 
         // Determine MIME type
@@ -353,28 +353,106 @@ class IndexStockMedia extends Command
     }
 
     /**
-     * Convert filename to human-readable title.
-     * "intro-clip-01" -> "Intro Clip 01"
+     * Category-to-keywords mapping for smart tagging.
+     * Used when filenames are gibberish (hashes, numbers).
      */
-    protected function filenameToTitle(string $name): string
+    protected array $categoryKeywords = [
+        'space' => ['space', 'galaxy', 'stars', 'universe', 'cosmos', 'nebula', 'planet', 'astronaut', 'rocket', 'astronomy', 'night-sky', 'orbital'],
+        'nature' => ['nature', 'landscape', 'scenery', 'outdoors', 'trees', 'forest', 'mountains', 'river', 'sunset', 'wildlife', 'earth', 'green'],
+        'art-craft' => ['art', 'craft', 'creative', 'handmade', 'diy', 'painting', 'drawing', 'artistic', 'design', 'crafting', 'maker'],
+        'cars' => ['car', 'automotive', 'vehicle', 'driving', 'supercar', 'racing', 'sports-car', 'luxury-car', 'speed', 'drift', 'engine'],
+        'cats' => ['cat', 'kitten', 'feline', 'cute', 'pets', 'funny-cat', 'adorable', 'animal', 'whiskers', 'playful'],
+        'cooking' => ['cooking', 'food', 'recipe', 'kitchen', 'chef', 'meal', 'delicious', 'cuisine', 'baking', 'gourmet', 'foodie'],
+        'fitness' => ['fitness', 'workout', 'exercise', 'gym', 'training', 'health', 'muscle', 'cardio', 'strength', 'motivation', 'bodybuilding'],
+        'luxury' => ['luxury', 'wealth', 'rich', 'lifestyle', 'expensive', 'premium', 'elegant', 'fashion', 'designer', 'opulent', 'millionaire'],
+        'satisfying' => ['satisfying', 'asmr', 'oddly-satisfying', 'relaxing', 'calming', 'mesmerizing', 'soothing', 'smooth', 'perfect', 'therapeutic'],
+        'travel' => ['travel', 'adventure', 'explore', 'destination', 'tourism', 'wanderlust', 'journey', 'vacation', 'scenic', 'backpacking', 'globe'],
+        'viral-hooks' => ['viral', 'hook', 'attention', 'trending', 'engaging', 'intro', 'opener', 'scroll-stopper', 'clickbait', 'transition'],
+    ];
+
+    /**
+     * Check if a filename is "gibberish" (hash, numeric ID, etc.)
+     * and therefore needs category-based tagging instead of filename-based.
+     */
+    protected function isGibberishFilename(string $name): bool
     {
+        $clean = preg_replace('/[^a-zA-Z]/', '', $name);
+        // All hex chars (hash)
+        if (preg_match('/^[0-9a-fA-F]{16,}$/', preg_replace('/[^0-9a-fA-F]/', '', $name))) {
+            return true;
+        }
+        // Mostly numbers
+        $digits = preg_replace('/[^0-9]/', '', $name);
+        if (strlen($digits) > strlen($clean) && strlen($clean) < 5) {
+            return true;
+        }
+        // Very short alphabetic content after removing common suffixes
+        $stripped = preg_replace('/\b(video|dashinit|mp4|mov|webm|reels?|shorts?)\b/i', '', $clean);
+        if (strlen(trim($stripped)) < 4) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Convert filename to human-readable title.
+     * Falls back to category-based title for gibberish filenames.
+     */
+    protected function filenameToTitle(string $name, string $category = '', int $index = 0): string
+    {
+        if ($this->isGibberishFilename($name)) {
+            $catLabel = ucwords(str_replace(['-', '_'], ' ', $category));
+            return $catLabel . ' Clip ' . ($index + 1);
+        }
+
         $name = str_replace(['_', '-'], ' ', $name);
+        // Remove common watermarks/source tags
+        $name = preg_replace('/\b(digishopers?|profilecard\.?\w*|digitalsnolimit\.?\w*|mzshop\s*ph)\b/i', '', $name);
         // Remove leading/trailing numbers with separators
-        $name = preg_replace('/^\d+\s*/', '', $name);
+        $name = preg_replace('/^\s*[\(\[\{]?\d+[\)\]\}]?\s*/', '', $name);
+        $name = preg_replace('/\s*[\(\[\{]\d+[\)\]\}]\s*$/', '', $name);
+        $name = trim($name);
+
+        if (empty($name) || strlen($name) < 3) {
+            $catLabel = ucwords(str_replace(['-', '_'], ' ', $category));
+            return $catLabel . ' Clip ' . ($index + 1);
+        }
+
         return ucwords(trim($name));
     }
 
     /**
      * Generate comma-separated tags from filename and category.
+     * Uses category keyword mapping for gibberish filenames.
      */
     protected function filenameToTags(string $name, string $category): string
     {
-        $parts = preg_split('/[\s\-_]+/', strtolower($name));
-        // Remove pure numbers and very short tokens
-        $parts = array_filter($parts, fn($p) => strlen($p) >= 2 && !ctype_digit($p));
-        // Add category
-        $parts[] = strtolower($category);
-        return implode(',', array_unique(array_values($parts)));
+        $tags = [];
+
+        // Always add category keywords
+        $catKey = strtolower(str_replace(' ', '-', $category));
+        if (isset($this->categoryKeywords[$catKey])) {
+            // Pick 5-6 keywords from the category
+            $catTags = $this->categoryKeywords[$catKey];
+            $tags = array_merge($tags, array_slice($catTags, 0, 6));
+        } else {
+            $tags[] = strtolower($category);
+        }
+
+        // Extract meaningful words from filename (if not gibberish)
+        if (!$this->isGibberishFilename($name)) {
+            $clean = preg_replace('/\b(digishopers?|profilecard\.?\w*|digitalsnolimit\.?\w*|mzshop\s*ph|video|dashinit)\b/i', '', $name);
+            $parts = preg_split('/[\s\-_\(\)\[\]\.]+/', strtolower($clean));
+            $parts = array_filter($parts, fn($p) => strlen($p) >= 3 && !ctype_digit($p));
+            $tags = array_merge($tags, array_values($parts));
+        }
+
+        // Add generic video tags
+        $tags[] = 'stock';
+        $tags[] = 'clip';
+        $tags[] = 'short';
+
+        return implode(',', array_unique(array_values($tags)));
     }
 
     /**
