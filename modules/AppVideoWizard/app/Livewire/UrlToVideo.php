@@ -420,43 +420,23 @@ class UrlToVideo extends Component
             'type' => $type,
         ]);
 
-        $imageService = new ImageSourceService();
         $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
         $added = 0;
 
         try {
-            // Search Artime Stock first (local curated media — primary source)
+            // Search Artime Stock only (local curated media)
             $stockType = ($type === 'videos') ? 'video' : (($type === 'images') ? 'image' : null);
-            $stockResults = $stockService->search($query, 6, $stockType);
+            $stockResults = $stockService->search($query, 12, $stockType);
+
+            // Replace existing candidates with fresh search results (keep uploads)
+            $uploads = array_filter($this->sceneImageCandidates[$sceneId] ?? [], function ($c) {
+                return ($c['source'] ?? '') === 'upload';
+            });
+            $this->sceneImageCandidates[$sceneId] = array_values($uploads);
+
             foreach ($stockResults as $r) {
                 $this->sceneImageCandidates[$sceneId][] = $r;
                 $added++;
-            }
-
-            // Search images (Wikimedia + Pexels/Pixabay photos)
-            if ($type !== 'videos') {
-                $wikiResults = $imageService->searchWikimedia($query, 5);
-                foreach ($wikiResults as $r) {
-                    $this->sceneImageCandidates[$sceneId][] = array_merge($r, [
-                        'source' => $r['source'] ?? 'wikimedia',
-                    ]);
-                    $added++;
-                }
-
-                $photoResults = $imageService->searchStockPhotos($query, 5);
-                foreach ($photoResults as $r) {
-                    $this->sceneImageCandidates[$sceneId][] = $r;
-                    $added++;
-                }
-            }
-
-            // Search video clips (Pexels + Pixabay videos)
-            if ($type !== 'images') {
-                $videoResults = $imageService->searchVideoClips($query, 5);
-                foreach ($videoResults as $r) {
-                    $this->sceneImageCandidates[$sceneId][] = $r;
-                    $added++;
-                }
             }
         } catch (\Exception $e) {
             Log::warning('UrlToVideo: Scene search failed', [
@@ -474,6 +454,64 @@ class UrlToVideo extends Component
         }
 
         // Reset search input
+        $this->searchQuery = '';
+    }
+
+    /**
+     * Search external stock sources (Pexels, Pixabay, Wikimedia) for a scene.
+     * Only called when user explicitly clicks "Browse External".
+     */
+    public function searchExternalStock(string $sceneId, string $query = '')
+    {
+        $query = trim($query ?: $this->searchQuery);
+        if (mb_strlen($query) < 2) {
+            return;
+        }
+
+        Log::info('UrlToVideo: searchExternalStock called', [
+            'scene' => $sceneId,
+            'query' => $query,
+        ]);
+
+        $imageService = new ImageSourceService();
+        $added = 0;
+
+        try {
+            // Search images (Wikimedia + Pexels/Pixabay photos)
+            $wikiResults = $imageService->searchWikimedia($query, 5);
+            foreach ($wikiResults as $r) {
+                $this->sceneImageCandidates[$sceneId][] = array_merge($r, [
+                    'source' => $r['source'] ?? 'wikimedia',
+                ]);
+                $added++;
+            }
+
+            $photoResults = $imageService->searchStockPhotos($query, 5);
+            foreach ($photoResults as $r) {
+                $this->sceneImageCandidates[$sceneId][] = $r;
+                $added++;
+            }
+
+            // Search video clips (Pexels + Pixabay videos)
+            $videoResults = $imageService->searchVideoClips($query, 5);
+            foreach ($videoResults as $r) {
+                $this->sceneImageCandidates[$sceneId][] = $r;
+                $added++;
+            }
+        } catch (\Exception $e) {
+            Log::warning('UrlToVideo: External stock search failed', [
+                'scene' => $sceneId,
+                'query' => $query,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        if ($added > 0) {
+            session()->flash('searchSuccess', "Found {$added} external results for \"{$query}\"");
+        } else {
+            session()->flash('searchError', "No external results found for \"{$query}\"");
+        }
+
         $this->searchQuery = '';
     }
 

@@ -26,19 +26,19 @@ class ImageSourceService
         $articleImages = $extractedContent['images'] ?? [];
         $subject = $contentBrief['subject'] ?? '';
         $results = [];
-        $usedWikiUrls = []; // Track Wikimedia URLs across scenes to prevent duplicates
 
         foreach ($scenes as $scene) {
             $sceneId = $scene['id'] ?? 'scene_0';
             $sceneText = $scene['text'] ?? '';
             $candidates = [];
 
-            // 0. Search Artime Stock (local curated media — primary source)
+            // Search Artime Stock ONLY (local curated media — primary source)
+            // External sources (Pexels/Pixabay/Wiki) are available on-demand via "Browse External" in the UI
             $searchQuery = $this->extractSearchTerms($sceneText, $subject);
             if (!empty($searchQuery)) {
                 try {
                     $stockService = new ArtimeStockService();
-                    $stockResults = $stockService->search($searchQuery, 6);
+                    $stockResults = $stockService->search($searchQuery, 8);
                     foreach ($stockResults as $stockItem) {
                         $candidates[] = $stockItem;
                     }
@@ -50,74 +50,20 @@ class ImageSourceService
                 }
             }
 
-            // 1. Score article images against scene text (only include relevant ones)
-            $rankedArticle = $this->rankArticleImages($sceneText, $articleImages);
-            foreach ($rankedArticle as $img) {
-                if (($img['_score'] ?? 0) <= 0) {
-                    continue; // Skip article images with no relevance to this scene
-                }
-                $candidates[] = [
-                    'url' => $img['url'],
-                    'thumbnail' => $img['url'],
-                    'source' => 'article',
-                    'title' => basename(parse_url($img['url'], PHP_URL_PATH) ?: 'image'),
-                    'width' => $img['width'] ?? 0,
-                    'height' => $img['height'] ?? 0,
-                    'score' => $img['_score'] ?? 0,
-                ];
-            }
-
-            // 2. Search Wikimedia Commons for key entities
-            $searchQuery = $this->extractSearchTerms($sceneText, $subject);
-            Log::info('ImageSourceService: Search query for scene', [
-                'scene_id' => $sceneId,
-                'query' => $searchQuery,
-                'scene_text_preview' => Str::limit($sceneText, 80),
-            ]);
-
-            if (!empty($searchQuery)) {
+            // Fallback: if no stock results, try broader category search
+            if (empty($candidates) && !empty($subject)) {
                 try {
-                    $wikiResults = $this->searchWikimedia($searchQuery, 8); // Fetch extra to allow for dedup filtering
-                    foreach ($wikiResults as $wImg) {
-                        $url = $wImg['url'] ?? '';
-                        // Skip images already used in previous scenes
-                        if (in_array($url, $usedWikiUrls)) {
-                            continue;
-                        }
-                        $candidates[] = array_merge($wImg, [
-                            'source' => 'wikimedia',
-                            'score' => $wImg['score'] ?? 0,
-                        ]);
+                    $stockService = $stockService ?? new ArtimeStockService();
+                    $fallbackResults = $stockService->search($subject, 8);
+                    foreach ($fallbackResults as $stockItem) {
+                        $candidates[] = $stockItem;
                     }
                 } catch (\Exception $e) {
-                    Log::warning('ImageSourceService: Wikimedia search failed', [
-                        'scene_id' => $sceneId,
-                        'query' => $searchQuery,
-                        'error' => $e->getMessage(),
-                    ]);
+                    // Silently fail — scenes without stock will show "no images" state
                 }
             }
 
-            // 3. Search for free video clips from Pexels/Pixabay
-            if (!empty($searchQuery)) {
-                try {
-                    $videoResults = $this->searchVideoClips($searchQuery, 3);
-                    foreach ($videoResults as $vClip) {
-                        $url = $vClip['url'] ?? '';
-                        if (in_array($url, $usedWikiUrls)) {
-                            continue;
-                        }
-                        $candidates[] = $vClip;
-                    }
-                } catch (\Exception $e) {
-                    Log::warning('ImageSourceService: Video clip search failed', [
-                        'scene_id' => $sceneId,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
-
-            // 4. Sort by score descending, best first
+            // Sort by score descending, best first
             usort($candidates, fn($a, $b) => ($b['score'] ?? 0) <=> ($a['score'] ?? 0));
 
             // Remove internal score from output, limit to top 8 per scene (images + videos)
@@ -133,13 +79,6 @@ class ImageSourceService
                 'candidates' => array_values($candidates),
                 'suggestions' => $suggestions,
             ];
-
-            // Track all Wiki URLs from this scene to avoid cross-scene duplicates
-            foreach ($candidates as $c) {
-                if (($c['source'] ?? '') === 'wikimedia' && !empty($c['url'])) {
-                    $usedWikiUrls[] = $c['url'];
-                }
-            }
         }
 
         return $results;

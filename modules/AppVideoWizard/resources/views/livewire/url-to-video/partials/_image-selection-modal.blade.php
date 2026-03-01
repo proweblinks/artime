@@ -97,7 +97,7 @@
                     <i class="fa-light fa-images me-2" style="color: #f97316;"></i>
                     {{ __('Select Images for Your Video') }}
                 </h5>
-                <small style="color: #999;">{{ __('Choose a real image for each scene, or let AI generate one') }}</small>
+                <small style="color: #999;">{{ __('Choose a clip for each scene from your stock library') }}</small>
             </div>
             <button wire:click="backToTranscript" type="button" class="btn-close btn-close-white"></button>
         </div>
@@ -212,32 +212,24 @@
                         </div>
                     @endif
 
-                    {{-- Search input (toggled) — Livewire-native --}}
-                    <div x-show="showSearch['{{ $sceneId }}']" x-cloak class="mb-2">
+                    {{-- Search input (toggled) — searches Artime Stock --}}
+                    <div x-show="showSearch['{{ $sceneId }}']" x-cloak class="mb-2"
+                         x-data="{ sceneQuery: '' }">
                         <div class="d-flex gap-2 align-items-center">
-                            {{-- Media type filter pills --}}
-                            <div class="utv-search-filter">
-                                <button type="button"
-                                        class="utv-filter-pill {{ $searchType === 'all' ? 'active' : '' }}"
-                                        wire:click="$set('searchType', 'all')">{{ __('All') }}</button>
-                                <button type="button"
-                                        class="utv-filter-pill {{ $searchType === 'images' ? 'active' : '' }}"
-                                        wire:click="$set('searchType', 'images')">{{ __('Images') }}</button>
-                                <button type="button"
-                                        class="utv-filter-pill {{ $searchType === 'videos' ? 'active' : '' }}"
-                                        wire:click="$set('searchType', 'videos')">{{ __('Videos') }}</button>
-                            </div>
                             <input type="text"
-                                   wire:model="searchQuery"
-                                   wire:keydown.enter="executeSceneSearch('{{ $sceneId }}')"
+                                   x-model="sceneQuery"
+                                   @keydown.enter="$wire.executeSceneSearch('{{ $sceneId }}', sceneQuery)"
                                    class="form-control form-control-sm border-0 text-white"
                                    style="background: #2a2a2a; border-radius: 8px; font-size: 0.82rem; flex: 1;"
-                                   placeholder="{{ __('Search images & videos...') }}">
-                            <button wire:click="executeSceneSearch('{{ $sceneId }}')" type="button"
-                                    class="btn btn-sm" style="background: #f97316; color: #fff; border-radius: 8px; white-space: nowrap;"
-                                    wire:loading.attr="disabled" wire:target="executeSceneSearch">
-                                <span wire:loading.remove wire:target="executeSceneSearch">{{ __('Search') }}</span>
-                                <span wire:loading wire:target="executeSceneSearch"><i class="fa-light fa-spinner fa-spin"></i></span>
+                                   placeholder="{{ __('Search stock library...') }}">
+                            <button @click="$wire.executeSceneSearch('{{ $sceneId }}', sceneQuery)" type="button"
+                                    class="btn btn-sm" style="background: #f97316; color: #fff; border-radius: 8px; white-space: nowrap;">
+                                <i class="fa-light fa-magnifying-glass me-1"></i>{{ __('Search') }}
+                            </button>
+                            <button @click="$wire.searchExternalStock('{{ $sceneId }}', sceneQuery)" type="button"
+                                    class="btn btn-sm" style="background: #2a2a2a; color: #888; border: 1px solid #444; border-radius: 8px; white-space: nowrap; font-size: 0.75rem;"
+                                    title="{{ __('Search Pexels, Pixabay & Wikimedia') }}">
+                                <i class="fa-light fa-globe me-1"></i>{{ __('External') }}
                             </button>
                         </div>
                         {{-- Search feedback --}}
@@ -357,12 +349,12 @@
                         </div>
                     @endif
 
-                    {{-- Search suggestion chips --}}
+                    {{-- Search suggestion chips (search stock library) --}}
                     @if(!empty($sceneSearchSuggestions[$sceneId] ?? []))
                         <div class="d-flex flex-wrap align-items-center gap-1 mt-2">
                             <span style="color: #666; font-size: 0.72rem;">{{ __('Try:') }}</span>
                             @foreach($sceneSearchSuggestions[$sceneId] as $suggestion)
-                                <button wire:click="searchMoreImages('{{ $sceneId }}', '{{ addslashes($suggestion) }}')"
+                                <button wire:click="executeSceneSearch('{{ $sceneId }}', '{{ addslashes($suggestion) }}')"
                                         type="button" class="utv-suggestion-chip">
                                     {{ $suggestion }}
                                 </button>
