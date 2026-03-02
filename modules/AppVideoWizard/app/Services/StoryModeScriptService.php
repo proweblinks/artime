@@ -64,14 +64,18 @@ class StoryModeScriptService
 
         $maxAttempts = ($targetWords > 200) ? 2 : 1;
         $wordCount = 0;
+        $lastParsed = null;
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             try {
-                $currentPrompt = ($attempt === 1)
-                    ? $compiledPrompt
-                    : "IMPORTANT: Your previous attempt only produced {$wordCount} words. I need AT LEAST {$targetWords} words for a {$targetDuration}-second video. Write the COMPLETE script — do NOT stop early.\n\n{$compiledPrompt}";
-
-                $fullPrompt = "{$systemMessage}\n\n{$currentPrompt}";
+                // Attempt 1: JSON format. Attempt 2: plain text (avoids Gemini JSON truncation)
+                if ($attempt === 1) {
+                    $fullPrompt = "{$systemMessage}\n\n{$compiledPrompt}";
+                } else {
+                    $plainTextPrompt = $this->buildPlainTextRetryPrompt($prompt, $targetDuration, $targetWords, $maxWords);
+                    $plainTextSystem = "You are a professional video narration scriptwriter. Write engaging, vivid narration scripts for video content. Output ONLY the narration text — no JSON, no formatting, no headers, no markdown.";
+                    $fullPrompt = "{$plainTextSystem}\n\n{$plainTextPrompt}";
+                }
 
                 $response = AI::processWithOverride(
                     $fullPrompt,
@@ -91,8 +95,30 @@ class StoryModeScriptService
 
                 $content = $response['data'][0] ?? '';
 
-                // Parse the JSON response
-                $parsed = $this->parseScriptResponse($content);
+                if ($attempt === 1) {
+                    // Parse the JSON response
+                    $parsed = $this->parseScriptResponse($content);
+                } else {
+                    // Plain text retry — use raw content as transcript
+                    $plainText = trim($content);
+                    // Strip any accidental markdown/JSON wrapping
+                    $plainText = preg_replace('/^```[\w]*\s*/s', '', $plainText);
+                    $plainText = preg_replace('/\s*```$/s', '', $plainText);
+                    // Remove any "Title:" or "Narration:" headers the AI might add
+                    $plainText = preg_replace('/^(Title|Narration|Script|Video Script|Narration Script)\s*:\s*/im', '', $plainText);
+                    $plainText = trim($plainText);
+
+                    Log::info('StoryModeScriptService: Plain text retry response', [
+                        'content_length' => strlen($plainText),
+                        'word_count' => str_word_count($plainText),
+                    ]);
+
+                    $parsed = [
+                        'title' => $lastParsed['title'] ?? 'Untitled Story',
+                        'transcript' => $plainText,
+                        'segments' => [],
+                    ];
+                }
 
                 if (empty($parsed['transcript'])) {
                     throw new \Exception('AI returned empty transcript');
@@ -100,13 +126,14 @@ class StoryModeScriptService
 
                 $wordCount = str_word_count($parsed['transcript']);
 
-                // If output is too short for the target, retry once
+                // If output is too short for the target, retry with plain text
                 if ($attempt < $maxAttempts && $wordCount < $targetWords * 0.5) {
-                    Log::warning('StoryModeScriptService: Script too short, retrying', [
+                    Log::warning('StoryModeScriptService: Script too short, retrying with plain text', [
                         'attempt' => $attempt,
                         'word_count' => $wordCount,
                         'target_words' => $targetWords,
                     ]);
+                    $lastParsed = $parsed;
                     continue;
                 }
 
@@ -117,6 +144,7 @@ class StoryModeScriptService
                     'word_count' => $wordCount,
                     'segments' => count($segments),
                     'attempt' => $attempt,
+                    'format' => $attempt === 1 ? 'json' : 'plain_text',
                 ]);
 
                 return [
@@ -440,6 +468,28 @@ Respond ONLY with a JSON object containing:
 }
 
 Output ONLY valid JSON, no markdown formatting.
+PROMPT;
+    }
+
+    /**
+     * Build a plain-text retry prompt (no JSON) for when the first attempt returns too few words.
+     * Gemini 2.5 Flash often truncates JSON responses; plain text avoids that issue.
+     */
+    protected function buildPlainTextRetryPrompt(string $prompt, int $targetDuration, int $targetWords, int $maxWords): string
+    {
+        return <<<PROMPT
+Write a complete narration script for a {$targetDuration}-second video about:
+
+"{$prompt}"
+
+REQUIREMENTS:
+- You MUST write EXACTLY {$targetWords} to {$maxWords} words. Count carefully. This is a {$targetDuration}-second video at 140 words per minute.
+- Write in a conversational, engaging narration style
+- Start with an attention-grabbing hook
+- End with a memorable closing thought
+- Each paragraph should paint a vivid visual scene
+- Write ONLY the narration text — no titles, no labels, no formatting, no JSON, no markdown
+- Do NOT write less than {$targetWords} words. If you stop early, the video will have dead silence.
 PROMPT;
     }
 
