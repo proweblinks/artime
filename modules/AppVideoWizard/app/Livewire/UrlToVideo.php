@@ -900,6 +900,19 @@ class UrlToVideo extends Component
         $this->sceneVideoEdits = [];
     }
 
+    public function updatedVideoDuration()
+    {
+        $this->editableTranscript = null;
+        $this->generatedTitle = null;
+        $this->generatedSegments = [];
+        $this->sceneImageCandidates = [];
+        $this->sceneSearchSuggestions = [];
+        $this->selectedSceneImages = [];
+        $this->sceneAnimateWithAI = [];
+        $this->sceneCropData = [];
+        $this->sceneVideoEdits = [];
+    }
+
     public function updatedEditableTranscript()
     {
         $this->transcriptWordCount = str_word_count($this->editableTranscript ?? '');
