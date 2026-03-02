@@ -68,6 +68,16 @@ class UrlToVideo extends Component
     // Crop/position data for 9:16 framing
     public array $sceneCropData = [];
 
+    // Video edit data (trim + flip) per scene
+    public array $sceneVideoEdits = [];
+
+    // Library browser state
+    public bool $showLibraryBrowser = false;
+    public string $libraryBrowseScene = '';
+    public array $libraryCategories = [];
+    public string $libraryActiveCategory = '';
+    public array $libraryCategoryResults = [];
+
     // Active project tracking
     public ?int $activeProjectId = null;
     public ?int $detailProjectId = null;
@@ -406,6 +416,84 @@ class UrlToVideo extends Component
     }
 
     /**
+     * Update video edit parameters (trim start/end, flip H/V) for a scene.
+     */
+    public function updateSceneVideoEdit(string $sceneId, float $trimStart, float $trimEnd, bool $flipH, bool $flipV)
+    {
+        $this->sceneVideoEdits[$sceneId] = [
+            'trimStart' => max(0, $trimStart),
+            'trimEnd' => max(0, $trimEnd),
+            'flipH' => $flipH,
+            'flipV' => $flipV,
+        ];
+    }
+
+    /**
+     * Open the full library browser for a scene.
+     */
+    public function openLibraryBrowser(string $sceneId)
+    {
+        $this->libraryBrowseScene = $sceneId;
+        $this->libraryActiveCategory = '';
+        $this->libraryCategoryResults = [];
+
+        $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
+        $this->libraryCategories = $stockService->getCategories();
+        $this->showLibraryBrowser = true;
+    }
+
+    /**
+     * Load clips from a specific category in the library browser.
+     */
+    public function loadLibraryCategory(string $category)
+    {
+        $this->libraryActiveCategory = $category;
+
+        $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
+        $this->libraryCategoryResults = $stockService->browseCategory($category, 24);
+    }
+
+    /**
+     * Search the library browser by text query.
+     */
+    public function searchLibrary(string $query)
+    {
+        $query = trim($query);
+        if (mb_strlen($query) < 2) {
+            return;
+        }
+
+        $this->libraryActiveCategory = '';
+        $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
+        $this->libraryCategoryResults = $stockService->search($query, 24);
+    }
+
+    /**
+     * Select a clip from the library browser and add it to the scene.
+     */
+    public function selectFromLibrary(int $index)
+    {
+        $sceneId = $this->libraryBrowseScene;
+        if (empty($sceneId) || !isset($this->libraryCategoryResults[$index])) {
+            return;
+        }
+
+        $candidate = $this->libraryCategoryResults[$index];
+
+        // Add to scene candidates and auto-select
+        $this->sceneImageCandidates[$sceneId][] = $candidate;
+        $newIndex = count($this->sceneImageCandidates[$sceneId]) - 1;
+        $this->selectedSceneImages[$sceneId] = $newIndex;
+
+        // If video, disable animation
+        if (($candidate['type'] ?? 'image') === 'video') {
+            $this->sceneAnimateWithAI[$sceneId] = false;
+        }
+
+        $this->showLibraryBrowser = false;
+    }
+
+    /**
      * Execute a scene search with media type filtering.
      * Called via wire:click from the search UI.
      */
@@ -674,11 +762,14 @@ class UrlToVideo extends Component
             }
             unset($scene);
 
-            // Attach crop/position data and animation flag to scenes
+            // Attach crop/position data, animation flag, and video edits to scenes
             foreach ($scenes as &$scene) {
                 $sceneId = $scene['id'] ?? '';
                 if (!empty($this->sceneCropData[$sceneId])) {
                     $scene['crop'] = $this->sceneCropData[$sceneId];
+                }
+                if (!empty($this->sceneVideoEdits[$sceneId])) {
+                    $scene['video_edit'] = $this->sceneVideoEdits[$sceneId];
                 }
                 $scene['animate_with_ai'] = $this->sceneAnimateWithAI[$sceneId] ?? false;
             }
@@ -744,6 +835,7 @@ class UrlToVideo extends Component
         $this->selectedSceneImages = [];
         $this->sceneAnimateWithAI = [];
         $this->sceneCropData = [];
+        $this->sceneVideoEdits = [];
     }
 
     public function updatedEditableTranscript()

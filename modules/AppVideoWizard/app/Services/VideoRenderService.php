@@ -323,17 +323,56 @@ class VideoRenderService
                 if ($clip['type'] === 'video') {
                     // Normalize video clip: crop-aware or standard scale
                     $cropData = $scenes[$i]['crop'] ?? null;
+                    $videoEdit = $scenes[$i]['video_edit'] ?? $scenes[$i]['videoEdit'] ?? null;
+
+                    // Build filter chain
+                    $filters = [];
                     if ($cropData) {
-                        // Crop to 9:16 region centered on focal point, then scale
                         $fx = $cropData['focalX'] ?? 0.5;
                         $fy = $cropData['focalY'] ?? 0.5;
-                        $videoFilter = "crop=ih*9/16:ih:({$fx})*iw-ih*9/32:({$fy})*ih-ih/2,scale={$width}:{$height},fps={$fps},setsar=1";
+                        $filters[] = "crop=ih*9/16:ih:({$fx})*iw-ih*9/32:({$fy})*ih-ih/2";
+                        $filters[] = "scale={$width}:{$height}";
                     } else {
-                        $videoFilter = "scale={$width}:{$height}:force_original_aspect_ratio=increase,crop={$width}:{$height},fps={$fps},setsar=1";
+                        $filters[] = "scale={$width}:{$height}:force_original_aspect_ratio=increase";
+                        $filters[] = "crop={$width}:{$height}";
                     }
+
+                    // Apply flip transforms if requested
+                    if ($videoEdit) {
+                        if (!empty($videoEdit['flipH'])) {
+                            $filters[] = 'hflip';
+                        }
+                        if (!empty($videoEdit['flipV'])) {
+                            $filters[] = 'vflip';
+                        }
+                    }
+
+                    $filters[] = "fps={$fps}";
+                    $filters[] = "setsar=1";
+                    $videoFilter = implode(',', $filters);
+
+                    // Compute duration, accounting for trim
                     $duration = $clip['duration'] + ($isLastClip ? $lastSceneBuffer : 0);
+                    $trimStart = 0;
+                    if ($videoEdit && ($videoEdit['trimStart'] ?? 0) > 0) {
+                        $trimStart = (float) $videoEdit['trimStart'];
+                    }
+                    if ($videoEdit && ($videoEdit['trimEnd'] ?? 0) > 0) {
+                        $trimmedDuration = (float) $videoEdit['trimEnd'] - $trimStart;
+                        if ($trimmedDuration > 0 && $trimmedDuration < $duration) {
+                            $duration = $trimmedDuration + ($isLastClip ? $lastSceneBuffer : 0);
+                        }
+                    }
+
                     $cmd = [
                         $this->ffmpegPath,
+                    ];
+                    // Seek to trim start point if set
+                    if ($trimStart > 0) {
+                        $cmd[] = '-ss';
+                        $cmd[] = (string) $trimStart;
+                    }
+                    $cmd = array_merge($cmd, [
                         '-i', $clip['path'],
                         '-t', (string) $duration,
                         '-vf', $videoFilter,
@@ -344,8 +383,8 @@ class VideoRenderService
                         '-pix_fmt', 'yuv420p',
                         '-y',
                         $normalizedPath,
-                    ];
-                    Log::info("[StoryExport:{$jobId}] Video clip {$i}: duration={$duration}s, filter={$videoFilter}");
+                    ]);
+                    Log::info("[StoryExport:{$jobId}] Video clip {$i}: duration={$duration}s, trimStart={$trimStart}s, filter={$videoFilter}");
                     $this->runCommand($cmd, $jobId, "Normalize clip {$i}");
                 } else {
                     // Generate Ken Burns from image

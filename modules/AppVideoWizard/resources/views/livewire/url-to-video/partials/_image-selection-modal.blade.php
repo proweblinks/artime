@@ -11,6 +11,74 @@
          toggleSceneText(sceneId) {
              this.expandedScenes[sceneId] = !this.expandedScenes[sceneId];
          },
+         // Video hover preview state
+         hoverTimer: null,
+         activePreviewEl: null,
+         previewVideo(candidate, event) {
+             const btn = event.currentTarget;
+             if (this.hoverTimer) clearTimeout(this.hoverTimer);
+             this.hoverTimer = setTimeout(() => {
+                 if (!candidate.url) return;
+                 const video = document.createElement('video');
+                 video.src = candidate.url;
+                 video.muted = true;
+                 video.loop = true;
+                 video.autoplay = true;
+                 video.playsInline = true;
+                 video.className = 'utv-hover-video';
+                 video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:3;pointer-events:none;border-radius:6px;';
+                 btn.style.position = 'relative';
+                 btn.appendChild(video);
+                 this.activePreviewEl = video;
+             }, 200);
+         },
+         stopPreview() {
+             if (this.hoverTimer) { clearTimeout(this.hoverTimer); this.hoverTimer = null; }
+             if (this.activePreviewEl) {
+                 this.activePreviewEl.pause();
+                 this.activePreviewEl.remove();
+                 this.activePreviewEl = null;
+             }
+         },
+         // Lightbox state
+         lightbox: { show: false, url: '', type: 'image', title: '' },
+         openLightbox(candidate) {
+             this.lightbox = {
+                 show: true,
+                 url: candidate.url || '',
+                 type: (candidate.type === 'video') ? 'video' : 'image',
+                 title: candidate.title || '',
+             };
+         },
+         closeLightbox() {
+             this.lightbox.show = false;
+         },
+         // Video edit modal state
+         videoEdit: { show: false, sceneId: '', url: '', duration: 0, trimStart: 0, trimEnd: 0, flipH: false, flipV: false },
+         openVideoEdit(sceneId, candidate) {
+             const dur = candidate.duration || 10;
+             const existing = $wire.sceneVideoEdits?.[sceneId] || null;
+             this.videoEdit = {
+                 show: true,
+                 sceneId: sceneId,
+                 url: candidate.url || '',
+                 duration: dur,
+                 trimStart: existing ? existing.trimStart : 0,
+                 trimEnd: existing ? existing.trimEnd : dur,
+                 flipH: existing ? existing.flipH : false,
+                 flipV: existing ? existing.flipV : false,
+             };
+         },
+         saveVideoEdit() {
+             $wire.updateSceneVideoEdit(
+                 this.videoEdit.sceneId,
+                 parseFloat(this.videoEdit.trimStart),
+                 parseFloat(this.videoEdit.trimEnd),
+                 this.videoEdit.flipH,
+                 this.videoEdit.flipV,
+             );
+             this.videoEdit.show = false;
+         },
          // Crop modal state
          showCropModal: false,
          cropSceneId: '',
@@ -189,6 +257,11 @@
                                     title="{{ __('Search More') }}">
                                 <i class="fa-light fa-magnifying-glass"></i>
                             </button>
+                            <button wire:click="openLibraryBrowser('{{ $sceneId }}')" type="button"
+                                    class="utv-img-action-btn"
+                                    title="{{ __('Browse Library') }}">
+                                <i class="fa-light fa-photo-film"></i>
+                            </button>
                             <label class="utv-img-action-btn mb-0" title="{{ __('Upload Image') }}" style="cursor: pointer;">
                                 <i class="fa-light fa-cloud-arrow-up"></i>
                                 <input type="file" accept="image/*" class="d-none"
@@ -301,7 +374,14 @@
                                     @php $isVideoCandidate = ($candidate['type'] ?? 'image') === 'video'; @endphp
                                     <button wire:click="selectSceneImage('{{ $sceneId }}', {{ $idx }})"
                                             type="button"
-                                            class="utv-image-thumb {{ $isSelected ? 'selected' : '' }}">
+                                            class="utv-image-thumb {{ $isSelected ? 'selected' : '' }}"
+                                            @if($isVideoCandidate)
+                                                @mouseenter="previewVideo(@js($candidate), $event)"
+                                                @mouseleave="stopPreview()"
+                                                @dblclick.stop="openLightbox(@js($candidate))"
+                                            @else
+                                                @dblclick.stop="openLightbox(@js($candidate))"
+                                            @endif>
                                         <img src="{{ $candidate['thumbnail'] ?? $candidate['url'] }}"
                                              alt="{{ $candidate['title'] ?? 'Image ' . ($idx + 1) }}"
                                              loading="lazy"
@@ -316,7 +396,12 @@
                                             <div class="utv-thumb-check">
                                                 <i class="fa-solid fa-check"></i>
                                             </div>
-                                            @if(!$isVideoCandidate)
+                                            @if($isVideoCandidate)
+                                                <button @click.stop="openVideoEdit('{{ $sceneId }}', @js($candidate))"
+                                                        class="utv-crop-btn" title="{{ __('Trim & Flip') }}">
+                                                    <i class="fa-light fa-scissors"></i>
+                                                </button>
+                                            @else
                                                 <button @click.stop="openCropModal('{{ $sceneId }}', '{{ $candidate['thumbnail'] ?? $candidate['url'] }}', {{ $candidate['width'] ?? 0 }}, {{ $candidate['height'] ?? 0 }})"
                                                         class="utv-crop-btn" title="{{ __('Adjust Position') }}">
                                                     <i class="fa-light fa-crop"></i>
@@ -424,6 +509,101 @@
                     </span>
                 @endif
             </div>
+        </div>
+
+        {{-- Video Edit Modal (trim + flip) --}}
+        <div x-show="videoEdit.show" x-cloak
+             @click.self="videoEdit.show = false"
+             @keydown.escape.window="videoEdit.show = false"
+             style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.88);z-index:10300;display:flex;align-items:center;justify-content:center;">
+            <div class="utv-crop-dialog" style="width:480px;">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h6 class="mb-0 text-white fw-bold">
+                        <i class="fa-light fa-scissors me-2" style="color:#f97316;"></i>
+                        {{ __('Edit Video Clip') }}
+                    </h6>
+                    <button @click="videoEdit.show = false" type="button" class="btn-close btn-close-white btn-close-sm"></button>
+                </div>
+                {{-- Video preview --}}
+                <div style="background:#000;border-radius:10px;overflow:hidden;margin-bottom:16px;max-height:200px;display:flex;align-items:center;justify-content:center;">
+                    <video :src="videoEdit.url" controls muted style="max-width:100%;max-height:200px;border-radius:10px;"
+                           :style="(videoEdit.flipH ? 'transform:scaleX(-1);' : '') + (videoEdit.flipV ? 'transform:scaleY(-1);' : '')"></video>
+                </div>
+                {{-- Trim controls --}}
+                <div class="mb-3">
+                    <label class="d-flex align-items-center justify-content-between mb-1">
+                        <span style="color:#ccc;font-size:0.78rem;font-weight:600;">{{ __('Trim Start') }}</span>
+                        <span style="color:#f97316;font-size:0.75rem;font-weight:600;" x-text="parseFloat(videoEdit.trimStart).toFixed(1) + 's'"></span>
+                    </label>
+                    <input type="range" x-model="videoEdit.trimStart" min="0" :max="videoEdit.duration" step="0.1"
+                           class="utv-range-slider" style="width:100%;">
+                </div>
+                <div class="mb-3">
+                    <label class="d-flex align-items-center justify-content-between mb-1">
+                        <span style="color:#ccc;font-size:0.78rem;font-weight:600;">{{ __('Trim End') }}</span>
+                        <span style="color:#f97316;font-size:0.75rem;font-weight:600;" x-text="parseFloat(videoEdit.trimEnd).toFixed(1) + 's'"></span>
+                    </label>
+                    <input type="range" x-model="videoEdit.trimEnd" min="0" :max="videoEdit.duration" step="0.1"
+                           class="utv-range-slider" style="width:100%;">
+                </div>
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span style="color:#999;font-size:0.75rem;">
+                        {{ __('Duration:') }} <span x-text="Math.max(0, (parseFloat(videoEdit.trimEnd) - parseFloat(videoEdit.trimStart))).toFixed(1) + 's'" style="color:#f97316;font-weight:600;"></span>
+                    </span>
+                </div>
+                {{-- Flip controls --}}
+                <div class="d-flex gap-3 mt-3 mb-3">
+                    <button @click="videoEdit.flipH = !videoEdit.flipH" type="button"
+                            class="utv-pill-btn flex-grow-1 justify-content-center"
+                            :class="videoEdit.flipH ? 'active-animate' : ''">
+                        <i class="fa-light fa-arrows-left-right"></i>
+                        <span>{{ __('Flip Horizontal') }}</span>
+                    </button>
+                    <button @click="videoEdit.flipV = !videoEdit.flipV" type="button"
+                            class="utv-pill-btn flex-grow-1 justify-content-center"
+                            :class="videoEdit.flipV ? 'active-animate' : ''">
+                        <i class="fa-light fa-arrows-up-down"></i>
+                        <span>{{ __('Flip Vertical') }}</span>
+                    </button>
+                </div>
+                {{-- Save / Cancel --}}
+                <div class="d-flex gap-2 justify-content-end">
+                    <button @click="videoEdit.show = false" class="btn btn-sm" style="background:#2a2a2a;color:#ccc;border-radius:8px;">
+                        {{ __('Cancel') }}
+                    </button>
+                    <button @click="saveVideoEdit()" class="btn btn-sm fw-semibold" style="background:#f97316;color:#fff;border-radius:8px;">
+                        <i class="fa-light fa-check me-1"></i>
+                        {{ __('Apply') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {{-- Lightbox Overlay (dblclick on any candidate) --}}
+        <div x-show="lightbox.show" x-cloak
+             @click.self="closeLightbox()"
+             @keydown.escape.window="closeLightbox()"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);z-index:10400;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+            <button @click="closeLightbox()" type="button"
+                    style="position:absolute;top:16px;right:16px;z-index:2;background:rgba(255,255,255,0.1);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;"
+                    title="Close">
+                <i class="fa-light fa-xmark"></i>
+            </button>
+            <div style="max-width:90vw;max-height:80vh;display:flex;align-items:center;justify-content:center;">
+                <template x-if="lightbox.type === 'video'">
+                    <video :src="lightbox.url" controls autoplay style="max-width:90vw;max-height:80vh;border-radius:12px;"></video>
+                </template>
+                <template x-if="lightbox.type !== 'video'">
+                    <img :src="lightbox.url" :alt="lightbox.title" style="max-width:90vw;max-height:80vh;border-radius:12px;object-fit:contain;">
+                </template>
+            </div>
+            <p x-text="lightbox.title" style="color:#999;font-size:0.82rem;margin-top:12px;text-align:center;max-width:600px;"></p>
         </div>
 
         {{-- Crop Position Modal --}}
@@ -793,6 +973,36 @@
         box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
         z-index: 2;
         transition: none;
+    }
+    /* Hover video preview on thumbnails */
+    .utv-hover-video {
+        transition: opacity 0.15s ease-in;
+    }
+    /* Range slider for trim controls */
+    .utv-range-slider {
+        -webkit-appearance: none;
+        appearance: none;
+        height: 6px;
+        background: #333;
+        border-radius: 3px;
+        outline: none;
+    }
+    .utv-range-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #f97316;
+        cursor: pointer;
+        border: 2px solid #1a1a1a;
+    }
+    .utv-range-slider::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #f97316;
+        cursor: pointer;
+        border: 2px solid #1a1a1a;
     }
     .utv-crop-frame-label {
         position: absolute;

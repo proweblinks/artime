@@ -53,6 +53,53 @@ class ArtimeStockService
     }
 
     /**
+     * Search stock media excluding specific IDs (for per-scene deduplication).
+     *
+     * @return array Array of candidate arrays
+     */
+    public function searchExcluding(string $query, int $limit = 6, array $excludeIds = [], ?string $type = null, ?string $orientation = null): array
+    {
+        $query = trim($query);
+        if (empty($query)) {
+            return [];
+        }
+
+        try {
+            $builder = StockMedia::active()->search($query);
+
+            if (!empty($excludeIds)) {
+                $builder->whereNotIn('id', $excludeIds);
+            }
+
+            if ($type && in_array($type, ['image', 'video'])) {
+                $builder->ofType($type);
+            }
+
+            if ($orientation && in_array($orientation, ['landscape', 'portrait', 'square'])) {
+                $builder->orientation($orientation);
+            }
+
+            $results = $builder->limit($limit * 2)->get();
+
+            $candidates = [];
+            foreach ($results as $media) {
+                $score = $this->computeRelevanceScore($media, $query);
+                $candidates[] = $media->toCandidate($score);
+            }
+
+            usort($candidates, fn($a, $b) => ($b['score'] ?? 0) <=> ($a['score'] ?? 0));
+
+            return array_slice($candidates, 0, $limit);
+        } catch (\Exception $e) {
+            Log::warning('ArtimeStockService: searchExcluding failed', [
+                'query' => $query,
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
      * Browse media by category.
      *
      * @return array Array of candidate arrays

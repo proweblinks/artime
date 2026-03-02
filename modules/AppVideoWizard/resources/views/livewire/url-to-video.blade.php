@@ -296,6 +296,7 @@
     {{-- Modals --}}
     @include('appvideowizard::livewire.url-to-video.partials._transcript-modal')
     @include('appvideowizard::livewire.url-to-video.partials._image-selection-modal')
+    @include('appvideowizard::livewire.url-to-video.partials._stock-library-browser')
 
     {{-- Voice Modal (reuse same structure) --}}
     @if($showVoiceModal)

@@ -26,26 +26,34 @@ class ImageSourceService
         $articleImages = $extractedContent['images'] ?? [];
         $subject = $contentBrief['subject'] ?? '';
         $results = [];
+        $usedStockIds = []; // Track IDs across scenes for deduplication
+
+        $stockService = new ArtimeStockService();
 
         foreach ($scenes as $scene) {
             $sceneId = $scene['id'] ?? 'scene_0';
             $sceneText = $scene['text'] ?? '';
             $candidates = [];
 
-            // Search Artime Stock ONLY (local curated media — primary source)
-            // External sources (Pexels/Pixabay/Wiki) are available on-demand via "Browse External" in the UI
-            $stockService = new ArtimeStockService();
+            // Search Artime Stock with exclusion of already-shown clips
             $stockQuery = $this->buildStockSearchQuery($sceneText, $subject);
 
             Log::info('ImageSourceService: Stock search for scene', [
                 'scene_id' => $sceneId,
                 'query' => $stockQuery,
                 'scene_text_preview' => Str::limit($sceneText, 80),
+                'excluding_ids' => count($usedStockIds),
             ]);
 
             if (!empty($stockQuery)) {
                 try {
-                    $stockResults = $stockService->search($stockQuery, 8);
+                    $stockResults = $stockService->searchExcluding($stockQuery, 8, $usedStockIds);
+
+                    // Fallback: if exclusion returned 0, try without exclusion
+                    if (empty($stockResults)) {
+                        $stockResults = $stockService->search($stockQuery, 8);
+                    }
+
                     foreach ($stockResults as $stockItem) {
                         $candidates[] = $stockItem;
                     }
@@ -60,12 +68,22 @@ class ImageSourceService
             // Fallback: try subject/title directly if scene-specific search found nothing
             if (empty($candidates) && !empty($subject)) {
                 try {
-                    $fallbackResults = $stockService->search($subject, 8);
+                    $fallbackResults = $stockService->searchExcluding($subject, 8, $usedStockIds);
+                    if (empty($fallbackResults)) {
+                        $fallbackResults = $stockService->search($subject, 8);
+                    }
                     foreach ($fallbackResults as $stockItem) {
                         $candidates[] = $stockItem;
                     }
                 } catch (\Exception $e) {
                     // Silently fail — scenes without stock will show "no images" state
+                }
+            }
+
+            // Collect stock_ids from this scene's candidates into the exclusion set
+            foreach ($candidates as $c) {
+                if (!empty($c['stock_id'])) {
+                    $usedStockIds[] = $c['stock_id'];
                 }
             }
 
@@ -390,31 +408,35 @@ class ImageSourceService
             'every', 'you', 'your', 'we', 'they', 'one', 'two', 'three',
         ]);
 
-        $parts = [];
+        $subjectParts = [];
+        $sceneParts = [];
 
-        // 1. Extract key words from subject/title (highest priority)
+        // 1. Extract key words from subject/title — cap at 2 to avoid dominating
         if (!empty($subject)) {
             $subjectWords = preg_split('/[\s,\-:]+/', strtolower($subject));
             foreach ($subjectWords as $w) {
                 $clean = preg_replace('/[^a-z]/', '', $w);
                 if (mb_strlen($clean) >= 3 && !isset($stopWords[$clean])) {
-                    $parts[] = $clean;
+                    $subjectParts[] = $clean;
                 }
             }
         }
+        $subjectParts = array_values(array_unique($subjectParts));
+        $subjectParts = array_slice($subjectParts, 0, 2); // Cap subject at 2 words
 
-        // 2. Extract nouns/adjectives from scene text (content words 4+ chars)
+        // 2. Extract nouns/adjectives from scene text — allow up to 4 scene-specific words
         $textWords = preg_split('/[\s,\.\!\?\;\:\(\)\[\]\"\']+/', strtolower($sceneText));
         foreach ($textWords as $w) {
             $clean = preg_replace('/[^a-z]/', '', $w);
-            if (mb_strlen($clean) >= 4 && !isset($stopWords[$clean])) {
-                $parts[] = $clean;
+            if (mb_strlen($clean) >= 4 && !isset($stopWords[$clean]) && !in_array($clean, $subjectParts)) {
+                $sceneParts[] = $clean;
             }
         }
+        $sceneParts = array_values(array_unique($sceneParts));
+        $sceneParts = array_slice($sceneParts, 0, 4); // Up to 4 scene-specific words
 
-        // Deduplicate and take top 6 terms
-        $parts = array_values(array_unique($parts));
-        $parts = array_slice($parts, 0, 6);
+        // Combine: subject words first, then scene-specific words
+        $parts = array_merge($subjectParts, $sceneParts);
 
         return implode(' ', $parts);
     }

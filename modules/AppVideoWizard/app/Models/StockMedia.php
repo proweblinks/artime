@@ -72,6 +72,7 @@ class StockMedia extends Model
             'width' => $this->width,
             'height' => $this->height,
             'source' => 'artime_stock',
+            'stock_id' => $this->id,
             'score' => $score,
         ];
 
