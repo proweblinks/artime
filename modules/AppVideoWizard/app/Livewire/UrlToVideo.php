@@ -1197,6 +1197,37 @@ class UrlToVideo extends Component
     }
 
     /**
+     * Cancel a generating project — sets status to cancelled so the server-side job stops.
+     */
+    public function cancelProject(int $projectId)
+    {
+        $project = UrlToVideoProject::where('id', $projectId)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if ($project && $project->isGenerating()) {
+            $project->update([
+                'status' => 'cancelled',
+                'current_stage' => 'Cancelled by user',
+            ]);
+
+            Log::info('UrlToVideo: Project cancelled by user', ['project_id' => $projectId]);
+
+            // Delete the cancelled project and its files
+            $project->deleteWithFiles();
+
+            Cache::forget('url-to-video-projects-' . auth()->id());
+
+            if ($this->detailProjectId === $projectId) {
+                $this->detailProjectId = null;
+            }
+            if ($this->activeProjectId === $projectId) {
+                $this->activeProjectId = null;
+            }
+        }
+    }
+
+    /**
      * Re-create a project from an existing one.
      * Shows the transcript modal so the user can review/edit, then on confirm
      * restores original per-scene media selections + fresh alternatives.

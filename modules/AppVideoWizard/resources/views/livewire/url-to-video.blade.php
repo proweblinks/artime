@@ -24,9 +24,19 @@
                             </h6>
                             <small class="text-muted">{{ $this->activeProject->current_stage ?? 'Processing...' }}</small>
                         </div>
-                        <span class="badge" style="background: #f97316; font-size: 0.85rem;">
-                            {{ $this->activeProject->progress_percent }}%
-                        </span>
+                        <div class="d-flex align-items-center gap-2">
+                            <button wire:click="cancelProject({{ $this->activeProject->id }})"
+                                    wire:confirm="{{ __('Cancel this video generation?') }}"
+                                    wire:loading.attr="disabled"
+                                    type="button"
+                                    class="btn btn-sm px-3"
+                                    style="background: transparent; color: #ef4444; border: 1px solid #333; border-radius: 8px; font-size: 0.78rem;">
+                                <i class="fa-light fa-xmark me-1"></i>{{ __('Cancel') }}
+                            </button>
+                            <span class="badge" style="background: #f97316; font-size: 0.85rem;">
+                                {{ $this->activeProject->progress_percent }}%
+                            </span>
+                        </div>
                     </div>
                     <div class="progress" style="height: 6px; background: #333; border-radius: 3px;">
                         <div class="progress-bar" role="progressbar"

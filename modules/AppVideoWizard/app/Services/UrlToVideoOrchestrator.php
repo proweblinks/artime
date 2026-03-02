@@ -42,15 +42,19 @@ class UrlToVideoOrchestrator
         try {
             // Step 1: Build Visual Script (15-35%)
             $this->stepBuildVisualScript($project);
+            if ($this->isCancelled($project)) return;
 
             // Step 2: Generate Voiceover (35-50%)
             $this->stepGenerateVoiceover($project);
+            if ($this->isCancelled($project)) return;
 
             // Step 3: Generate Images (50-70%)
             $this->stepGenerateImages($project);
+            if ($this->isCancelled($project)) return;
 
             // Step 4: Generate Video Clips (70-85%)
             $this->stepGenerateVideoClips($project);
+            if ($this->isCancelled($project)) return;
 
             // Step 5: Assemble Final Video (85-100%)
             $this->stepAssembleFinalVideo($project);
@@ -64,6 +68,24 @@ class UrlToVideoOrchestrator
             ]);
             $project->markFailed($e->getMessage());
         }
+    }
+
+    /**
+     * Check if the project has been cancelled or deleted (refresh from DB).
+     */
+    protected function isCancelled(UrlToVideoProject $project): bool
+    {
+        // Re-fetch from DB — project may have been force-deleted by cancel
+        $fresh = UrlToVideoProject::find($project->id);
+
+        if (!$fresh || $fresh->status === 'cancelled') {
+            Log::info('UrlToVideoOrchestrator: Project cancelled/deleted, stopping pipeline', [
+                'project_id' => $project->id,
+            ]);
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -144,6 +166,8 @@ class UrlToVideoOrchestrator
         $updatedScenes = [];
 
         foreach ($scenes as $i => $scene) {
+            if ($this->isCancelled($project)) return;
+
             $progress = 35 + (int) (($i / count($scenes)) * 15);
             $project->updateProgress('generating_voiceover', $progress, "Generating voiceover (" . ($i + 1) . "/" . count($scenes) . ")");
 
@@ -191,6 +215,8 @@ class UrlToVideoOrchestrator
         $updatedScenes = [];
 
         foreach ($scenes as $i => $scene) {
+            if ($this->isCancelled($project)) return;
+
             // Skip AI generation if scene already has a real image assigned
             if (!empty($scene['image_url'])) {
                 Log::info('UrlToVideoOrchestrator: Using pre-assigned image for scene', [
@@ -311,6 +337,8 @@ class UrlToVideoOrchestrator
             $maxAttempts = 96;
             for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
                 sleep(5);
+
+                if ($this->isCancelled($project)) return;
 
                 $stillPending = 0;
                 $completedCount = 0;

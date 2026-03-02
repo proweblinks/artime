@@ -120,6 +120,16 @@
 
                 {{-- Action Buttons --}}
                 <div class="d-flex flex-column gap-2">
+                    @if($project->isGenerating() && $project->user_id === auth()->id())
+                        <button wire:click="cancelProject({{ $project->id }})"
+                                wire:confirm="{{ __('Cancel this video generation?') }}"
+                                wire:loading.attr="disabled"
+                                type="button"
+                                class="btn w-100" style="background: #991b1b; color: #fff; border-radius: 10px;">
+                            <i class="fa-light fa-xmark me-2"></i>{{ __('Cancel Generation') }}
+                        </button>
+                    @endif
+
                     @if($project->isReady() && $project->video_url)
                         <a href="{{ $project->video_url }}" download
                            class="btn w-100" style="background: #f97316; color: #fff; border-radius: 10px;">

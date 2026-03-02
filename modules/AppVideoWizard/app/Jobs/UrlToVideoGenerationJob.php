@@ -39,8 +39,8 @@ class UrlToVideoGenerationJob implements ShouldQueue
             return;
         }
 
-        if ($project->status === 'ready' || $project->status === 'failed') {
-            Log::info('UrlToVideoGenerationJob: Project already completed/failed, skipping', [
+        if (in_array($project->status, ['ready', 'failed', 'cancelled'])) {
+            Log::info('UrlToVideoGenerationJob: Project already completed/failed/cancelled, skipping', [
                 'project_id' => $this->projectId,
                 'status' => $project->status,
             ]);
@@ -75,7 +75,7 @@ class UrlToVideoGenerationJob implements ShouldQueue
         ]);
 
         $project = UrlToVideoProject::find($this->projectId);
-        if ($project && $project->status !== 'failed' && $project->status !== 'ready') {
+        if ($project && !in_array($project->status, ['failed', 'ready', 'cancelled'])) {
             $project->markFailed('Generation job failed: ' . ($exception?->getMessage() ?? 'Unknown error'));
         }
     }

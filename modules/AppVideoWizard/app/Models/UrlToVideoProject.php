@@ -76,12 +76,17 @@ class UrlToVideoProject extends Model
 
     public function scopeInProgress($query)
     {
-        return $query->whereNotIn('status', ['draft', 'script_ready', 'ready', 'failed']);
+        return $query->whereNotIn('status', ['draft', 'script_ready', 'ready', 'failed', 'cancelled']);
     }
 
     public function isGenerating(): bool
     {
-        return !in_array($this->status, ['draft', 'script_ready', 'ready', 'failed']);
+        return !in_array($this->status, ['draft', 'script_ready', 'ready', 'failed', 'cancelled']);
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === 'cancelled';
     }
 
     public function isReady(): bool
