@@ -455,9 +455,8 @@ class VideoRenderService
             if (!file_exists($concatenatedVideo)) {
                 throw new Exception('Failed to concatenate video clips');
             }
-            // Step 4: Concatenate voiceovers
-            $this->updateProgress($progressCallback, 65, 'Processing voiceovers...');
-            $voiceoverConcatFile = $this->concatenateVoiceovers($jobId, $scenes, $voiceoverFiles, $workDir);
+            // Step 4: Audio preparation (voiceover concat handled inside combineVideoWithAudio)
+            $this->updateProgress($progressCallback, 65, 'Preparing audio...');
 
             // Step 5: Combine video + audio (pass fade-out duration for audio fade)
             $this->updateProgress($progressCallback, 75, 'Mixing audio...');
@@ -832,6 +831,16 @@ class VideoRenderService
             $voiceoverConcatFile = $this->concatenateVoiceovers($jobId, $scenes, $voiceoverFiles, $workDir);
         }
 
+        // Ensure video covers the full voiceover duration (prevent -shortest from truncating audio)
+        if ($voiceoverConcatFile && file_exists($voiceoverConcatFile)) {
+            $voiceoverTotalDuration = $this->getAudioDuration($voiceoverConcatFile);
+            if ($voiceoverTotalDuration > 0) {
+                $videoFile = $this->padVideoToMinDuration(
+                    $jobId, $videoFile, $voiceoverTotalDuration, $workDir, $output
+                );
+            }
+        }
+
         // Build FFmpeg command
         $inputArgs = ['-i', $videoFile];
         $filterParts = [];
@@ -950,6 +959,10 @@ class VideoRenderService
                 // Get voiceover duration and add trailing silence
                 $voiceDuration = $this->getAudioDuration($voiceFile);
                 $remainingTime = $sceneDuration - $voiceoverOffset - $voiceDuration;
+
+                if ($remainingTime < -0.5) {
+                    Log::info("[VideoRender:{$jobId}] Scene {$i} voiceover overflow: voice={$voiceDuration}s, scene={$sceneDuration}s, overflow=" . abs($remainingTime) . "s");
+                }
 
                 if ($remainingTime > 0.1) {
                     $sceneSilence = "{$workDir}/silence_{$i}.mp3";
@@ -1225,6 +1238,54 @@ class VideoRenderService
 
         $output = shell_exec(implode(' ', array_map('escapeshellarg', $cmd)));
         return (float) trim($output ?: '0');
+    }
+
+    /**
+     * Ensure video is at least as long as the target duration.
+     * If shorter, extends by cloning the last frame (freeze-frame).
+     */
+    protected function padVideoToMinDuration(
+        string $jobId,
+        string $videoFile,
+        float $minDuration,
+        string $workDir,
+        array $output
+    ): string {
+        $videoDuration = $this->getVideoDuration($videoFile);
+
+        if ($videoDuration >= $minDuration - 0.1) {
+            return $videoFile; // Already long enough
+        }
+
+        $extensionNeeded = $minDuration - $videoDuration + 1.0; // +1s safety
+        Log::info("[VideoRender:{$jobId}] Padding video: {$videoDuration}s -> {$minDuration}s (+{$extensionNeeded}s freeze-frame)");
+
+        $paddedVideo = "{$workDir}/padded_video.mp4";
+        $renderQuality = $output['renderQuality'] ?? $output['quality'] ?? 'balanced';
+        $settings = $this->qualitySettings[$renderQuality] ?? $this->qualitySettings['balanced'];
+
+        $cmd = [
+            $this->ffmpegPath,
+            '-i', $videoFile,
+            '-vf', 'tpad=stop_mode=clone:stop_duration=' . round($extensionNeeded, 2),
+            '-c:v', 'libx264',
+            '-preset', $settings['preset'],
+            '-crf', $settings['crf'],
+            '-pix_fmt', 'yuv420p',
+            '-movflags', '+faststart',
+            '-an',
+            '-y',
+            $paddedVideo,
+        ];
+
+        $this->runCommand($cmd, $jobId, 'Video Padding');
+
+        if (file_exists($paddedVideo) && filesize($paddedVideo) > 0) {
+            return $paddedVideo;
+        }
+
+        Log::warning("[VideoRender:{$jobId}] Video padding failed, using original");
+        return $videoFile;
     }
 
     /**
