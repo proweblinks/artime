@@ -1140,6 +1140,66 @@ class UrlToVideo extends Component
         }
     }
 
+    /**
+     * Re-create a project from an existing one (same transcript + settings).
+     * Loads the project's data into component state and triggers confirmTranscript().
+     */
+    public function recreateProject(int $projectId)
+    {
+        $project = UrlToVideoProject::where('id', $projectId)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if (!$project) {
+            return;
+        }
+
+        // Load project data back into component state
+        $this->prompt = $project->prompt ?? '';
+        $this->sourceUrl = $project->source_url ?? '';
+        $this->detectedSourceType = $project->source_type ?? 'prompt';
+        $this->editableTranscript = $project->transcript;
+        $this->transcriptWordCount = $project->transcript_word_count ?? str_word_count($project->transcript ?? '');
+        $this->generatedTitle = $project->title;
+        $this->aspectRatio = $project->aspect_ratio ?? '9:16';
+        $this->selectedVoice = $project->voice_id ?? 'auto';
+        $this->voiceProvider = $project->voice_provider ?? '';
+        $this->storedExtractedContent = $project->extracted_content ?? [];
+        $this->storedContentBrief = $project->content_brief ?? [];
+
+        // Restore metadata settings
+        $meta = $project->metadata ?? [];
+        $this->videoResolution = $meta['video_resolution'] ?? '480p';
+        $this->videoQuality = $meta['video_quality'] ?? 'pro';
+        $this->videoDuration = $meta['video_duration_target'] ?? 60;
+        $this->narrativeStyle = $meta['narrative_style'] ?? 'hook_reveal';
+        $this->creativeMode = $meta['creative_mode'] ?? false;
+        $this->creativeConceptTitle = $meta['creative_concept_title'] ?? null;
+        $this->creativeConceptPitch = $meta['creative_concept_pitch'] ?? null;
+
+        // Determine image source mode
+        $imageSource = $meta['image_source'] ?? 'ai';
+        $this->useRealImages = ($imageSource === 'real_images');
+
+        // Close the detail modal
+        $this->detailProjectId = null;
+
+        // Reset image selection state for fresh sourcing
+        $this->sceneImageCandidates = [];
+        $this->selectedSceneImages = [];
+        $this->sceneCropData = [];
+        $this->sceneVideoEdits = [];
+        $this->sceneAnimateWithAI = [];
+
+        Log::info('UrlToVideo: Recreating project', [
+            'original_project_id' => $projectId,
+            'image_source' => $imageSource,
+        ]);
+
+        // Trigger the same flow as confirmTranscript
+        $this->confirmTranscript();
+    }
+
     #[Computed]
     public function activeProject()
     {

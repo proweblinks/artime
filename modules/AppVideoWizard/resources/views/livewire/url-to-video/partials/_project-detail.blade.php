@@ -127,6 +127,17 @@
                         </a>
                     @endif
 
+                    @if($project->user_id === auth()->id() && $project->transcript)
+                        <button wire:click="recreateProject({{ $project->id }})"
+                                wire:loading.attr="disabled"
+                                type="button"
+                                class="btn w-100" style="background: transparent; color: #60a5fa; border: 1px solid #333; border-radius: 10px;">
+                            <i class="fa-light fa-rotate-right me-2" wire:loading.class="fa-spinner-third fa-spin" wire:target="recreateProject({{ $project->id }})"></i>
+                            <span wire:loading.remove wire:target="recreateProject({{ $project->id }})">{{ __('Create Again') }}</span>
+                            <span wire:loading wire:target="recreateProject({{ $project->id }})">{{ __('Preparing...') }}</span>
+                        </button>
+                    @endif
+
                     @if($project->user_id === auth()->id())
                         <button wire:click="deleteProject({{ $project->id }})"
                                 wire:confirm="{{ __('Are you sure you want to delete this project?') }}"
