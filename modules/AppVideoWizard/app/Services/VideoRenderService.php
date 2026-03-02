@@ -384,8 +384,15 @@ class VideoRenderService
                         '-y',
                         $normalizedPath,
                     ]);
-                    Log::info("[StoryExport:{$jobId}] Video clip {$i}: duration={$duration}s, trimStart={$trimStart}s, filter={$videoFilter}");
+                    Log::info("[StoryExport:{$jobId}] Video clip {$i}: duration={$duration}s, trimStart={$trimStart}s, clipDur={$clip['duration']}s, isLast=" . ($isLastClip ? 'Y' : 'N'));
+                    $cmdString = implode(' ', array_map('escapeshellarg', $cmd));
+                    file_put_contents(storage_path('logs/render_debug.log'), date('H:i:s') . " clip_{$i}: -t {$duration} cmd=" . substr($cmdString, 0, 200) . "\n", FILE_APPEND);
                     $this->runCommand($cmd, $jobId, "Normalize clip {$i}");
+                    // Verify the actual output duration
+                    if (file_exists($normalizedPath)) {
+                        $actualDur = trim(shell_exec($this->ffprobePath . ' -v quiet -show_entries format=duration -of csv=p=0 ' . escapeshellarg($normalizedPath)));
+                        file_put_contents(storage_path('logs/render_debug.log'), date('H:i:s') . " norm_{$i}: actual={$actualDur}s expected={$duration}s\n", FILE_APPEND);
+                    }
                 } else {
                     // Generate Ken Burns from image
                     $duration = $clip['duration'] + ($isLastClip ? $lastSceneBuffer : 0);
@@ -455,6 +462,8 @@ class VideoRenderService
             if (!file_exists($concatenatedVideo)) {
                 throw new Exception('Failed to concatenate video clips');
             }
+            $concatDur = trim(shell_exec($this->ffprobePath . ' -v quiet -show_entries format=duration -of csv=p=0 ' . escapeshellarg($concatenatedVideo)));
+            file_put_contents(storage_path('logs/render_debug.log'), date('H:i:s') . " CONCAT: duration={$concatDur}s, clips=" . count($normalizedClips) . "\n", FILE_APPEND);
 
             // Step 4: Concatenate voiceovers
             $this->updateProgress($progressCallback, 65, 'Processing voiceovers...');
