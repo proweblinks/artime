@@ -62,56 +62,78 @@ class StoryModeScriptService
             'target_words' => $targetWords,
         ]);
 
-        try {
-            // Prepend system instruction to the prompt content
-            $fullPrompt = "{$systemMessage}\n\n{$compiledPrompt}";
+        $maxAttempts = ($targetWords > 200) ? 2 : 1;
+        $wordCount = 0;
 
-            $response = AI::processWithOverride(
-                $fullPrompt,
-                $engine,
-                $model,
-                'text',
-                [
-                    'temperature' => 0.7,
-                    'max_tokens' => max(4000, (int) ($maxWords * 6)),
-                ],
-                auth()->user()?->team_id ?? 0
-            );
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                $currentPrompt = ($attempt === 1)
+                    ? $compiledPrompt
+                    : "IMPORTANT: Your previous attempt only produced {$wordCount} words. I need AT LEAST {$targetWords} words for a {$targetDuration}-second video. Write the COMPLETE script — do NOT stop early.\n\n{$compiledPrompt}";
 
-            if (!empty($response['error'])) {
-                throw new \Exception('AI error: ' . $response['error']);
+                $fullPrompt = "{$systemMessage}\n\n{$currentPrompt}";
+
+                $response = AI::processWithOverride(
+                    $fullPrompt,
+                    $engine,
+                    $model,
+                    'text',
+                    [
+                        'temperature' => 0.7,
+                        'max_tokens' => max(4000, (int) ($maxWords * 6)),
+                    ],
+                    auth()->user()?->team_id ?? 0
+                );
+
+                if (!empty($response['error'])) {
+                    throw new \Exception('AI error: ' . $response['error']);
+                }
+
+                $content = $response['data'][0] ?? '';
+
+                // Parse the JSON response
+                $parsed = $this->parseScriptResponse($content);
+
+                if (empty($parsed['transcript'])) {
+                    throw new \Exception('AI returned empty transcript');
+                }
+
+                $wordCount = str_word_count($parsed['transcript']);
+
+                // If output is too short for the target, retry once
+                if ($attempt < $maxAttempts && $wordCount < $targetWords * 0.5) {
+                    Log::warning('StoryModeScriptService: Script too short, retrying', [
+                        'attempt' => $attempt,
+                        'word_count' => $wordCount,
+                        'target_words' => $targetWords,
+                    ]);
+                    continue;
+                }
+
+                // Segment the transcript into scenes
+                $segments = $parsed['segments'] ?? $this->segmentTranscript($parsed['transcript'], $targetDuration);
+
+                Log::info('StoryModeScriptService: Script generated', [
+                    'word_count' => $wordCount,
+                    'segments' => count($segments),
+                    'attempt' => $attempt,
+                ]);
+
+                return [
+                    'transcript' => $parsed['transcript'],
+                    'segments' => $segments,
+                    'word_count' => $wordCount,
+                    'title' => $parsed['title'] ?? 'Untitled Story',
+                ];
+            } catch (\Exception $e) {
+                Log::error('StoryModeScriptService: Script generation failed', [
+                    'error' => $e->getMessage(),
+                    'attempt' => $attempt,
+                ]);
+                if ($attempt >= $maxAttempts) {
+                    throw $e;
+                }
             }
-
-            $content = $response['data'][0] ?? '';
-
-            // Parse the JSON response
-            $parsed = $this->parseScriptResponse($content);
-
-            if (empty($parsed['transcript'])) {
-                throw new \Exception('AI returned empty transcript');
-            }
-
-            // Segment the transcript into scenes
-            $segments = $parsed['segments'] ?? $this->segmentTranscript($parsed['transcript'], $targetDuration);
-
-            $wordCount = str_word_count($parsed['transcript']);
-
-            Log::info('StoryModeScriptService: Script generated', [
-                'word_count' => $wordCount,
-                'segments' => count($segments),
-            ]);
-
-            return [
-                'transcript' => $parsed['transcript'],
-                'segments' => $segments,
-                'word_count' => $wordCount,
-                'title' => $parsed['title'] ?? 'Untitled Story',
-            ];
-        } catch (\Exception $e) {
-            Log::error('StoryModeScriptService: Script generation failed', [
-                'error' => $e->getMessage(),
-            ]);
-            throw $e;
         }
     }
 
