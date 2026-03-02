@@ -393,8 +393,9 @@ class VoiceoverService
         $estimatedDuration = $result['duration'] ?? (($wordCount / 150) * 60 / $speed);
 
         // Probe actual duration from the generated file
+        // Kokoro TTS writes to public_path(), not Storage::disk('public')
         $audioFilePath = $result['audioPath'] ?? '';
-        $storagePath = !empty($audioFilePath) ? Storage::disk('public')->path($audioFilePath) : null;
+        $storagePath = !empty($audioFilePath) ? public_path($audioFilePath) : null;
         $actualDuration = $storagePath ? $this->getAudioDurationFromFile($storagePath) : null;
         $duration = $actualDuration ?? $estimatedDuration;
 
