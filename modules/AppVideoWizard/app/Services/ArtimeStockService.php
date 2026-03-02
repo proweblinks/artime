@@ -162,10 +162,102 @@ class ArtimeStockService
     }
 
     /**
+     * Find the best matching stock category for a search query.
+     * Checks direct category name match, then keyword-to-category mapping.
+     */
+    public function findMatchingCategory(string $query): ?string
+    {
+        $queryWords = array_filter(
+            preg_split('/[\s,\-:]+/', strtolower(trim($query))),
+            fn($w) => strlen($w) >= 3
+        );
+
+        if (empty($queryWords)) {
+            return null;
+        }
+
+        $categories = array_keys($this->getCategories());
+
+        // Direct match: query word IS a category name
+        foreach ($queryWords as $word) {
+            foreach ($categories as $cat) {
+                if ($cat === $word) {
+                    return $cat;
+                }
+            }
+        }
+
+        // Keyword-to-category mapping for common search terms
+        $keywordMap = [
+            'ocean' => 'nature', 'sea' => 'nature', 'forest' => 'nature',
+            'mountain' => 'nature', 'aurora' => 'nature', 'sunset' => 'nature',
+            'beach' => 'nature', 'reef' => 'nature', 'wildlife' => 'nature',
+            'river' => 'nature', 'waterfall' => 'nature', 'landscape' => 'nature',
+            'clouds' => 'nature', 'rain' => 'nature', 'snow' => 'nature',
+            'desert' => 'nature', 'jungle' => 'nature', 'flowers' => 'nature',
+            'underwater' => 'nature', 'coral' => 'nature', 'volcano' => 'nature',
+            'planet' => 'space', 'galaxy' => 'space', 'stars' => 'space',
+            'moon' => 'space', 'astronaut' => 'space', 'rocket' => 'space',
+            'nasa' => 'space', 'cosmos' => 'space', 'nebula' => 'space',
+            'orbit' => 'space', 'satellite' => 'space', 'mars' => 'space',
+            'trip' => 'travel', 'vacation' => 'travel', 'adventure' => 'travel',
+            'tourism' => 'travel', 'destination' => 'travel', 'explore' => 'travel',
+            'journey' => 'travel', 'wanderlust' => 'travel', 'backpacking' => 'travel',
+            'sightseeing' => 'travel', 'airport' => 'travel', 'passport' => 'travel',
+            'car' => 'cars', 'vehicle' => 'cars', 'driving' => 'cars',
+            'racing' => 'cars', 'supercar' => 'cars', 'automobile' => 'cars',
+            'food' => 'cooking', 'recipe' => 'cooking', 'chef' => 'cooking',
+            'kitchen' => 'cooking', 'baking' => 'cooking', 'meal' => 'cooking',
+            'cuisine' => 'cooking', 'restaurant' => 'cooking',
+            'cat' => 'cats', 'kitten' => 'cats', 'feline' => 'cats',
+            'gym' => 'fitness', 'workout' => 'fitness', 'exercise' => 'fitness',
+            'muscle' => 'fitness', 'training' => 'fitness', 'yoga' => 'fitness',
+            'rich' => 'luxury', 'wealth' => 'luxury', 'expensive' => 'luxury',
+            'mansion' => 'luxury', 'diamond' => 'luxury', 'yacht' => 'luxury',
+            'fashion' => 'luxury', 'designer' => 'luxury',
+            'painting' => 'art-craft', 'drawing' => 'art-craft', 'craft' => 'art-craft',
+            'sculpture' => 'art-craft', 'pottery' => 'art-craft',
+            'asmr' => 'satisfying', 'slime' => 'satisfying',
+        ];
+
+        foreach ($queryWords as $word) {
+            if (isset($keywordMap[$word])) {
+                return $keywordMap[$word];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Browse media in a category, excluding specific IDs.
+     */
+    public function browseCategoryExcluding(string $category, int $limit = 8, array $excludeIds = []): array
+    {
+        try {
+            $builder = StockMedia::active()->inCategory($category);
+
+            if (!empty($excludeIds)) {
+                $builder->whereNotIn('id', $excludeIds);
+            }
+
+            $results = $builder->inRandomOrder()->limit($limit)->get();
+
+            return $results->map(fn($media) => $media->toCandidate(5.0))->toArray();
+        } catch (\Exception $e) {
+            Log::warning('ArtimeStockService: browseCategoryExcluding failed', [
+                'category' => $category,
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
      * Compute relevance score for a media item against a search query.
      *
      * Base score: 3.0 (to outrank external sources at 1-2)
-     * Bonuses: keyword matches in title/tags, orientation match
+     * Bonuses: category match, keyword matches in title/tags, orientation match
      */
     public function computeRelevanceScore(StockMedia $media, string $query): float
     {
@@ -174,6 +266,15 @@ class ArtimeStockService
 
         if (empty($queryWords)) {
             return $score;
+        }
+
+        // Category match bonus (strongest signal for curated library)
+        $categoryLower = strtolower($media->category ?? '');
+        foreach ($queryWords as $word) {
+            if ($categoryLower === $word) {
+                $score += 3.0;
+                break;
+            }
         }
 
         $titleLower = strtolower($media->title ?? '');

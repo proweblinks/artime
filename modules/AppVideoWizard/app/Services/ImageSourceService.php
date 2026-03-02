@@ -30,16 +30,45 @@ class ImageSourceService
 
         $stockService = new ArtimeStockService();
 
+        // Pre-detect matching category for the subject (e.g. "travel" → travel, "aurora" → nature)
+        $matchedCategory = !empty($subject) ? $stockService->findMatchingCategory($subject) : null;
+        if ($matchedCategory) {
+            Log::info('ImageSourceService: Category match for subject', [
+                'subject' => $subject,
+                'category' => $matchedCategory,
+            ]);
+        }
+
         foreach ($scenes as $scene) {
             $sceneId = $scene['id'] ?? 'scene_0';
             $sceneText = $scene['text'] ?? '';
             $candidates = [];
 
-            // Step 1: Subject-focused search with exclusion (primary — ensures topical relevance)
-            // This guarantees each scene gets clips matching the core topic (e.g. "funny cats")
-            if (!empty($subject)) {
+            // Step 0: Category-based search (most reliable for curated library)
+            // When subject maps to a known category, pull directly from that category
+            if ($matchedCategory) {
                 try {
-                    $subjectResults = $stockService->searchExcluding($subject, 8, $usedStockIds);
+                    $categoryResults = $stockService->browseCategoryExcluding($matchedCategory, 8, $usedStockIds);
+                    foreach ($categoryResults as $item) {
+                        $candidates[] = $item;
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('ImageSourceService: Category search failed', [
+                        'scene_id' => $sceneId,
+                        'category' => $matchedCategory,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            // Step 1: Subject-focused FULLTEXT search (supplements category results)
+            if (count($candidates) < 4 && !empty($subject)) {
+                try {
+                    $existingIds = array_merge(
+                        $usedStockIds,
+                        array_filter(array_column($candidates, 'stock_id'))
+                    );
+                    $subjectResults = $stockService->searchExcluding($subject, 8 - count($candidates), $existingIds);
                     foreach ($subjectResults as $item) {
                         $candidates[] = $item;
                     }
