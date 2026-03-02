@@ -292,9 +292,11 @@ class UrlToVideo extends Component
 
                 $imageService = new ImageSourceService();
                 // Ensure content brief has a subject for stock search
+                // Prefer the raw user prompt over AI-generated title — "funny cats"
+                // is far more search-relevant than "The Secret Life of 'Funny' Cats"
                 $contentBrief = $this->storedContentBrief;
                 if (empty($contentBrief['subject'])) {
-                    $contentBrief['subject'] = $this->generatedTitle ?: $this->prompt;
+                    $contentBrief['subject'] = $this->prompt ?: $this->generatedTitle;
                 }
                 $result = $imageService->sourceForScenes(
                     $scenes,

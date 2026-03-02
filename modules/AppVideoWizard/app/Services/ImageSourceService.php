@@ -35,46 +35,57 @@ class ImageSourceService
             $sceneText = $scene['text'] ?? '';
             $candidates = [];
 
-            // Search Artime Stock with exclusion of already-shown clips
-            $stockQuery = $this->buildStockSearchQuery($sceneText, $subject);
-
-            Log::info('ImageSourceService: Stock search for scene', [
-                'scene_id' => $sceneId,
-                'query' => $stockQuery,
-                'scene_text_preview' => Str::limit($sceneText, 80),
-                'excluding_ids' => count($usedStockIds),
-            ]);
-
-            if (!empty($stockQuery)) {
+            // Step 1: Subject-focused search with exclusion (primary — ensures topical relevance)
+            // This guarantees each scene gets clips matching the core topic (e.g. "funny cats")
+            if (!empty($subject)) {
                 try {
-                    $stockResults = $stockService->searchExcluding($stockQuery, 8, $usedStockIds);
-
-                    // Fallback: if exclusion returned 0, try without exclusion
-                    if (empty($stockResults)) {
-                        $stockResults = $stockService->search($stockQuery, 8);
-                    }
-
-                    foreach ($stockResults as $stockItem) {
-                        $candidates[] = $stockItem;
+                    $subjectResults = $stockService->searchExcluding($subject, 8, $usedStockIds);
+                    foreach ($subjectResults as $item) {
+                        $candidates[] = $item;
                     }
                 } catch (\Exception $e) {
-                    Log::warning('ImageSourceService: Artime Stock search failed', [
+                    Log::warning('ImageSourceService: Subject search failed', [
                         'scene_id' => $sceneId,
                         'error' => $e->getMessage(),
                     ]);
                 }
             }
 
-            // Fallback: try subject/title directly if scene-specific search found nothing
+            // Step 2: If not enough from subject, supplement with scene-specific keywords
+            if (count($candidates) < 4) {
+                $stockQuery = $this->buildStockSearchQuery($sceneText, $subject);
+
+                Log::info('ImageSourceService: Supplementing with scene query', [
+                    'scene_id' => $sceneId,
+                    'query' => $stockQuery,
+                    'subject_found' => count($candidates),
+                    'scene_text_preview' => Str::limit($sceneText, 80),
+                ]);
+
+                if (!empty($stockQuery)) {
+                    try {
+                        $existingIds = array_merge(
+                            $usedStockIds,
+                            array_filter(array_column($candidates, 'stock_id'))
+                        );
+                        $sceneResults = $stockService->searchExcluding(
+                            $stockQuery,
+                            8 - count($candidates),
+                            $existingIds
+                        );
+                        foreach ($sceneResults as $item) {
+                            $candidates[] = $item;
+                        }
+                    } catch (\Exception $e) {
+                        // Scene supplement failed — subject results are enough
+                    }
+                }
+            }
+
+            // Step 3: Fallback without exclusion if still empty
             if (empty($candidates) && !empty($subject)) {
                 try {
-                    $fallbackResults = $stockService->searchExcluding($subject, 8, $usedStockIds);
-                    if (empty($fallbackResults)) {
-                        $fallbackResults = $stockService->search($subject, 8);
-                    }
-                    foreach ($fallbackResults as $stockItem) {
-                        $candidates[] = $stockItem;
-                    }
+                    $candidates = $stockService->search($subject, 8);
                 } catch (\Exception $e) {
                     // Silently fail — scenes without stock will show "no images" state
                 }
