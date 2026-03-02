@@ -312,11 +312,17 @@ class UrlToVideo extends Component
                     $this->sceneSearchSuggestions[$sceneId] = $data['suggestions'] ?? [];
                 }
 
-                // Auto-select first candidate per scene
+                // Auto-select first candidate per scene and auto-trim long video clips
                 $this->selectedSceneImages = [];
+                $this->sceneVideoEdits = [];
                 foreach ($this->sceneImageCandidates as $sceneId => $sceneCandidates) {
                     if (!empty($sceneCandidates)) {
                         $this->selectedSceneImages[$sceneId] = 0; // Index of first candidate
+                        $firstCandidate = $sceneCandidates[0];
+                        if (($firstCandidate['type'] ?? 'image') === 'video') {
+                            $this->sceneAnimateWithAI[$sceneId] = false;
+                            $this->autoTrimVideoClip($sceneId, $firstCandidate);
+                        }
                     } else {
                         $this->selectedSceneImages[$sceneId] = 'ai'; // No candidates → AI fallback
                     }
@@ -374,11 +380,17 @@ class UrlToVideo extends Component
     {
         $this->selectedSceneImages[$sceneId] = $candidateIndex;
 
-        // If selecting a video clip, disable animation (already animated content)
         $candidates = $this->sceneImageCandidates[$sceneId] ?? [];
         $candidate = $candidates[$candidateIndex] ?? null;
+
         if ($candidate && ($candidate['type'] ?? 'image') === 'video') {
+            // Disable animation (already animated content)
             $this->sceneAnimateWithAI[$sceneId] = false;
+            // Auto-trim if clip is longer than scene duration
+            $this->autoTrimVideoClip($sceneId, $candidate);
+        } else {
+            // Not a video — clear any stale video edits
+            unset($this->sceneVideoEdits[$sceneId]);
         }
     }
 
@@ -428,6 +440,51 @@ class UrlToVideo extends Component
             'flipH' => $flipH,
             'flipV' => $flipV,
         ];
+    }
+
+    /**
+     * Auto-trim a video clip to fit the scene duration.
+     * If clip is longer than scene, set trimEnd to scene duration.
+     * Preserves existing flip settings if user already edited.
+     */
+    protected function autoTrimVideoClip(string $sceneId, array $candidate): void
+    {
+        $clipDuration = (float) ($candidate['duration'] ?? 0);
+        $sceneDuration = $this->getSceneDuration($sceneId);
+
+        if ($clipDuration > 0 && $sceneDuration > 0 && $clipDuration > $sceneDuration) {
+            // Preserve existing flip if user already set it
+            $existing = $this->sceneVideoEdits[$sceneId] ?? null;
+            $this->sceneVideoEdits[$sceneId] = [
+                'trimStart' => 0,
+                'trimEnd' => round($sceneDuration, 1),
+                'flipH' => $existing['flipH'] ?? false,
+                'flipV' => $existing['flipV'] ?? false,
+            ];
+        } else {
+            // Clip fits within scene — clear trim (keep flip if set)
+            $existing = $this->sceneVideoEdits[$sceneId] ?? null;
+            if ($existing) {
+                // Only keep flip settings, remove trim
+                $this->sceneVideoEdits[$sceneId] = [
+                    'trimStart' => 0,
+                    'trimEnd' => $clipDuration > 0 ? $clipDuration : $sceneDuration,
+                    'flipH' => $existing['flipH'] ?? false,
+                    'flipV' => $existing['flipV'] ?? false,
+                ];
+            } else {
+                unset($this->sceneVideoEdits[$sceneId]);
+            }
+        }
+    }
+
+    /**
+     * Get the estimated duration for a scene from generated segments.
+     */
+    protected function getSceneDuration(string $sceneId): float
+    {
+        $sceneIndex = (int) str_replace('scene_', '', $sceneId);
+        return (float) ($this->generatedSegments[$sceneIndex]['estimated_duration'] ?? 6.0);
     }
 
     /**
@@ -487,9 +544,10 @@ class UrlToVideo extends Component
         $newIndex = count($this->sceneImageCandidates[$sceneId]) - 1;
         $this->selectedSceneImages[$sceneId] = $newIndex;
 
-        // If video, disable animation
+        // If video, disable animation and auto-trim
         if (($candidate['type'] ?? 'image') === 'video') {
             $this->sceneAnimateWithAI[$sceneId] = false;
+            $this->autoTrimVideoClip($sceneId, $candidate);
         }
 
         $this->showLibraryBrowser = false;

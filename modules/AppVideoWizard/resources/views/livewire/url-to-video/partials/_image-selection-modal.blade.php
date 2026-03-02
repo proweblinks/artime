@@ -54,17 +54,22 @@
              this.lightbox.show = false;
          },
          // Video edit modal state
-         videoEdit: { show: false, sceneId: '', url: '', duration: 0, trimStart: 0, trimEnd: 0, flipH: false, flipV: false },
+         videoEdit: { show: false, sceneId: '', url: '', duration: 0, sceneDuration: 0, trimStart: 0, trimEnd: 0, flipH: false, flipV: false },
          openVideoEdit(sceneId, candidate) {
              const dur = candidate.duration || 10;
              const existing = $wire.sceneVideoEdits?.[sceneId] || null;
+             // Get scene duration from generated segments
+             const sceneIndex = parseInt(sceneId.replace('scene_', ''));
+             const segments = $wire.generatedSegments || [];
+             const sceneDur = (segments[sceneIndex] && segments[sceneIndex].estimated_duration) ? segments[sceneIndex].estimated_duration : 6;
              this.videoEdit = {
                  show: true,
                  sceneId: sceneId,
                  url: candidate.url || '',
                  duration: dur,
+                 sceneDuration: sceneDur,
                  trimStart: existing ? existing.trimStart : 0,
-                 trimEnd: existing ? existing.trimEnd : dur,
+                 trimEnd: existing ? existing.trimEnd : Math.min(dur, sceneDur),
                  flipH: existing ? existing.flipH : false,
                  flipV: existing ? existing.flipV : false,
              };
@@ -197,6 +202,10 @@
                             ? ($candidatesList[(int) $selection] ?? null) : null;
                     }
                     $isVideoSelected = $selectedCandidate && ($selectedCandidate['type'] ?? 'image') === 'video';
+                    $videoTrim = $isVideoSelected ? ($sceneVideoEdits[$sceneId] ?? null) : null;
+                    $sceneDuration = $generatedSegments[$sceneIndex]['estimated_duration'] ?? 6;
+                    $clipDuration = $isVideoSelected ? ($selectedCandidate['duration'] ?? 0) : 0;
+                    $isAutoTrimmed = $videoTrim && $clipDuration > $sceneDuration;
                 @endphp
 
                 <div class="utv-scene-row mb-4">
@@ -397,6 +406,18 @@
                                                 <i class="fa-solid fa-check"></i>
                                             </div>
                                             @if($isVideoCandidate)
+                                                @php
+                                                    $thisTrim = $sceneVideoEdits[$sceneId] ?? null;
+                                                    $thisDur = $candidate['duration'] ?? 0;
+                                                    $thisSceneDur = $generatedSegments[$sceneIndex]['estimated_duration'] ?? 6;
+                                                    $isTrimmed = $thisTrim && $thisDur > $thisSceneDur;
+                                                @endphp
+                                                @if($isTrimmed)
+                                                    <div class="utv-trim-badge" @click.stop="openVideoEdit('{{ $sceneId }}', @js($candidate))" title="{{ __('Click to adjust trim') }}">
+                                                        <i class="fa-light fa-scissors"></i>
+                                                        {{ gmdate('i:s', (int)($thisTrim['trimStart'] ?? 0)) }}-{{ gmdate('i:s', (int)($thisTrim['trimEnd'] ?? $thisSceneDur)) }}
+                                                    </div>
+                                                @endif
                                                 <button @click.stop="openVideoEdit('{{ $sceneId }}', @js($candidate))"
                                                         class="utv-crop-btn" title="{{ __('Trim & Flip') }}">
                                                     <i class="fa-light fa-scissors"></i>
@@ -529,6 +550,14 @@
                     <video :src="videoEdit.url" controls muted style="max-width:100%;max-height:200px;border-radius:10px;"
                            :style="(videoEdit.flipH ? 'transform:scaleX(-1);' : '') + (videoEdit.flipV ? 'transform:scaleY(-1);' : '')"></video>
                 </div>
+                {{-- Scene duration info --}}
+                <div class="d-flex align-items-center gap-2 mb-3 p-2" style="background:#111;border-radius:8px;">
+                    <i class="fa-light fa-clock" style="color:#38bdf8;font-size:0.78rem;"></i>
+                    <span style="color:#999;font-size:0.75rem;">
+                        {{ __('Scene needs') }} <span x-text="parseFloat(videoEdit.sceneDuration).toFixed(1) + 's'" style="color:#38bdf8;font-weight:600;"></span>
+                        {{ __('— clip is') }} <span x-text="parseFloat(videoEdit.duration).toFixed(1) + 's'" style="color:#ccc;font-weight:600;"></span>
+                    </span>
+                </div>
                 {{-- Trim controls --}}
                 <div class="mb-3">
                     <label class="d-flex align-items-center justify-content-between mb-1">
@@ -548,7 +577,13 @@
                 </div>
                 <div class="d-flex align-items-center justify-content-between mb-1">
                     <span style="color:#999;font-size:0.75rem;">
-                        {{ __('Duration:') }} <span x-text="Math.max(0, (parseFloat(videoEdit.trimEnd) - parseFloat(videoEdit.trimStart))).toFixed(1) + 's'" style="color:#f97316;font-weight:600;"></span>
+                        {{ __('Selected:') }} <span x-text="Math.max(0, (parseFloat(videoEdit.trimEnd) - parseFloat(videoEdit.trimStart))).toFixed(1) + 's'" style="color:#f97316;font-weight:600;"></span>
+                        <template x-if="Math.abs(parseFloat(videoEdit.trimEnd) - parseFloat(videoEdit.trimStart) - videoEdit.sceneDuration) > 1">
+                            <span style="color:#f59e0b;font-size:0.7rem;margin-left:6px;">
+                                <i class="fa-light fa-triangle-exclamation" style="font-size:0.65rem;"></i>
+                                <span x-text="(parseFloat(videoEdit.trimEnd) - parseFloat(videoEdit.trimStart)) > videoEdit.sceneDuration ? '{{ __('Longer than scene') }}' : '{{ __('Shorter than scene') }}'"></span>
+                            </span>
+                        </template>
                     </span>
                 </div>
                 {{-- Flip controls --}}
@@ -1015,6 +1050,32 @@
         background: rgba(0,0,0,0.7);
         padding: 1px 6px;
         border-radius: 3px;
+    }
+    /* Auto-trim badge on selected video clips */
+    .utv-trim-badge {
+        position: absolute;
+        bottom: 22px;
+        left: 4px;
+        font-size: 0.52rem;
+        font-weight: 600;
+        color: #38bdf8;
+        background: rgba(0,0,0,0.8);
+        padding: 2px 5px;
+        border-radius: 3px;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        z-index: 2;
+        cursor: pointer;
+        white-space: nowrap;
+        border: 1px solid rgba(56,189,248,0.3);
+        transition: border-color 0.15s;
+    }
+    .utv-trim-badge:hover {
+        border-color: rgba(56,189,248,0.6);
+    }
+    .utv-trim-badge i {
+        font-size: 0.48rem;
     }
 </style>
 @endif

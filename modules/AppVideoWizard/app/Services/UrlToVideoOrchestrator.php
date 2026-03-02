@@ -402,6 +402,7 @@ class UrlToVideoOrchestrator
                 'transition_type' => $scene['transition_type'] ?? $transitionType,
                 'transition_duration' => (float) ($scene['transition_duration'] ?? $crossfadeDuration),
                 'crop' => $crop,
+                'video_edit' => $scene['video_edit'] ?? null,
                 'kenBurns' => [
                     'startScale' => 1.0,
                     'endScale' => 1.2,
