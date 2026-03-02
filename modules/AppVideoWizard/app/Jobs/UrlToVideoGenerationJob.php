@@ -18,7 +18,7 @@ class UrlToVideoGenerationJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 1;
-    public int $timeout = 900; // 15 minutes
+    public int $timeout = 2400; // 40 minutes (supports 5-min videos with ~30 scenes)
     public int $maxExceptions = 1;
 
     public function __construct(

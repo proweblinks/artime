@@ -38,7 +38,7 @@
             <div class="d-flex align-items-center justify-content-between">
                 <small class="text-muted">
                     <i class="fa-light fa-text me-1"></i>
-                    {{ $transcriptWordCount }} / {{ get_option('story_mode_max_words', 450) }} {{ __('words') }}
+                    {{ $transcriptWordCount }} / {{ $this->calculateMaxWords($videoDuration) }} {{ __('words') }}
                 </small>
                 <small class="text-muted">
                     <i class="fa-light fa-clock me-1"></i>
@@ -46,7 +46,7 @@
                 </small>
             </div>
 
-            @if($transcriptWordCount > (int) get_option('story_mode_max_words', 450))
+            @if($transcriptWordCount > $this->calculateMaxWords($videoDuration))
                 <div class="alert border-0 mt-2 py-2 px-3" style="background: #3d2b15; color: #f97316; border-radius: 8px; font-size: 0.8rem;">
                     <i class="fa-light fa-triangle-exclamation me-1"></i>
                     {{ __('Transcript exceeds maximum word count. Consider shortening for best results.') }}

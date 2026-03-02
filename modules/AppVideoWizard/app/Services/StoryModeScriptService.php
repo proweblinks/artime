@@ -504,9 +504,10 @@ PROMPT;
         $totalWords = str_word_count($transcript);
         $totalEstDuration = ($totalWords / $wordsPerMinute) * 60;
 
-        // Target 5-8 seconds per segment
-        $targetSegmentDuration = 6.5;
-        $targetSegmentCount = max(3, min(10, (int) round($totalEstDuration / $targetSegmentDuration)));
+        // Scale per-scene duration and max segments based on total video length
+        $targetSegmentDuration = min(12, max(6.5, $targetDuration / 25));
+        $maxSegments = min(30, max(6, (int) round($targetDuration / 10)));
+        $targetSegmentCount = max(3, min($maxSegments, (int) round($totalEstDuration / $targetSegmentDuration)));
 
         $segments = [];
         $currentSegment = '';

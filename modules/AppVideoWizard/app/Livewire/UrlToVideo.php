@@ -27,6 +27,7 @@ class UrlToVideo extends Component
     public string $voiceProvider = '';
     public string $videoResolution = '480p';
     public string $videoQuality = 'pro';
+    public int $videoDuration = 60;
     public string $narrativeStyle = 'hook_reveal';
 
     // Extraction state
@@ -211,8 +212,8 @@ class UrlToVideo extends Component
 
             // Generate script using Story Mode's script service
             $scriptService = new StoryModeScriptService();
-            $targetDuration = (int) get_option('story_mode_default_duration', 35);
-            $maxWords = (int) get_option('story_mode_max_words', 450);
+            $targetDuration = $this->videoDuration;
+            $maxWords = $this->calculateMaxWords($this->videoDuration);
 
             $result = $scriptService->generateScript($enhancedPrompt, $targetDuration, $maxWords);
 
@@ -247,7 +248,7 @@ class UrlToVideo extends Component
             // If we already have candidates, verify scene count still matches the transcript
             if (!empty($this->sceneImageCandidates)) {
                 $scriptService = new StoryModeScriptService();
-                $targetDuration = (int) get_option('story_mode_default_duration', 35);
+                $targetDuration = $this->videoDuration;
                 $currentSegments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
                 $currentCount = count($currentSegments);
                 $cachedCount = count($this->sceneImageCandidates);
@@ -274,7 +275,7 @@ class UrlToVideo extends Component
 
             try {
                 $scriptService = new StoryModeScriptService();
-                $targetDuration = (int) get_option('story_mode_default_duration', 35);
+                $targetDuration = $this->videoDuration;
                 $segments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
 
                 $scenes = [];
@@ -736,7 +737,7 @@ class UrlToVideo extends Component
     protected function dispatchGenerationPipeline(): void
     {
         $scriptService = new StoryModeScriptService();
-        $targetDuration = (int) get_option('story_mode_default_duration', 35);
+        $targetDuration = $this->videoDuration;
         $segments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
         $wordCount = str_word_count($this->editableTranscript);
 
@@ -867,6 +868,7 @@ class UrlToVideo extends Component
                 'ai_engine' => get_option('story_mode_ai_engine', 'gemini'),
                 'video_resolution' => $this->videoResolution,
                 'video_quality' => $this->videoQuality,
+                'video_duration_target' => $this->videoDuration,
                 'narrative_style' => $this->narrativeStyle,
                 'image_source' => $imageSource,
             ],
@@ -972,6 +974,22 @@ class UrlToVideo extends Component
                 ->limit(20)
                 ->get()
         );
+    }
+
+    public function getDurationPresetsProperty(): array
+    {
+        return [
+            ['value' => 60,  'label' => '1 min'],
+            ['value' => 90,  'label' => '1.5 min'],
+            ['value' => 120, 'label' => '2 min'],
+            ['value' => 180, 'label' => '3 min'],
+            ['value' => 300, 'label' => '5 min'],
+        ];
+    }
+
+    protected function calculateMaxWords(int $duration): int
+    {
+        return (int) round(($duration / 60) * 140 * 1.3);
     }
 
     public function getNarrativePresetsProperty(): array
