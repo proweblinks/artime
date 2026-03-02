@@ -55,6 +55,7 @@ return new class extends Migration
                 'assembling',
                 'ready',
                 'failed',
+                'cancelled',
             ])->default('draft');
             $table->unsignedTinyInteger('progress_percent')->default(0);
             $table->string('current_stage', 50)->nullable();
