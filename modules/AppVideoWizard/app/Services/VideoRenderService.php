@@ -1438,27 +1438,31 @@ class VideoRenderService
             Log::debug("[VideoRender:{$jobId}] [{$label}] Executing: " . substr($cmdString, 0, 200) . "...");
         }
 
+        // Redirect stderr to a temp file to avoid pipe deadlock.
+        // Reading stdout then stderr via pipes can deadlock when ffmpeg
+        // fills the 64KB stderr buffer while PHP blocks on stdout.
+        $stderrFile = tempnam(sys_get_temp_dir(), 'ffmpeg_err_');
         $descriptors = [
             0 => ['pipe', 'r'],
             1 => ['pipe', 'w'],
-            2 => ['pipe', 'w'],
+            2 => ['file', $stderrFile, 'w'],
         ];
 
         $process = proc_open($cmdString, $descriptors, $pipes);
 
         if (!is_resource($process)) {
+            @unlink($stderrFile);
             throw new Exception("Failed to start FFmpeg process");
         }
 
         fclose($pipes[0]);
 
         $stdout = stream_get_contents($pipes[1]);
-        $stderr = stream_get_contents($pipes[2]);
-
         fclose($pipes[1]);
-        fclose($pipes[2]);
 
         $exitCode = proc_close($process);
+        $stderr = file_get_contents($stderrFile);
+        @unlink($stderrFile);
 
         if ($exitCode !== 0) {
             $errorMsg = trim($stderr ?: $stdout);
