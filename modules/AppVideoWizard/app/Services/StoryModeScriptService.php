@@ -67,7 +67,8 @@ class StoryModeScriptService
             'target_words' => $targetWords,
         ]);
 
-        $maxAttempts = ($targetWords > 140 || $rawPrompt) ? 2 : 1;
+        // Always allow retries — Gemini often truncates JSON on first attempt
+        $maxAttempts = $rawPrompt ? 2 : 2;
         $wordCount = 0;
         $lastParsed = null;
 
@@ -137,11 +138,14 @@ class StoryModeScriptService
                 $wordCount = str_word_count($parsed['transcript']);
 
                 // If output is too short for the target, retry with plain text
-                if ($attempt < $maxAttempts && $wordCount < $targetWords * 0.75) {
-                    Log::warning('StoryModeScriptService: Script too short, retrying with plain text', [
+                // Also retry if transcript ends mid-sentence (no ending punctuation)
+                $endsAbruptly = !preg_match('/[.!?…][\s"\']*$/', trim($parsed['transcript']));
+                if ($attempt < $maxAttempts && ($wordCount < $targetWords * 0.85 || $endsAbruptly)) {
+                    Log::warning('StoryModeScriptService: Script too short or truncated, retrying', [
                         'attempt' => $attempt,
                         'word_count' => $wordCount,
                         'target_words' => $targetWords,
+                        'ends_abruptly' => $endsAbruptly,
                     ]);
                     $lastParsed = $parsed;
                     continue;
@@ -454,13 +458,15 @@ PROMPT;
      */
     protected function buildFallbackPrompt(string $prompt, int $targetDuration, int $targetWords, int $maxWords): string
     {
+        $minWords = (int) round($targetWords * 0.9);
         return <<<PROMPT
 Write a narration script for a {$targetDuration}-second video about the following topic:
 
 "{$prompt}"
 
 REQUIREMENTS:
-- CRITICAL: Write AT LEAST {$targetWords} words (maximum {$maxWords} words). The video is {$targetDuration} seconds long at 140 words per minute — you MUST fill the entire duration. Do NOT stop early.
+- WORD COUNT IS MANDATORY: Write between {$minWords} and {$maxWords} words. The video is {$targetDuration} seconds long at 140 words per minute. Count your words. If you write fewer than {$minWords} words, the video will have dead silence and black screen. This is the #1 priority.
+- The transcript MUST be a COMPLETE text that ends with a proper closing sentence. Never stop mid-sentence or mid-thought.
 - Write in a conversational, engaging narration style (NOT dialogue)
 - Structure with natural break points every 6-10 seconds of spoken content
 - Start with a hook that grabs attention in the first sentence
@@ -470,7 +476,7 @@ REQUIREMENTS:
 Respond ONLY with a JSON object containing:
 {
   "title": "Short catchy title for the video",
-  "transcript": "The complete narration text as one continuous string",
+  "transcript": "The complete narration text as one continuous string — must be {$minWords}-{$maxWords} words",
   "segments": [
     {
       "text": "The narration text for this segment",
@@ -479,7 +485,7 @@ Respond ONLY with a JSON object containing:
   ]
 }
 
-Output ONLY valid JSON, no markdown formatting.
+Output ONLY valid JSON, no markdown formatting. Do NOT truncate the transcript.
 PROMPT;
     }
 
@@ -489,19 +495,22 @@ PROMPT;
      */
     protected function buildPlainTextRetryPrompt(string $prompt, int $targetDuration, int $targetWords, int $maxWords): string
     {
+        $minWords = (int) round($targetWords * 0.9);
         return <<<PROMPT
-Write a complete narration script for a {$targetDuration}-second video about:
+Write a COMPLETE narration script for a {$targetDuration}-second video about:
 
 "{$prompt}"
 
-REQUIREMENTS:
-- You MUST write EXACTLY {$targetWords} to {$maxWords} words. Count carefully. This is a {$targetDuration}-second video at 140 words per minute.
+CRITICAL REQUIREMENTS:
+- You MUST write between {$minWords} and {$maxWords} words. This is NON-NEGOTIABLE. Count your words carefully.
+- This is a {$targetDuration}-second video at 140 words per minute. Every missing word = dead silence in the video.
+- The script MUST end with a proper closing sentence. NEVER stop mid-sentence.
 - Write in a conversational, engaging narration style
 - Start with an attention-grabbing hook
 - End with a memorable closing thought
 - Each paragraph should paint a vivid visual scene
 - Write ONLY the narration text — no titles, no labels, no formatting, no JSON, no markdown
-- Do NOT write less than {$targetWords} words. If you stop early, the video will have dead silence.
+- Previous attempt was too short. You MUST write the full {$minWords}+ words this time.
 PROMPT;
     }
 
