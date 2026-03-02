@@ -62,7 +62,7 @@ class StoryModeScriptService
             'target_words' => $targetWords,
         ]);
 
-        $maxAttempts = ($targetWords > 200) ? 2 : 1;
+        $maxAttempts = ($targetWords > 140) ? 2 : 1;
         $wordCount = 0;
         $lastParsed = null;
 
@@ -127,7 +127,7 @@ class StoryModeScriptService
                 $wordCount = str_word_count($parsed['transcript']);
 
                 // If output is too short for the target, retry with plain text
-                if ($attempt < $maxAttempts && $wordCount < $targetWords * 0.5) {
+                if ($attempt < $maxAttempts && $wordCount < $targetWords * 0.75) {
                     Log::warning('StoryModeScriptService: Script too short, retrying with plain text', [
                         'attempt' => $attempt,
                         'word_count' => $wordCount,
