@@ -73,7 +73,7 @@ class StoryModeScriptService
                 'text',
                 [
                     'temperature' => 0.7,
-                    'max_tokens' => 4000,
+                    'max_tokens' => max(4000, (int) ($maxWords * 6)),
                 ],
                 auth()->user()?->team_id ?? 0
             );
@@ -398,7 +398,7 @@ Write a narration script for a {$targetDuration}-second video about the followin
 "{$prompt}"
 
 REQUIREMENTS:
-- Write exactly {$targetWords} words (maximum {$maxWords} words)
+- CRITICAL: Write AT LEAST {$targetWords} words (maximum {$maxWords} words). The video is {$targetDuration} seconds long at 140 words per minute — you MUST fill the entire duration. Do NOT stop early.
 - Write in a conversational, engaging narration style (NOT dialogue)
 - Structure with natural break points every 6-10 seconds of spoken content
 - Start with a hook that grabs attention in the first sentence
