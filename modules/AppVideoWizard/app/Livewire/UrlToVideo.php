@@ -637,6 +637,46 @@ class UrlToVideo extends Component
     }
 
     /**
+     * Load more stock candidates for a scene.
+     * Fetches additional results from the matched category or subject, excluding already-shown items.
+     */
+    public function loadMoreCandidates(string $sceneId)
+    {
+        $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
+
+        // Collect IDs already shown in this scene
+        $existingIds = array_filter(array_column($this->sceneImageCandidates[$sceneId] ?? [], 'stock_id'));
+
+        $subject = $this->storedContentBrief['subject'] ?? $this->prompt ?? '';
+        $matchedCategory = !empty($subject) ? $stockService->findMatchingCategory($subject) : null;
+        $added = 0;
+
+        try {
+            if ($matchedCategory) {
+                // Load more from the matched category
+                $results = $stockService->browseCategoryExcluding($matchedCategory, 8, $existingIds);
+            } else {
+                // Fallback to FULLTEXT search with exclusion
+                $results = $stockService->searchExcluding($subject, 8, $existingIds);
+            }
+
+            foreach ($results as $item) {
+                $this->sceneImageCandidates[$sceneId][] = $item;
+                $added++;
+            }
+        } catch (\Exception $e) {
+            Log::warning('UrlToVideo: loadMoreCandidates failed', [
+                'scene' => $sceneId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        if ($added === 0) {
+            session()->flash('searchError', 'No more clips available');
+        }
+    }
+
+    /**
      * Search external stock sources (Pexels, Pixabay, Wikimedia) for a scene.
      * Only called when user explicitly clicks "Browse External".
      */

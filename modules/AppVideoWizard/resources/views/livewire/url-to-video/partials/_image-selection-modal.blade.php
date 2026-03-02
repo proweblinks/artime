@@ -446,6 +446,18 @@
                                         </span>
                                     </button>
                                 @endforeach
+                                {{-- Load More button at end of row --}}
+                                <button wire:click="loadMoreCandidates('{{ $sceneId }}')"
+                                        wire:loading.attr="disabled"
+                                        type="button"
+                                        class="utv-load-more-btn"
+                                        style="flex: 0 0 80px; min-width: 80px; height: 100%; min-height: 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.15); border-radius: 8px; color: #888; font-size: 0.7rem; cursor: pointer; transition: all 0.2s;"
+                                        onmouseover="this.style.background='rgba(255,255,255,0.1)';this.style.color='#fff';this.style.borderColor='rgba(255,255,255,0.3)'"
+                                        onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.color='#888';this.style.borderColor='rgba(255,255,255,0.15)'">
+                                    <i class="fa-light fa-arrow-right" wire:loading.class="fa-spinner-third fa-spin" wire:target="loadMoreCandidates('{{ $sceneId }}')"></i>
+                                    <span wire:loading.remove wire:target="loadMoreCandidates('{{ $sceneId }}')">{{ __('More') }}</span>
+                                    <span wire:loading wire:target="loadMoreCandidates('{{ $sceneId }}')">...</span>
+                                </button>
                             </div>
                         </div>
                     @else
