@@ -429,8 +429,10 @@
                                                 </button>
                                             @endif
                                         @endif
-                                        <span class="utv-source-badge">
-                                            @if($candidate['source'] === 'artime_stock')
+                                        <span class="utv-source-badge" @if(($candidate['source'] ?? '') === 'previous_selection') style="background: rgba(249,115,22,0.8); color: #fff;" @endif>
+                                            @if(($candidate['source'] ?? '') === 'previous_selection')
+                                                {{ __('Previous') }}
+                                            @elseif($candidate['source'] === 'artime_stock')
                                                 {{ __('Stock') }}
                                             @elseif($candidate['source'] === 'article')
                                                 {{ __('Article') }}

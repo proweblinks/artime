@@ -1141,8 +1141,9 @@ class UrlToVideo extends Component
     }
 
     /**
-     * Re-create a project from an existing one (same transcript + settings).
-     * Loads the project's data into component state and triggers confirmTranscript().
+     * Re-create a project from an existing one.
+     * Restores transcript, settings, AND the original per-scene media selections,
+     * then sources fresh alternatives so the user can swap clips or keep originals.
      */
     public function recreateProject(int $projectId)
     {
@@ -1184,20 +1185,150 @@ class UrlToVideo extends Component
         // Close the detail modal
         $this->detailProjectId = null;
 
-        // Reset image selection state for fresh sourcing
-        $this->sceneImageCandidates = [];
-        $this->selectedSceneImages = [];
-        $this->sceneCropData = [];
-        $this->sceneVideoEdits = [];
-        $this->sceneAnimateWithAI = [];
-
         Log::info('UrlToVideo: Recreating project', [
             'original_project_id' => $projectId,
             'image_source' => $imageSource,
+            'scene_count' => count($project->scenes ?? []),
         ]);
 
-        // Trigger the same flow as confirmTranscript
-        $this->confirmTranscript();
+        // For non-real-images projects, just dispatch directly
+        if (!$this->useRealImages) {
+            $this->sceneImageCandidates = [];
+            $this->selectedSceneImages = [];
+            $this->sceneCropData = [];
+            $this->sceneVideoEdits = [];
+            $this->sceneAnimateWithAI = [];
+            $this->confirmTranscript();
+            return;
+        }
+
+        // Real images mode: restore original clips + source fresh alternatives
+        $this->isSourcingImages = true;
+
+        try {
+            $scriptService = new StoryModeScriptService();
+            $segments = $scriptService->segmentTranscript($this->editableTranscript, $this->videoDuration);
+            $this->generatedSegments = $segments;
+
+            $scenes = [];
+            foreach ($segments as $i => $segment) {
+                $scenes[] = [
+                    'id' => 'scene_' . $i,
+                    'index' => $i,
+                    'text' => $segment['text'],
+                    'estimated_duration' => $segment['estimated_duration'],
+                ];
+            }
+
+            // Build original media map from the project's stored scenes
+            $originalScenes = $project->scenes ?? [];
+            $originalMediaByScene = [];
+            foreach ($originalScenes as $origScene) {
+                $sceneId = $origScene['id'] ?? null;
+                if (!$sceneId) continue;
+
+                $hasVideo = !empty($origScene['video_url']);
+                $hasImage = !empty($origScene['image_url']);
+
+                if ($hasVideo || $hasImage) {
+                    $candidate = [
+                        'url' => $hasVideo ? $origScene['video_url'] : $origScene['image_url'],
+                        'thumbnail' => $origScene['image_url'] ?? ($hasVideo ? $origScene['video_url'] : ''),
+                        'title' => 'Previous selection',
+                        'width' => 0,
+                        'height' => 0,
+                        'source' => 'previous_selection',
+                        'score' => 10.0, // Highest score to sort first
+                    ];
+                    if ($hasVideo) {
+                        $candidate['type'] = 'video';
+                        $candidate['duration'] = $origScene['estimated_duration'] ?? 0;
+                    }
+                    $originalMediaByScene[$sceneId] = $candidate;
+                }
+            }
+
+            // Source fresh stock candidates
+            $imageService = new ImageSourceService();
+            $contentBrief = $this->storedContentBrief;
+            if (empty($contentBrief['subject'])) {
+                $contentBrief['subject'] = $this->prompt ?: $this->generatedTitle;
+            }
+            $result = $imageService->sourceForScenes(
+                $scenes,
+                $this->storedExtractedContent,
+                $contentBrief
+            );
+
+            // Merge: original clip first, then fresh candidates
+            $this->sceneImageCandidates = [];
+            $this->sceneSearchSuggestions = [];
+            $this->selectedSceneImages = [];
+            $this->sceneCropData = [];
+            $this->sceneVideoEdits = [];
+            $this->sceneAnimateWithAI = [];
+
+            foreach ($result as $sceneId => $data) {
+                $freshCandidates = $data['candidates'] ?? [];
+                $this->sceneSearchSuggestions[$sceneId] = $data['suggestions'] ?? [];
+
+                // Prepend original selection if it exists for this scene
+                if (isset($originalMediaByScene[$sceneId])) {
+                    $original = $originalMediaByScene[$sceneId];
+
+                    // Remove duplicate if fresh candidates contain the same URL
+                    $originalUrl = $original['url'];
+                    $freshCandidates = array_values(array_filter(
+                        $freshCandidates,
+                        fn($c) => ($c['url'] ?? '') !== $originalUrl
+                    ));
+
+                    // Insert original as first candidate
+                    array_unshift($freshCandidates, $original);
+                    $this->selectedSceneImages[$sceneId] = 0; // Pre-select the original
+                } else {
+                    // No original — auto-select first fresh candidate
+                    $this->selectedSceneImages[$sceneId] = !empty($freshCandidates) ? 0 : 'ai';
+                }
+
+                $this->sceneImageCandidates[$sceneId] = $freshCandidates;
+
+                // Restore crop/video-edit from original project
+                $origScene = collect($originalScenes)->firstWhere('id', $sceneId);
+                if ($origScene) {
+                    if (!empty($origScene['crop'])) {
+                        $this->sceneCropData[$sceneId] = $origScene['crop'];
+                    }
+                    if (!empty($origScene['video_edit'])) {
+                        $this->sceneVideoEdits[$sceneId] = $origScene['video_edit'];
+                    }
+                    if (isset($origScene['animate_with_ai'])) {
+                        $this->sceneAnimateWithAI[$sceneId] = $origScene['animate_with_ai'];
+                    }
+                }
+
+                // Auto-trim video if first candidate is a video
+                if (!empty($freshCandidates) && ($freshCandidates[0]['type'] ?? 'image') === 'video') {
+                    $this->sceneAnimateWithAI[$sceneId] = $this->sceneAnimateWithAI[$sceneId] ?? false;
+                    if (!isset($this->sceneVideoEdits[$sceneId])) {
+                        $this->autoTrimVideoClip($sceneId, $freshCandidates[0]);
+                    }
+                }
+            }
+
+            $this->showImageSelectionModal = true;
+
+            Log::info('UrlToVideo: Recreate image selection ready', [
+                'original_project_id' => $projectId,
+                'scenes_with_original' => count($originalMediaByScene),
+                'total_scenes' => count($result),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('UrlToVideo: Recreate image sourcing failed', ['error' => $e->getMessage()]);
+            session()->flash('error', 'Failed to prepare recreation: ' . $e->getMessage());
+        } finally {
+            $this->isSourcingImages = false;
+        }
     }
 
     #[Computed]
