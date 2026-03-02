@@ -153,15 +153,40 @@
                     </div>
                 @endif
 
-                {{-- Narrative Style Pills --}}
-                <div class="utv-style-pills-row px-3 pb-2">
-                    @foreach($this->narrativePresets as $preset)
-                        <button wire:click="$set('narrativeStyle', '{{ $preset['key'] }}')" type="button"
-                                class="utv-style-pill {{ $narrativeStyle === $preset['key'] ? 'active' : '' }}">
-                            <i class="{{ $preset['icon'] }}"></i>
-                            <span>{{ $preset['name'] }}</span>
+                {{-- Mode Toggle + Narrative Style Pills --}}
+                <div class="px-3 pb-2">
+                    {{-- Standard / Creative toggle --}}
+                    <div class="utv-mode-toggle mb-2">
+                        <button wire:click="$set('creativeMode', false)" type="button"
+                                class="utv-mode-btn {{ !$creativeMode ? 'active' : '' }}">
+                            <i class="fa-light fa-list-music"></i>
+                            {{ __('Standard') }}
                         </button>
-                    @endforeach
+                        <button wire:click="$set('creativeMode', true)" type="button"
+                                class="utv-mode-btn {{ $creativeMode ? 'active creative' : '' }}">
+                            <i class="fa-light fa-wand-magic-sparkles"></i>
+                            {{ __('Creative') }}
+                        </button>
+                    </div>
+
+                    @if(!$creativeMode)
+                        {{-- Standard: show 12 narrative style pills --}}
+                        <div class="utv-style-pills-row">
+                            @foreach($this->narrativePresets as $preset)
+                                <button wire:click="$set('narrativeStyle', '{{ $preset['key'] }}')" type="button"
+                                        class="utv-style-pill {{ $narrativeStyle === $preset['key'] ? 'active' : '' }}">
+                                    <i class="{{ $preset['icon'] }}"></i>
+                                    <span>{{ $preset['name'] }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                    @else
+                        {{-- Creative: info banner --}}
+                        <div class="utv-creative-banner">
+                            <i class="fa-light fa-sparkles"></i>
+                            <span>{{ __('AI will invent a unique creative angle for your topic') }}</span>
+                        </div>
+                    @endif
                 </div>
 
                 {{-- Bottom Toolbar --}}
@@ -564,5 +589,91 @@
             background: #f97316;
             color: #fff;
         }
+        /* Mode Toggle */
+        .utv-mode-toggle {
+            display: inline-flex;
+            gap: 2px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 10px;
+            padding: 3px;
+        }
+        .utv-mode-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 14px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: #888;
+            font-size: 0.78rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+        .utv-mode-btn:hover { color: #ccc; }
+        .utv-mode-btn i { font-size: 0.8rem; }
+        .utv-mode-btn.active {
+            background: rgba(249,115,22,0.15);
+            color: #f97316;
+        }
+        .utv-mode-btn.active.creative {
+            background: rgba(139,92,246,0.15);
+            color: #c4b5fd;
+        }
+        .utv-creative-banner {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: rgba(139,92,246,0.08);
+            border: 1px solid rgba(139,92,246,0.15);
+            border-radius: 10px;
+            color: #c4b5fd;
+            font-size: 0.8rem;
+        }
+        .utv-creative-banner i { font-size: 0.85rem; }
+        /* Concept Badge */
+        .utv-concept-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(168,85,247,0.15));
+            border: 1px solid rgba(139,92,246,0.25);
+            border-radius: 10px;
+            color: #c4b5fd;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+        .utv-concept-badge i { font-size: 0.75rem; }
+        /* Concept Cards */
+        .utv-concept-card {
+            padding: 12px 14px;
+            background: #222;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .utv-concept-card:hover {
+            border-color: rgba(139,92,246,0.4);
+            background: #2a2a2a;
+        }
+        .utv-concept-tone-badge {
+            display: inline-flex;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .utv-tone-funny { background: rgba(245,158,11,0.15); color: #fbbf24; }
+        .utv-tone-emotional { background: rgba(236,72,153,0.15); color: #f472b6; }
+        .utv-tone-intellectual { background: rgba(96,165,250,0.15); color: #60a5fa; }
+        .utv-tone-provocative { background: rgba(239,68,68,0.15); color: #f87171; }
+        .utv-tone-whimsical { background: rgba(168,85,247,0.15); color: #c084fc; }
+        .utv-tone-dramatic { background: rgba(251,146,60,0.15); color: #fb923c; }
     </style>
 </div>

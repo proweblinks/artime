@@ -30,6 +30,14 @@ class UrlToVideo extends Component
     public int $videoDuration = 60;
     public string $narrativeStyle = 'hook_reveal';
 
+    // Creative Mode state
+    public bool $creativeMode = false;
+    public ?string $creativeConceptTitle = null;
+    public ?string $creativeConceptPitch = null;
+    public array $alternativeConcepts = [];
+    public bool $isGeneratingConcepts = false;
+    public bool $showConceptCards = false;
+
     // Extraction state
     public bool $isExtracting = false;
 
@@ -198,13 +206,21 @@ class UrlToVideo extends Component
                 $contentBrief = $extractor->analyzeContent($extractedContent, $userPrompt);
                 $this->storedContentBrief = $contentBrief;
 
-                $enhancedPrompt = $extractor->buildEnhancedPrompt($contentBrief, $userPrompt, $this->narrativeStyle);
+                if ($this->creativeMode) {
+                    $enhancedPrompt = $extractor->buildCreativeRoulettePrompt($contentBrief, $userPrompt, $this->videoDuration);
+                } else {
+                    $enhancedPrompt = $extractor->buildEnhancedPrompt($contentBrief, $userPrompt, $this->narrativeStyle);
+                }
             } else {
-                // Prompt-only mode (no URL) — still apply narrative style
-                $enhancedPrompt = $this->prompt;
-                $styleInstruction = $extractor->getNarrativeStyleInstruction($this->narrativeStyle);
-                if ($styleInstruction) {
-                    $enhancedPrompt .= "\n\n" . $styleInstruction;
+                // Prompt-only mode (no URL)
+                if ($this->creativeMode) {
+                    $enhancedPrompt = $extractor->buildCreativeRoulettePromptFromText($this->prompt, $this->videoDuration);
+                } else {
+                    $enhancedPrompt = $this->prompt;
+                    $styleInstruction = $extractor->getNarrativeStyleInstruction($this->narrativeStyle);
+                    if ($styleInstruction) {
+                        $enhancedPrompt .= "\n\n" . $styleInstruction;
+                    }
                 }
                 $this->storedExtractedContent = [];
                 $this->storedContentBrief = [];
@@ -215,7 +231,7 @@ class UrlToVideo extends Component
             $targetDuration = $this->videoDuration;
             $maxWords = $this->calculateMaxWords($this->videoDuration);
 
-            $result = $scriptService->generateScript($enhancedPrompt, $targetDuration, $maxWords);
+            $result = $scriptService->generateScript($enhancedPrompt, $targetDuration, $maxWords, $this->creativeMode);
 
             $this->editableTranscript = $result['transcript'];
             $this->transcriptWordCount = $result['word_count'];
@@ -224,6 +240,15 @@ class UrlToVideo extends Component
                 ?? $result['title']
                 ?? 'Untitled Video';
             $this->generatedSegments = $result['segments'] ?? [];
+
+            // Extract creative concept fields
+            if ($this->creativeMode) {
+                $this->creativeConceptTitle = $result['concept_title'] ?? null;
+                $this->creativeConceptPitch = $result['concept_pitch'] ?? null;
+                $this->alternativeConcepts = [];
+                $this->showConceptCards = false;
+            }
+
             $this->showTranscriptModal = true;
         } catch (\Exception $e) {
             Log::error('UrlToVideo: Script generation failed', ['error' => $e->getMessage()]);
@@ -731,6 +756,103 @@ class UrlToVideo extends Component
     }
 
     /**
+     * Shuffle creative concept — re-run submitPrompt for a new random angle.
+     */
+    public function shuffleCreativeConcept()
+    {
+        $this->editableTranscript = null;
+        $this->generatedTitle = null;
+        $this->generatedSegments = [];
+        $this->creativeConceptTitle = null;
+        $this->creativeConceptPitch = null;
+        $this->alternativeConcepts = [];
+        $this->showConceptCards = false;
+        $this->showTranscriptModal = false;
+
+        $this->submitPrompt();
+    }
+
+    /**
+     * Generate 4 alternative creative concept cards.
+     */
+    public function generateMoreIdeas()
+    {
+        $this->isGeneratingConcepts = true;
+
+        try {
+            $extractor = new UrlContentExtractorService();
+            $subject = $this->storedContentBrief['subject']
+                ?? $this->generatedTitle
+                ?? $this->prompt;
+
+            $this->alternativeConcepts = $extractor->generateCreativeConcepts(
+                $subject,
+                $this->videoDuration,
+                $this->creativeConceptTitle
+            );
+            $this->showConceptCards = !empty($this->alternativeConcepts);
+        } catch (\Exception $e) {
+            Log::error('UrlToVideo: Creative concept generation failed', ['error' => $e->getMessage()]);
+            session()->flash('error', 'Failed to generate ideas: ' . $e->getMessage());
+        } finally {
+            $this->isGeneratingConcepts = false;
+        }
+    }
+
+    /**
+     * Select a specific concept card and generate a full script for it.
+     */
+    public function selectCreativeConcept(int $index)
+    {
+        if (!isset($this->alternativeConcepts[$index])) {
+            return;
+        }
+
+        $concept = $this->alternativeConcepts[$index];
+        $this->isGeneratingScript = true;
+        $this->showConceptCards = false;
+
+        try {
+            $extractor = new UrlContentExtractorService();
+
+            if (!empty($this->storedContentBrief)) {
+                $enhancedPrompt = $extractor->buildCreativeConceptPrompt(
+                    $this->storedContentBrief,
+                    $concept,
+                    $this->videoDuration
+                );
+            } else {
+                $enhancedPrompt = $extractor->buildCreativeConceptPromptFromText(
+                    $this->prompt,
+                    $concept,
+                    $this->videoDuration
+                );
+            }
+
+            $scriptService = new StoryModeScriptService();
+            $maxWords = $this->calculateMaxWords($this->videoDuration);
+            $result = $scriptService->generateScript($enhancedPrompt, $this->videoDuration, $maxWords, true);
+
+            $this->editableTranscript = $result['transcript'];
+            $this->transcriptWordCount = $result['word_count'];
+            $this->generatedTitle = $result['title'] ?? $this->generatedTitle;
+            $this->generatedSegments = $result['segments'] ?? [];
+            $this->creativeConceptTitle = $result['concept_title'] ?? $concept['title'] ?? null;
+            $this->creativeConceptPitch = $result['concept_pitch'] ?? $concept['pitch'] ?? null;
+
+            // Clear image candidates since script changed
+            $this->sceneImageCandidates = [];
+            $this->sceneSearchSuggestions = [];
+            $this->selectedSceneImages = [];
+        } catch (\Exception $e) {
+            Log::error('UrlToVideo: Creative concept script generation failed', ['error' => $e->getMessage()]);
+            session()->flash('error', 'Failed to generate script: ' . $e->getMessage());
+        } finally {
+            $this->isGeneratingScript = false;
+        }
+    }
+
+    /**
      * Create project and dispatch the generation job.
      * Downloads selected real images and assigns image_url to scenes.
      */
@@ -869,8 +991,11 @@ class UrlToVideo extends Component
                 'video_resolution' => $this->videoResolution,
                 'video_quality' => $this->videoQuality,
                 'video_duration_target' => $this->videoDuration,
-                'narrative_style' => $this->narrativeStyle,
+                'narrative_style' => $this->creativeMode ? 'creative' : $this->narrativeStyle,
                 'image_source' => $imageSource,
+                'creative_mode' => $this->creativeMode,
+                'creative_concept_title' => $this->creativeConceptTitle,
+                'creative_concept_pitch' => $this->creativeConceptPitch,
             ],
         ]);
 
@@ -898,6 +1023,23 @@ class UrlToVideo extends Component
         $this->sceneAnimateWithAI = [];
         $this->sceneCropData = [];
         $this->sceneVideoEdits = [];
+    }
+
+    public function updatedCreativeMode()
+    {
+        $this->editableTranscript = null;
+        $this->generatedTitle = null;
+        $this->generatedSegments = [];
+        $this->sceneImageCandidates = [];
+        $this->sceneSearchSuggestions = [];
+        $this->selectedSceneImages = [];
+        $this->sceneAnimateWithAI = [];
+        $this->sceneCropData = [];
+        $this->sceneVideoEdits = [];
+        $this->creativeConceptTitle = null;
+        $this->creativeConceptPitch = null;
+        $this->alternativeConcepts = [];
+        $this->showConceptCards = false;
     }
 
     public function updatedVideoDuration()

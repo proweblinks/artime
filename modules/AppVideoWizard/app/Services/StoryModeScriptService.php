@@ -29,7 +29,7 @@ class StoryModeScriptService
      * @param int $maxWords Maximum word count for transcript
      * @return array{transcript: string, segments: array, word_count: int}
      */
-    public function generateScript(string $prompt, int $targetDuration = 60, int $maxWords = 700): array
+    public function generateScript(string $prompt, int $targetDuration = 60, int $maxWords = 700, bool $rawPrompt = false): array
     {
         $engine = get_option('story_mode_ai_engine', 'gemini');
         $model = get_option('story_mode_ai_model', 'gemini-2.5-flash');
@@ -41,16 +41,21 @@ class StoryModeScriptService
             $maxWords
         );
 
-        // Try DB-managed prompt first, fall back to hardcoded template
-        $compiledPrompt = $this->promptService->getCompiledPrompt('story_mode_script_generate', [
-            'prompt' => $prompt,
-            'target_duration' => $targetDuration,
-            'target_words' => $targetWords,
-            'max_words' => $maxWords,
-        ]);
+        if ($rawPrompt) {
+            // Raw mode: use the prompt as-is (caller provides full JSON format instructions)
+            $compiledPrompt = $prompt;
+        } else {
+            // Try DB-managed prompt first, fall back to hardcoded template
+            $compiledPrompt = $this->promptService->getCompiledPrompt('story_mode_script_generate', [
+                'prompt' => $prompt,
+                'target_duration' => $targetDuration,
+                'target_words' => $targetWords,
+                'max_words' => $maxWords,
+            ]);
 
-        if (empty($compiledPrompt)) {
-            $compiledPrompt = $this->buildFallbackPrompt($prompt, $targetDuration, $targetWords, $maxWords);
+            if (empty($compiledPrompt)) {
+                $compiledPrompt = $this->buildFallbackPrompt($prompt, $targetDuration, $targetWords, $maxWords);
+            }
         }
 
         $systemMessage = "You are a professional video narration scriptwriter. You write engaging, concise narration scripts for short-form video content. Your scripts are vivid, conversational, and designed to pair with visual imagery. Always respond with ONLY the JSON output, no markdown formatting.";
@@ -62,15 +67,18 @@ class StoryModeScriptService
             'target_words' => $targetWords,
         ]);
 
-        $maxAttempts = ($targetWords > 140) ? 2 : 1;
+        $maxAttempts = ($targetWords > 140 || $rawPrompt) ? 2 : 1;
         $wordCount = 0;
         $lastParsed = null;
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             try {
-                // Attempt 1: JSON format. Attempt 2: plain text (avoids Gemini JSON truncation)
+                // Attempt 1: JSON format. Attempt 2: plain text (or re-try JSON for rawPrompt)
                 if ($attempt === 1) {
                     $fullPrompt = "{$systemMessage}\n\n{$compiledPrompt}";
+                } elseif ($rawPrompt) {
+                    // Raw prompt mode (creative): retry the same prompt with more tokens
+                    $fullPrompt = "{$systemMessage}\n\n{$compiledPrompt}\n\nIMPORTANT: Your previous response was truncated. You MUST output the COMPLETE JSON with ALL fields including the full transcript. Do not stop mid-sentence.";
                 } else {
                     $plainTextPrompt = $this->buildPlainTextRetryPrompt($prompt, $targetDuration, $targetWords, $maxWords);
                     $plainTextSystem = "You are a professional video narration scriptwriter. Write engaging, vivid narration scripts for video content. Output ONLY the narration text — no JSON, no formatting, no headers, no markdown.";
@@ -84,7 +92,7 @@ class StoryModeScriptService
                     'text',
                     [
                         'temperature' => 0.7,
-                        'max_tokens' => max(4000, (int) ($maxWords * 6)),
+                        'max_tokens' => $rawPrompt ? max(8000, (int) ($maxWords * 10)) : max(4000, (int) ($maxWords * 6)),
                     ],
                     auth()->user()?->team_id ?? 0
                 );
@@ -95,8 +103,8 @@ class StoryModeScriptService
 
                 $content = $response['data'][0] ?? '';
 
-                if ($attempt === 1) {
-                    // Parse the JSON response
+                if ($attempt === 1 || $rawPrompt) {
+                    // Parse the JSON response (rawPrompt retries also use JSON format)
                     $parsed = $this->parseScriptResponse($content);
                 } else {
                     // Plain text retry — use raw content as transcript
@@ -117,6 +125,8 @@ class StoryModeScriptService
                         'title' => $lastParsed['title'] ?? 'Untitled Story',
                         'transcript' => $plainText,
                         'segments' => [],
+                        'concept_title' => $lastParsed['concept_title'] ?? null,
+                        'concept_pitch' => $lastParsed['concept_pitch'] ?? null,
                     ];
                 }
 
@@ -144,7 +154,7 @@ class StoryModeScriptService
                     'word_count' => $wordCount,
                     'segments' => count($segments),
                     'attempt' => $attempt,
-                    'format' => $attempt === 1 ? 'json' : 'plain_text',
+                    'format' => ($attempt === 1 || $rawPrompt) ? 'json' : 'plain_text',
                 ]);
 
                 return [
@@ -152,6 +162,8 @@ class StoryModeScriptService
                     'segments' => $segments,
                     'word_count' => $wordCount,
                     'title' => $parsed['title'] ?? 'Untitled Story',
+                    'concept_title' => $parsed['concept_title'] ?? null,
+                    'concept_pitch' => $parsed['concept_pitch'] ?? null,
                 ];
             } catch (\Exception $e) {
                 Log::error('StoryModeScriptService: Script generation failed', [
@@ -505,6 +517,8 @@ PROMPT;
                 'title' => $json['title'] ?? 'Untitled Story',
                 'transcript' => $json['transcript'] ?? '',
                 'segments' => $json['segments'] ?? [],
+                'concept_title' => $json['concept_title'] ?? null,
+                'concept_pitch' => $json['concept_pitch'] ?? null,
             ];
         }
 
@@ -517,10 +531,20 @@ PROMPT;
             if (preg_match('/"title"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $sanitized, $tm)) {
                 $title = stripcslashes($tm[1]);
             }
+            $conceptTitle = null;
+            $conceptPitch = null;
+            if (preg_match('/"concept_title"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $sanitized, $cm)) {
+                $conceptTitle = stripcslashes($cm[1]);
+            }
+            if (preg_match('/"concept_pitch"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $sanitized, $cp)) {
+                $conceptPitch = stripcslashes($cp[1]);
+            }
             return [
                 'title' => $title,
                 'transcript' => $transcript,
                 'segments' => [],
+                'concept_title' => $conceptTitle,
+                'concept_pitch' => $conceptPitch,
             ];
         }
 
@@ -528,11 +552,15 @@ PROMPT;
         $transcript = $this->manualExtractJsonStringValue($sanitized, 'transcript');
         if ($transcript) {
             $title = $this->manualExtractJsonStringValue($sanitized, 'title') ?: 'Untitled Story';
+            $conceptTitle = $this->manualExtractJsonStringValue($sanitized, 'concept_title');
+            $conceptPitch = $this->manualExtractJsonStringValue($sanitized, 'concept_pitch');
             Log::info('StoryModeScriptService: Transcript extracted via manual char-by-char parsing');
             return [
                 'title' => $title,
                 'transcript' => $transcript,
                 'segments' => [],
+                'concept_title' => $conceptTitle,
+                'concept_pitch' => $conceptPitch,
             ];
         }
 

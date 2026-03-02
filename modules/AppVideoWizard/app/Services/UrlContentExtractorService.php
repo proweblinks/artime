@@ -390,12 +390,318 @@ TXT,
     }
 
     /**
+     * Creative Roulette: invent a unique conceptual angle and write a full script.
+     * Used when Creative Mode is ON and a URL was provided.
+     */
+    public function buildCreativeRoulettePrompt(array $contentBrief, ?string $userPrompt, int $videoDuration): string
+    {
+        $subject = $contentBrief['subject'] ?? $contentBrief['suggested_title'] ?? 'this topic';
+        $summary = $contentBrief['summary'] ?? '';
+        $tone = $contentBrief['tone'] ?? 'conversational';
+        $audience = $contentBrief['target_audience'] ?? 'general audience';
+
+        $facts = $contentBrief['key_facts'] ?? [];
+        usort($facts, fn($a, $b) => ($b['importance'] ?? 0) <=> ($a['importance'] ?? 0));
+        $topFacts = array_slice($facts, 0, 8);
+        $factsText = implode("\n", array_map(
+            fn($f, $i) => ($i + 1) . ". " . ($f['fact'] ?? ''),
+            $topFacts,
+            array_keys($topFacts)
+        ));
+
+        $wordsPerMinute = 140;
+        $targetWords = (int) round(($videoDuration / 60) * $wordsPerMinute);
+        $maxWords = (int) round($targetWords * 1.3);
+
+        $userDirection = $userPrompt ? "\nUSER'S CREATIVE DIRECTION: {$userPrompt}\n" : '';
+
+        return <<<PROMPT
+You are a wildly creative video concept inventor. Your job is to invent a UNIQUE CREATIVE ANGLE — not a delivery structure, but a conceptual IDEA that makes this topic fascinating in a way nobody has seen before.
+
+TOPIC: {$subject}
+SUMMARY: {$summary}
+TONE CONTEXT: {$tone}, for {$audience}
+{$userDirection}
+RESEARCH FACTS (weave into your script naturally):
+{$factsText}
+
+## YOUR TASK
+1. Invent ONE unique creative angle — a conceptual idea, NOT a delivery format
+2. Write the FULL narration script committed to that angle
+
+## EXAMPLES OF CREATIVE ANGLES (for inspiration — invent your OWN):
+- "A letter from your future self about the trip that changed everything"
+- "What if airports could narrate their own history"
+- "The conversation your brain has with itself at 3am about this topic"
+- "A nature documentary narrator describing office workers as if they were wildlife"
+- "The last diary entry of someone who just discovered this for the first time"
+- "A time traveler explaining this to someone from 1850"
+- "The psychology of why this topic makes people irrationally excited"
+- "If this topic were a person at a dinner party, what stories would it tell"
+- "The untold rivalry behind the scenes of this story"
+- "What a detective would notice that everyone else misses about this"
+
+## RULES
+- The angle must be SPECIFIC to "{$subject}" — not a generic template that works for anything
+- Write as if YOU are telling this story — original narration, not a summary
+- NEVER mention or reference the source URL, article, video, website, or platform
+- Use vivid, visual language that pairs well with cinematic imagery
+- Write AT LEAST {$targetWords} words (maximum {$maxWords} words) — the video is {$videoDuration} seconds at 140 WPM
+
+Respond ONLY with a JSON object:
+{
+  "concept_title": "Short catchy name for this creative angle (3-8 words)",
+  "concept_pitch": "One sentence explaining the angle (what makes it unique)",
+  "title": "The video title",
+  "transcript": "The complete narration script as one continuous string",
+  "segments": [
+    {"text": "Segment narration text", "estimated_duration": 6}
+  ]
+}
+
+Output ONLY valid JSON, no markdown formatting.
+PROMPT;
+    }
+
+    /**
+     * Creative Roulette for prompt-only mode (no URL content brief).
+     */
+    public function buildCreativeRoulettePromptFromText(string $userPrompt, int $videoDuration): string
+    {
+        $wordsPerMinute = 140;
+        $targetWords = (int) round(($videoDuration / 60) * $wordsPerMinute);
+        $maxWords = (int) round($targetWords * 1.3);
+
+        return <<<PROMPT
+You are a wildly creative video concept inventor. Your job is to invent a UNIQUE CREATIVE ANGLE — not a delivery structure, but a conceptual IDEA that makes this topic fascinating in a way nobody has seen before.
+
+TOPIC: {$userPrompt}
+
+## YOUR TASK
+1. Invent ONE unique creative angle — a conceptual idea, NOT a delivery format
+2. Write the FULL narration script committed to that angle
+
+## EXAMPLES OF CREATIVE ANGLES (for inspiration — invent your OWN):
+- "A letter from your future self about the trip that changed everything"
+- "What if airports could narrate their own history"
+- "The conversation your brain has with itself at 3am about this topic"
+- "A nature documentary narrator describing office workers as if they were wildlife"
+- "The last diary entry of someone who just discovered this for the first time"
+- "A time traveler explaining this to someone from 1850"
+- "The psychology of why this topic makes people irrationally excited"
+- "If this topic were a person at a dinner party, what stories would it tell"
+- "The untold rivalry behind the scenes of this story"
+- "What a detective would notice that everyone else misses about this"
+
+## RULES
+- The angle must be SPECIFIC to the topic — not a generic template that works for anything
+- Write as if YOU are telling this story — original narration, not a summary
+- NEVER mention or reference any source URL, article, video, website, or platform
+- Use vivid, visual language that pairs well with cinematic imagery
+- Write AT LEAST {$targetWords} words (maximum {$maxWords} words) — the video is {$videoDuration} seconds at 140 WPM
+
+Respond ONLY with a JSON object:
+{
+  "concept_title": "Short catchy name for this creative angle (3-8 words)",
+  "concept_pitch": "One sentence explaining the angle (what makes it unique)",
+  "title": "The video title",
+  "transcript": "The complete narration script as one continuous string",
+  "segments": [
+    {"text": "Segment narration text", "estimated_duration": 6}
+  ]
+}
+
+Output ONLY valid JSON, no markdown formatting.
+PROMPT;
+    }
+
+    /**
+     * Generate 4 alternative creative concept cards for the user to choose from.
+     */
+    public function generateCreativeConcepts(string $subject, int $videoDuration, ?string $excludeConcept = null): array
+    {
+        $engine = get_option('story_mode_ai_engine', 'gemini');
+        $model = get_option('story_mode_ai_model', 'gemini-2.5-flash');
+        $teamId = auth()->user()?->team_id ?? 0;
+
+        $excludeClause = $excludeConcept
+            ? "\nDO NOT repeat or rephrase this existing concept: \"{$excludeConcept}\"\n"
+            : '';
+
+        $prompt = <<<PROMPT
+You are a creative director brainstorming unique video angles for a {$videoDuration}-second narrated video.
+
+TOPIC: {$subject}
+{$excludeClause}
+Generate exactly 4 wildly different creative ANGLES (not delivery styles — conceptual IDEAS).
+
+RULES:
+- Each angle must be SPECIFIC to "{$subject}" — not a generic template
+- Ensure variety: at least one funny, one emotional, one intellectual, one unexpected
+- Each pitch should be one compelling sentence that sells the angle
+- Tone must match the angle (funny angles get "funny" tone, etc.)
+
+Respond ONLY with a JSON array:
+[
+  {"title": "Short angle name (3-8 words)", "pitch": "One sentence pitch", "tone": "funny|emotional|intellectual|provocative|whimsical|dramatic"},
+  {"title": "...", "pitch": "...", "tone": "..."},
+  {"title": "...", "pitch": "...", "tone": "..."},
+  {"title": "...", "pitch": "...", "tone": "..."}
+]
+
+Output ONLY valid JSON, no markdown.
+PROMPT;
+
+        $response = \AI::processWithOverride(
+            $prompt,
+            $engine,
+            $model,
+            'text',
+            ['temperature' => 0.9, 'max_tokens' => 4000],
+            $teamId
+        );
+
+        if (!empty($response['error'])) {
+            Log::warning('UrlContentExtractorService: generateCreativeConcepts failed', ['error' => $response['error']]);
+            return [];
+        }
+
+        $text = $response['data'][0] ?? '';
+        $json = $this->extractJson($text);
+
+        if (!is_array($json) || empty($json)) {
+            return [];
+        }
+
+        // Normalize: ensure it's a flat array of concepts
+        if (isset($json[0]) && is_array($json[0])) {
+            return array_slice($json, 0, 4);
+        }
+
+        return [];
+    }
+
+    /**
+     * Build a creative prompt locked to a specific concept (from concept cards).
+     * Used when user picks one of the 4 concept cards.
+     */
+    public function buildCreativeConceptPrompt(array $contentBrief, array $concept, int $videoDuration): string
+    {
+        $subject = $contentBrief['subject'] ?? $contentBrief['suggested_title'] ?? 'this topic';
+        $summary = $contentBrief['summary'] ?? '';
+
+        $facts = $contentBrief['key_facts'] ?? [];
+        usort($facts, fn($a, $b) => ($b['importance'] ?? 0) <=> ($a['importance'] ?? 0));
+        $topFacts = array_slice($facts, 0, 8);
+        $factsText = implode("\n", array_map(
+            fn($f, $i) => ($i + 1) . ". " . ($f['fact'] ?? ''),
+            $topFacts,
+            array_keys($topFacts)
+        ));
+
+        $wordsPerMinute = 140;
+        $targetWords = (int) round(($videoDuration / 60) * $wordsPerMinute);
+        $maxWords = (int) round($targetWords * 1.3);
+
+        $conceptTitle = $concept['title'] ?? 'Unique angle';
+        $conceptPitch = $concept['pitch'] ?? '';
+        $conceptTone = $concept['tone'] ?? 'conversational';
+
+        return <<<PROMPT
+You are a creative video scriptwriter. Write a full narration script committed to a SPECIFIC creative angle.
+
+TOPIC: {$subject}
+SUMMARY: {$summary}
+
+CREATIVE ANGLE (you MUST follow this exactly):
+- Title: {$conceptTitle}
+- Pitch: {$conceptPitch}
+- Tone: {$conceptTone}
+
+RESEARCH FACTS (weave into your script naturally):
+{$factsText}
+
+## RULES
+- Fully commit to the creative angle above — every sentence should serve this concept
+- Write as if YOU are telling this story — original narration, not a summary
+- NEVER mention or reference the source URL, article, video, website, or platform
+- Use vivid, visual language that pairs well with cinematic imagery
+- Write AT LEAST {$targetWords} words (maximum {$maxWords} words) — the video is {$videoDuration} seconds at 140 WPM
+
+Respond ONLY with a JSON object:
+{
+  "concept_title": "{$conceptTitle}",
+  "concept_pitch": "{$conceptPitch}",
+  "title": "The video title",
+  "transcript": "The complete narration script as one continuous string",
+  "segments": [
+    {"text": "Segment narration text", "estimated_duration": 6}
+  ]
+}
+
+Output ONLY valid JSON, no markdown formatting.
+PROMPT;
+    }
+
+    /**
+     * Build a creative concept prompt for prompt-only mode (no URL content brief).
+     */
+    public function buildCreativeConceptPromptFromText(string $userPrompt, array $concept, int $videoDuration): string
+    {
+        $wordsPerMinute = 140;
+        $targetWords = (int) round(($videoDuration / 60) * $wordsPerMinute);
+        $maxWords = (int) round($targetWords * 1.3);
+
+        $conceptTitle = $concept['title'] ?? 'Unique angle';
+        $conceptPitch = $concept['pitch'] ?? '';
+        $conceptTone = $concept['tone'] ?? 'conversational';
+
+        return <<<PROMPT
+You are a creative video scriptwriter. Write a full narration script committed to a SPECIFIC creative angle.
+
+TOPIC: {$userPrompt}
+
+CREATIVE ANGLE (you MUST follow this exactly):
+- Title: {$conceptTitle}
+- Pitch: {$conceptPitch}
+- Tone: {$conceptTone}
+
+## RULES
+- Fully commit to the creative angle above — every sentence should serve this concept
+- Write as if YOU are telling this story — original narration, not a summary
+- NEVER mention or reference any source URL, article, video, website, or platform
+- Use vivid, visual language that pairs well with cinematic imagery
+- Write AT LEAST {$targetWords} words (maximum {$maxWords} words) — the video is {$videoDuration} seconds at 140 WPM
+
+Respond ONLY with a JSON object:
+{
+  "concept_title": "{$conceptTitle}",
+  "concept_pitch": "{$conceptPitch}",
+  "title": "The video title",
+  "transcript": "The complete narration script as one continuous string",
+  "segments": [
+    {"text": "Segment narration text", "estimated_duration": 6}
+  ]
+}
+
+Output ONLY valid JSON, no markdown formatting.
+PROMPT;
+    }
+
+    /**
      * Extract JSON from AI response text (handles markdown code fences).
      */
     protected function extractJson(string $text): ?array
     {
         // Try direct parse
         $decoded = json_decode($text, true);
+        if ($decoded !== null) {
+            return $decoded;
+        }
+
+        // Sanitize control characters and try again
+        $sanitized = preg_replace('/[\x00-\x1F\x7F]+/', ' ', $text);
+        $decoded = json_decode($sanitized, true);
         if ($decoded !== null) {
             return $decoded;
         }
@@ -410,6 +716,14 @@ TXT,
 
         // Try finding JSON object in text
         if (preg_match('/\{[\s\S]*\}/', $text, $matches)) {
+            $decoded = json_decode($matches[0], true);
+            if ($decoded !== null) {
+                return $decoded;
+            }
+        }
+
+        // Try finding JSON array in text
+        if (preg_match('/\[[\s\S]*\]/', $text, $matches)) {
             $decoded = json_decode($matches[0], true);
             if ($decoded !== null) {
                 return $decoded;
