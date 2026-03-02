@@ -349,20 +349,38 @@ class VideoRenderService
 
                     $filters[] = "fps={$fps}";
                     $filters[] = "setsar=1";
-                    $videoFilter = implode(',', $filters);
 
-                    // Compute duration, accounting for trim
+                    // Compute target duration, accounting for trim
                     $duration = $clip['duration'] + ($isLastClip ? $lastSceneBuffer : 0);
                     $trimStart = 0;
                     if ($videoEdit && ($videoEdit['trimStart'] ?? 0) > 0) {
                         $trimStart = (float) $videoEdit['trimStart'];
                     }
+                    $availableDuration = $duration; // How much source content is available
                     if ($videoEdit && ($videoEdit['trimEnd'] ?? 0) > 0) {
                         $trimmedDuration = (float) $videoEdit['trimEnd'] - $trimStart;
                         if ($trimmedDuration > 0 && $trimmedDuration < $duration) {
+                            $availableDuration = $trimmedDuration;
                             $duration = $trimmedDuration + ($isLastClip ? $lastSceneBuffer : 0);
                         }
                     }
+
+                    // Probe actual source clip duration to detect short clips
+                    $actualClipDur = $this->getVideoDuration($clip['path']);
+                    $effectiveSourceDur = $actualClipDur > 0
+                        ? max(0, $actualClipDur - $trimStart)
+                        : $availableDuration;
+
+                    // If source clip is shorter than needed, add tpad to freeze-extend
+                    // the last real frame so there's no black gap
+                    $needsPadding = ($effectiveSourceDur > 0 && $effectiveSourceDur < $duration - 0.5);
+                    if ($needsPadding) {
+                        $padAmount = round($duration - $effectiveSourceDur + 0.5, 2);
+                        $filters[] = "tpad=stop_mode=clone:stop_duration={$padAmount}";
+                        Log::info("[StoryExport:{$jobId}] Clip {$i} shorter than scene: source={$effectiveSourceDur}s, needed={$duration}s, padding={$padAmount}s");
+                    }
+
+                    $videoFilter = implode(',', $filters);
 
                     $cmd = [
                         $this->ffmpegPath,
@@ -384,7 +402,7 @@ class VideoRenderService
                         '-y',
                         $normalizedPath,
                     ]);
-                    Log::info("[StoryExport:{$jobId}] Video clip {$i}: duration={$duration}s, trimStart={$trimStart}s, clipDur={$clip['duration']}s, isLast=" . ($isLastClip ? 'Y' : 'N'));
+                    Log::info("[StoryExport:{$jobId}] Video clip {$i}: duration={$duration}s, trimStart={$trimStart}s, clipDur={$clip['duration']}s, actualDur={$actualClipDur}s, padded=" . ($needsPadding ? 'Y' : 'N') . ", isLast=" . ($isLastClip ? 'Y' : 'N'));
                     $this->runCommand($cmd, $jobId, "Normalize clip {$i}");
                 } else {
                     // Generate Ken Burns from image
@@ -1242,7 +1260,7 @@ class VideoRenderService
 
     /**
      * Ensure video is at least as long as the target duration.
-     * If shorter, extends by cloning the last frame (freeze-frame).
+     * If shorter, loops the video to fill the gap (better than freeze-frame).
      */
     protected function padVideoToMinDuration(
         string $jobId,
@@ -1257,17 +1275,19 @@ class VideoRenderService
             return $videoFile; // Already long enough
         }
 
-        $extensionNeeded = $minDuration - $videoDuration + 1.0; // +1s safety
-        Log::info("[VideoRender:{$jobId}] Padding video: {$videoDuration}s -> {$minDuration}s (+{$extensionNeeded}s freeze-frame)");
+        $targetDuration = $minDuration + 1.0; // +1s safety
+        Log::info("[VideoRender:{$jobId}] Padding video: {$videoDuration}s -> {$targetDuration}s (looping)");
 
         $paddedVideo = "{$workDir}/padded_video.mp4";
         $renderQuality = $output['renderQuality'] ?? $output['quality'] ?? 'balanced';
         $settings = $this->qualitySettings[$renderQuality] ?? $this->qualitySettings['balanced'];
 
+        // Use stream_loop to loop the video, then cap at target duration
         $cmd = [
             $this->ffmpegPath,
+            '-stream_loop', '-1',
             '-i', $videoFile,
-            '-vf', 'tpad=stop_mode=clone:stop_duration=' . round($extensionNeeded, 2),
+            '-t', (string) round($targetDuration, 2),
             '-c:v', 'libx264',
             '-preset', $settings['preset'],
             '-crf', $settings['crf'],
