@@ -615,18 +615,54 @@ class VideoRenderService
     {
         Log::debug("[VideoRender:{$jobId}] Downloading: " . substr($url, 0, 80) . "...");
 
-        $response = Http::timeout(60)->get($url);
-
-        if (!$response->successful()) {
-            throw new Exception("HTTP {$response->status()}: Failed to download file");
+        // For artime stock media URLs, try local file path first (avoids HTTP overhead entirely)
+        $localPath = $this->resolveLocalPath($url);
+        if ($localPath && file_exists($localPath)) {
+            copy($localPath, $outputPath);
+            $fileSize = filesize($outputPath);
+            Log::debug("[VideoRender:{$jobId}] Copied local file " . round($fileSize / 1024, 1) . " KB");
+            return $outputPath;
         }
 
-        file_put_contents($outputPath, $response->body());
+        // Stream directly to disk to avoid loading large files into PHP memory
+        $response = Http::timeout(300)
+            ->withOptions([
+                'sink' => $outputPath,
+                'connect_timeout' => 30,
+            ])
+            ->get($url);
+
+        if ($response->failed()) {
+            @unlink($outputPath);
+            throw new Exception("HTTP {$response->status()}: Failed to download file from " . substr($url, 0, 80));
+        }
+
+        if (!file_exists($outputPath) || filesize($outputPath) === 0) {
+            @unlink($outputPath);
+            throw new Exception("Download produced empty file for " . substr($url, 0, 80));
+        }
 
         $fileSize = filesize($outputPath);
         Log::debug("[VideoRender:{$jobId}] Downloaded " . round($fileSize / 1024, 1) . " KB");
 
         return $outputPath;
+    }
+
+    /**
+     * Try to resolve a URL to a local file path (for artime stock media on same server).
+     */
+    protected function resolveLocalPath(string $url): ?string
+    {
+        $appUrl = rtrim(config('app.url', ''), '/');
+        if (empty($appUrl) || !str_starts_with($url, $appUrl)) {
+            return null;
+        }
+
+        // URL path /public/stock-media/... maps directly to base_path()/public/stock-media/...
+        $relativePath = substr($url, strlen($appUrl));
+        $localPath = rtrim(base_path(), '/') . $relativePath;
+
+        return $localPath;
     }
 
     /**

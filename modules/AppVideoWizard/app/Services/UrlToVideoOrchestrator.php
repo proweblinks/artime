@@ -438,6 +438,13 @@ class UrlToVideoOrchestrator
         try {
             $project->updateProgress('assembling', 88, 'Rendering video with FFmpeg');
 
+            Log::info('UrlToVideoOrchestrator: Starting assembly', [
+                'project_id' => $project->id,
+                'scene_count' => count($manifestScenes),
+                'scenes_with_video' => count(array_filter($manifestScenes, fn($s) => !empty($s['videoUrl']))),
+                'scenes_with_trim' => count(array_filter($manifestScenes, fn($s) => !empty($s['video_edit']))),
+            ]);
+
             $progressCallback = function (int $progress, string $message) use ($project) {
                 $mappedProgress = 88 + (int)(($progress / 100) * 11);
                 $project->updateProgress('assembling', min(99, $mappedProgress), $message);
@@ -447,10 +454,16 @@ class UrlToVideoOrchestrator
 
             $videoUrl = $result['outputUrl'] ?? null;
             $videoPath = $result['outputPath'] ?? null;
+
+            Log::info('UrlToVideoOrchestrator: Assembly succeeded', [
+                'project_id' => $project->id,
+                'output_url' => $videoUrl ? substr($videoUrl, 0, 80) : null,
+            ]);
         } catch (\Exception $e) {
-            Log::error('UrlToVideoOrchestrator: Assembly failed', [
+            Log::error('UrlToVideoOrchestrator: Assembly FAILED — falling back to raw clip', [
                 'project_id' => $project->id,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             $videoUrl = null;
