@@ -371,13 +371,11 @@ class VideoRenderService
                         ? max(0, $actualClipDur - $trimStart)
                         : $availableDuration;
 
-                    // If source clip is shorter than needed, add tpad to freeze-extend
-                    // the last real frame so there's no black gap
-                    $needsPadding = ($effectiveSourceDur > 0 && $effectiveSourceDur < $duration - 0.5);
-                    if ($needsPadding) {
-                        $padAmount = round($duration - $effectiveSourceDur + 0.5, 2);
-                        $filters[] = "tpad=stop_mode=clone:stop_duration={$padAmount}";
-                        Log::info("[StoryExport:{$jobId}] Clip {$i} shorter than scene: source={$effectiveSourceDur}s, needed={$duration}s, padding={$padAmount}s");
+                    // If source clip is shorter than needed, loop the clip instead of
+                    // freezing the last frame (which may be a black fade-out frame)
+                    $needsLoop = ($effectiveSourceDur > 0 && $effectiveSourceDur < $duration - 0.5);
+                    if ($needsLoop) {
+                        Log::info("[StoryExport:{$jobId}] Clip {$i} shorter than scene: source={$effectiveSourceDur}s, needed={$duration}s, will loop");
                     }
 
                     $videoFilter = implode(',', $filters);
@@ -385,6 +383,11 @@ class VideoRenderService
                     $cmd = [
                         $this->ffmpegPath,
                     ];
+                    // Loop short clips so they replay instead of freezing on last frame
+                    if ($needsLoop) {
+                        $cmd[] = '-stream_loop';
+                        $cmd[] = '-1';
+                    }
                     // Seek to trim start point if set
                     if ($trimStart > 0) {
                         $cmd[] = '-ss';
@@ -402,7 +405,7 @@ class VideoRenderService
                         '-y',
                         $normalizedPath,
                     ]);
-                    Log::info("[StoryExport:{$jobId}] Video clip {$i}: duration={$duration}s, trimStart={$trimStart}s, clipDur={$clip['duration']}s, actualDur={$actualClipDur}s, padded=" . ($needsPadding ? 'Y' : 'N') . ", isLast=" . ($isLastClip ? 'Y' : 'N'));
+                    Log::info("[StoryExport:{$jobId}] Video clip {$i}: duration={$duration}s, trimStart={$trimStart}s, clipDur={$clip['duration']}s, actualDur={$actualClipDur}s, looped=" . ($needsLoop ? 'Y' : 'N') . ", isLast=" . ($isLastClip ? 'Y' : 'N'));
                     $this->runCommand($cmd, $jobId, "Normalize clip {$i}");
                 } else {
                     // Generate Ken Burns from image
