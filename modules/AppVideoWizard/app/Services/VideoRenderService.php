@@ -372,17 +372,18 @@ class VideoRenderService
                         : $availableDuration;
 
                     // If source clip is shorter than needed, freeze-extend the last
-                    // content frame. Trim the last ~1s first to avoid cloning a
-                    // fade-to-black ending that many stock clips have.
+                    // content frame. Use -t as INPUT option to skip the fade-to-black
+                    // ending, then tpad clones the last good content frame.
                     $needsPadding = ($effectiveSourceDur > 0 && $effectiveSourceDur < $duration - 0.5);
+                    $inputDurationLimit = null;
                     if ($needsPadding) {
                         // Trim off the ending fade-to-black (0.3-1.0s depending on clip length)
                         $trimEnd = min(1.0, max(0.3, $effectiveSourceDur * 0.12));
                         $usableSourceDur = max(2.0, $effectiveSourceDur - $trimEnd);
                         $padAmount = round($duration - $usableSourceDur + 0.5, 2);
+                        $inputDurationLimit = round($usableSourceDur, 2);
 
-                        // trim removes the fade-to-black, setpts resets timestamps, tpad freezes
-                        $filters[] = "trim=duration=" . round($usableSourceDur, 2) . ",setpts=PTS-STARTPTS";
+                        // tpad clones the last frame (which is now a content frame, not black)
                         $filters[] = "tpad=stop_mode=clone:stop_duration={$padAmount}";
 
                         Log::info("[StoryExport:{$jobId}] Clip {$i} shorter than scene: source={$effectiveSourceDur}s, trimEnd={$trimEnd}s, usable={$usableSourceDur}s, needed={$duration}s, padding={$padAmount}s");
@@ -393,6 +394,11 @@ class VideoRenderService
                     $cmd = [
                         $this->ffmpegPath,
                     ];
+                    // Limit input reading to skip fade-to-black ending
+                    if ($inputDurationLimit !== null) {
+                        $cmd[] = '-t';
+                        $cmd[] = (string) $inputDurationLimit;
+                    }
                     // Seek to trim start point if set
                     if ($trimStart > 0) {
                         $cmd[] = '-ss';
