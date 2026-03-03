@@ -186,6 +186,21 @@ class UrlToVideoOrchestrator
 
                 $scene['audio_url'] = $result['audioUrl'] ?? $result['audio_url'] ?? null;
                 $scene['audio_duration'] = $result['duration'] ?? $scene['estimated_duration'] ?? 6;
+
+                // Fix stale video_edit.trimEnd that was set from pre-voiceover estimated_duration.
+                // If trimEnd is shorter than the real audio_duration, extend it so the clip covers the full scene.
+                if (!empty($scene['video_edit']) && isset($scene['video_edit']['trimEnd'])) {
+                    $actualDuration = (float) $scene['audio_duration'];
+                    $oldTrimEnd = (float) $scene['video_edit']['trimEnd'];
+                    if ($oldTrimEnd < $actualDuration) {
+                        Log::debug('UrlToVideoOrchestrator: Updated stale trimEnd', [
+                            'scene_id' => $scene['id'] ?? "scene_{$i}",
+                            'old_trimEnd' => $oldTrimEnd,
+                            'new_trimEnd' => round($actualDuration, 2),
+                        ]);
+                        $scene['video_edit']['trimEnd'] = round($actualDuration, 2);
+                    }
+                }
             } catch (\Exception $e) {
                 Log::warning("UrlToVideoOrchestrator: Voiceover failed for segment {$i}", [
                     'error' => $e->getMessage(),

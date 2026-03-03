@@ -414,11 +414,16 @@ class VideoRenderService
                         $trimStart = (float) $videoEdit['trimStart'];
                     }
                     $availableDuration = $duration; // How much source content is available
+                    $sceneDuration = $clip['duration']; // original scene duration from manifest
                     if ($videoEdit && ($videoEdit['trimEnd'] ?? 0) > 0) {
                         $trimmedDuration = (float) $videoEdit['trimEnd'] - $trimStart;
-                        if ($trimmedDuration > 0 && $trimmedDuration < $duration) {
+                        if ($trimmedDuration > 0 && $trimmedDuration < $duration && $trimmedDuration >= $sceneDuration) {
+                            // Trim is valid: clip is longer than needed and trim still covers the scene
                             $availableDuration = $trimmedDuration;
                             $duration = $trimmedDuration + ($isLastClip ? $lastSceneBuffer : 0);
+                        } elseif ($trimmedDuration > 0 && $trimmedDuration < $sceneDuration) {
+                            // Stale trim would make clip shorter than scene needs — ignore it
+                            Log::warning("[StoryExport:{$jobId}] Clip {$i}: ignoring stale trimEnd={$videoEdit['trimEnd']} (trimmed={$trimmedDuration}s < scene needs {$sceneDuration}s)");
                         }
                     }
 

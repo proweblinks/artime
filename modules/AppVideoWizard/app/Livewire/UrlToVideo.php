@@ -1077,7 +1077,16 @@ class UrlToVideo extends Component
                     $scene['crop'] = $this->sceneCropData[$sceneId];
                 }
                 if (!empty($this->sceneVideoEdits[$sceneId])) {
-                    $scene['video_edit'] = $this->sceneVideoEdits[$sceneId];
+                    $edit = $this->sceneVideoEdits[$sceneId];
+                    // Only attach video_edit if user made intentional edits (manual trim point or flips).
+                    // Auto-trim-only edits (trimStart=0, no flips) use stale estimated_duration —
+                    // the orchestrator will set correct trimEnd after voiceover generates real audio_duration.
+                    $hasUserEdits = ($edit['trimStart'] ?? 0) > 0
+                        || !empty($edit['flipH'])
+                        || !empty($edit['flipV']);
+                    if ($hasUserEdits) {
+                        $scene['video_edit'] = $edit;
+                    }
                 }
                 $scene['animate_with_ai'] = $this->sceneAnimateWithAI[$sceneId] ?? false;
             }
