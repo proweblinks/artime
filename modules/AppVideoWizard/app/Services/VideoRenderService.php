@@ -254,7 +254,49 @@ class VideoRenderService
                 $voiceoverUrl = $scene['voiceoverUrl'] ?? null;
                 $duration = $scene['duration'] ?? 6;
 
-                // Download video clip or image
+                // Check for multi-clip scenes
+                $subClips = $scene['clips'] ?? null;
+                if (!empty($subClips) && is_array($subClips) && count($subClips) > 1) {
+                    $downloadedSubClips = [];
+                    foreach ($subClips as $ci => $subClip) {
+                        $subUrl = $subClip['video_url'] ?? $subClip['image_url'] ?? null;
+                        if (!$subUrl) continue;
+                        $subPath = "{$workDir}/clip_{$i}_sub_{$ci}.mp4";
+                        try {
+                            $this->downloadFile($subUrl, $subPath, $jobId);
+                            $downloadedSubClips[] = [
+                                'type' => $subClip['type'] ?? 'video',
+                                'path' => $subPath,
+                                'duration' => $subClip['duration'] ?? 6,
+                            ];
+                        } catch (Exception $e) {
+                            Log::warning("[StoryExport:{$jobId}] Failed to download sub-clip {$i}/{$ci}");
+                        }
+                    }
+                    if (count($downloadedSubClips) > 1) {
+                        $clipFiles[$i] = ['type' => 'multi_clip', 'subClips' => $downloadedSubClips, 'duration' => $duration, 'path' => null];
+                    } elseif (count($downloadedSubClips) === 1) {
+                        $clipFiles[$i] = ['type' => 'video', 'path' => $downloadedSubClips[0]['path'], 'duration' => $duration];
+                    }
+
+                    // Download voiceover for multi-clip scene
+                    if ($voiceoverUrl) {
+                        $voicePath = "{$workDir}/voice_{$i}.mp3";
+                        try {
+                            $this->downloadFile($voiceoverUrl, $voicePath, $jobId);
+                            $voiceoverFiles[$i] = $voicePath;
+                        } catch (Exception $e) {
+                            Log::warning("[StoryExport:{$jobId}] Failed to download voiceover {$i}");
+                            $voiceoverFiles[$i] = null;
+                        }
+                    }
+
+                    $dlProgress = 5 + (int) round(($i / $sceneCount) * 20);
+                    $this->updateProgress($progressCallback, $dlProgress, 'Downloading scene ' . ($i + 1) . "/{$sceneCount}...");
+                    continue;
+                }
+
+                // Download video clip or image (single clip)
                 if ($videoUrl) {
                     $clipPath = "{$workDir}/clip_{$i}.mp4";
                     try {
@@ -319,6 +361,21 @@ class VideoRenderService
 
                 $normalizedPath = "{$workDir}/norm_{$i}.mp4";
                 $isLastClip = ($i === $lastClipKey);
+
+                if ($clip['type'] === 'multi_clip') {
+                    // Multi-clip scene: concatenate sub-clips into one video
+                    $mcDuration = $clip['duration'] + ($isLastClip ? $lastSceneBuffer : 0);
+                    $concatResult = $this->concatenateSceneClips(
+                        $jobId, $clip['subClips'], $mcDuration,
+                        $width, $height, $fps, $settings, $workDir, $i
+                    );
+                    if ($concatResult) {
+                        $normalizedClips[$i] = $concatResult;
+                    }
+                    $normProgress = 30 + (int) round(($i / $sceneCount) * 35);
+                    $this->updateProgress($progressCallback, $normProgress, 'Processing multi-clip scene ' . ($i + 1) . "/{$sceneCount}...");
+                    continue;
+                }
 
                 if ($clip['type'] === 'video') {
                     // Normalize video clip: crop-aware or standard scale
@@ -1193,6 +1250,110 @@ class VideoRenderService
         }
 
         return $outputFile;
+    }
+
+    /**
+     * Concatenate multiple clips within a single scene into one video.
+     * Uses short dissolve crossfades between clips, then trims to target duration.
+     */
+    protected function concatenateSceneClips(
+        string $jobId,
+        array $clips,
+        float $targetDuration,
+        int $width,
+        int $height,
+        int $fps,
+        array $settings,
+        string $workDir,
+        int $sceneIndex
+    ): ?string {
+        if (count($clips) < 2) {
+            return null;
+        }
+
+        $intraCrossfade = 0.3;
+        $outputPath = "{$workDir}/scene_{$sceneIndex}_concat.mp4";
+
+        // Normalize each sub-clip to same resolution
+        $normalizedSubClips = [];
+        foreach ($clips as $ci => $subClip) {
+            $normPath = "{$workDir}/scene_{$sceneIndex}_sub_{$ci}.mp4";
+            $filters = [
+                "scale={$width}:{$height}:force_original_aspect_ratio=increase",
+                "crop={$width}:{$height}",
+                "fps={$fps}",
+                "setsar=1",
+            ];
+            $cmd = [
+                $this->ffmpegPath,
+                '-i', $subClip['path'],
+                '-vf', implode(',', $filters),
+                '-c:v', 'libx264',
+                '-preset', $settings['preset'],
+                '-crf', $settings['crf'],
+                '-an', '-pix_fmt', 'yuv420p', '-y',
+                $normPath,
+            ];
+            $this->runCommand($cmd, $jobId, "Normalize scene {$sceneIndex} sub-clip {$ci}");
+
+            if (file_exists($normPath) && filesize($normPath) > 0) {
+                $dur = $this->getVideoDuration($normPath);
+                $normalizedSubClips[] = ['path' => $normPath, 'duration' => $dur];
+            }
+        }
+
+        if (count($normalizedSubClips) < 2) {
+            return $normalizedSubClips[0]['path'] ?? null;
+        }
+
+        // Build xfade chain for intra-scene clips (dissolve transitions)
+        $inputArgs = [];
+        foreach ($normalizedSubClips as $ci => $sc) {
+            $inputArgs[] = '-i';
+            $inputArgs[] = $sc['path'];
+        }
+
+        $filterParts = [];
+        $currentLabel = '[0:v]';
+        $offset = $normalizedSubClips[0]['duration'] - $intraCrossfade;
+
+        for ($ci = 1; $ci < count($normalizedSubClips); $ci++) {
+            $nextLabel = ($ci < count($normalizedSubClips) - 1) ? "[xf{$ci}]" : "[vout]";
+            $filterParts[] = "{$currentLabel}[{$ci}:v]xfade=transition=dissolve:duration={$intraCrossfade}:offset=" . round(max(0, $offset), 3) . $nextLabel;
+            if ($ci < count($normalizedSubClips) - 1) {
+                $offset += $normalizedSubClips[$ci]['duration'] - $intraCrossfade;
+                $currentLabel = $nextLabel;
+            }
+        }
+
+        $filterComplex = implode(';', $filterParts);
+
+        $cmd = array_merge(
+            [$this->ffmpegPath],
+            $inputArgs,
+            [
+                '-filter_complex', $filterComplex,
+                '-map', '[vout]',
+                '-t', (string) round($targetDuration, 2),
+                '-c:v', 'libx264',
+                '-preset', $settings['preset'],
+                '-crf', $settings['crf'],
+                '-pix_fmt', 'yuv420p',
+                '-an', '-y',
+                $outputPath,
+            ]
+        );
+
+        $this->runCommand($cmd, $jobId, "Concat scene {$sceneIndex} clips");
+
+        if (file_exists($outputPath) && filesize($outputPath) > 0) {
+            $actualDur = $this->getVideoDuration($outputPath);
+            Log::info("[StoryExport:{$jobId}] Scene {$sceneIndex} multi-clip concat: " . count($normalizedSubClips) . " clips -> {$actualDur}s (target: {$targetDuration}s)");
+            return $outputPath;
+        }
+
+        Log::warning("[StoryExport:{$jobId}] Scene {$sceneIndex} multi-clip concat failed, using first clip");
+        return $normalizedSubClips[0]['path'];
     }
 
     /**

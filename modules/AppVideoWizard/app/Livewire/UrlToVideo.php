@@ -456,35 +456,68 @@ class UrlToVideo extends Component
     }
 
     /**
-     * Select a specific image candidate for a scene.
+     * Toggle a clip selection for a scene (multi-clip: add/remove from array).
      */
     public function selectSceneImage(string $sceneId, int $candidateIndex)
     {
-        $this->selectedSceneImages[$sceneId] = $candidateIndex;
+        // Initialize as array if needed
+        if (!isset($this->selectedSceneImages[$sceneId]) || !is_array($this->selectedSceneImages[$sceneId])) {
+            $this->selectedSceneImages[$sceneId] = [];
+        }
 
+        $clips = $this->selectedSceneImages[$sceneId];
+
+        // Toggle: if already selected, remove it; otherwise add it
+        $pos = array_search($candidateIndex, $clips);
+        if ($pos !== false) {
+            array_splice($clips, $pos, 1);
+        } else {
+            $clips[] = $candidateIndex;
+        }
+
+        $this->selectedSceneImages[$sceneId] = array_values($clips);
+
+        // Handle video-specific logic for last added clip
         $candidates = $this->sceneImageCandidates[$sceneId] ?? [];
         $candidate = $candidates[$candidateIndex] ?? null;
 
         if ($candidate && ($candidate['type'] ?? 'image') === 'video') {
-            // Disable animation (already animated content)
             $this->sceneAnimateWithAI[$sceneId] = false;
-            // Auto-trim if clip is longer than scene duration
-            $this->autoTrimVideoClip($sceneId, $candidate);
-        } else {
-            // Not a video — clear any stale video edits
-            unset($this->sceneVideoEdits[$sceneId]);
         }
     }
 
     /**
-     * Toggle AI-generated image for a scene. Click again to revert to first candidate.
+     * Remove a clip from a scene's selection by position.
+     */
+    public function removeSceneClip(string $sceneId, int $clipPosition)
+    {
+        if (isset($this->selectedSceneImages[$sceneId]) && is_array($this->selectedSceneImages[$sceneId])) {
+            array_splice($this->selectedSceneImages[$sceneId], $clipPosition, 1);
+            $this->selectedSceneImages[$sceneId] = array_values($this->selectedSceneImages[$sceneId]);
+        }
+    }
+
+    /**
+     * Reorder a clip within a scene's selection (move from one position to another).
+     */
+    public function reorderSceneClip(string $sceneId, int $fromPos, int $toPos)
+    {
+        $clips = $this->selectedSceneImages[$sceneId] ?? [];
+        if (!is_array($clips) || !isset($clips[$fromPos]) || $toPos < 0 || $toPos >= count($clips)) return;
+        $item = array_splice($clips, $fromPos, 1)[0];
+        array_splice($clips, $toPos, 0, [$item]);
+        $this->selectedSceneImages[$sceneId] = $clips;
+    }
+
+    /**
+     * Toggle AI-generated image for a scene. Click again to revert to empty selection.
      */
     public function markSceneForAI(string $sceneId)
     {
-        if (($this->selectedSceneImages[$sceneId] ?? null) === 'ai') {
-            // Toggle off: revert to first candidate or null
-            $candidates = $this->sceneImageCandidates[$sceneId] ?? [];
-            $this->selectedSceneImages[$sceneId] = !empty($candidates) ? 0 : null;
+        $current = $this->selectedSceneImages[$sceneId] ?? [];
+        if ($current === 'ai') {
+            // Toggle off: revert to empty
+            $this->selectedSceneImages[$sceneId] = [];
             $this->sceneAnimateWithAI[$sceneId] = false;
         } else {
             $this->selectedSceneImages[$sceneId] = 'ai';
@@ -981,62 +1014,58 @@ class UrlToVideo extends Component
 
             foreach ($scenes as &$scene) {
                 $sceneId = $scene['id'];
-                $selection = $this->selectedSceneImages[$sceneId] ?? null;
+                $selection = $this->selectedSceneImages[$sceneId] ?? [];
 
-                if ($selection === 'ai' || $selection === null) {
+                if ($selection === 'ai' || empty($selection)) {
                     // Scene will use AI generation — leave image_url empty
                     continue;
                 }
 
                 $candidates = $this->sceneImageCandidates[$sceneId] ?? [];
-                $candidate = (is_int($selection) || (is_string($selection) && ctype_digit($selection)))
-                    ? ($candidates[(int) $selection] ?? null)
-                    : null;
+                $sceneClips = [];
 
-                if ($candidate && !empty($candidate['url'])) {
-                    $isVideo = ($candidate['type'] ?? 'image') === 'video';
+                foreach ((array) $selection as $selIdx) {
+                    $candidate = (is_int($selIdx) || ctype_digit((string) $selIdx))
+                        ? ($candidates[(int) $selIdx] ?? null) : null;
+
+                    if (!$candidate || empty($candidate['url'])) continue;
+
+                    $clipData = ['type' => $candidate['type'] ?? 'image'];
+                    $isVideo = $clipData['type'] === 'video';
 
                     if ($isVideo) {
                         if (($candidate['source'] ?? '') === 'artime_stock') {
-                            // Local stock video — use URL directly
-                            $scene['video_url'] = $candidate['url'];
-                            if (!empty($candidate['thumbnail'])) {
-                                $scene['image_url'] = $candidate['thumbnail'];
-                            }
+                            $clipData['video_url'] = $candidate['url'];
                         } else {
-                            // Download external video clip
                             $localUrl = $imageService->downloadAndStoreVideo(
-                                $candidate['url'],
-                                $tempProjectId,
-                                $sceneId
+                                $candidate['url'], $tempProjectId, $sceneId . '_' . $selIdx
                             );
-                            if ($localUrl) {
-                                $scene['video_url'] = $localUrl;
-                                // Use thumbnail as fallback image for assembly
-                                if (!empty($candidate['thumbnail'])) {
-                                    $thumbUrl = $imageService->downloadAndStore(
-                                        $candidate['thumbnail'],
-                                        $tempProjectId,
-                                        $sceneId
-                                    );
-                                    $scene['image_url'] = $thumbUrl;
-                                }
-                            }
+                            if ($localUrl) $clipData['video_url'] = $localUrl;
                         }
-                    } elseif (in_array($candidate['source'] ?? '', ['upload', 'artime_stock'])) {
-                        // Local file (upload or Artime Stock) — use URL directly
-                        $scene['image_url'] = $candidate['url'];
+                        $clipData['duration'] = $candidate['duration'] ?? 0;
+                        if (!empty($candidate['thumbnail'])) {
+                            $clipData['thumbnail'] = $candidate['thumbnail'];
+                        }
                     } else {
-                        // Download external image
-                        $localUrl = $imageService->downloadAndStore(
-                            $candidate['url'],
-                            $tempProjectId,
-                            $sceneId
-                        );
-                        if ($localUrl) {
-                            $scene['image_url'] = $localUrl;
+                        if (in_array($candidate['source'] ?? '', ['upload', 'artime_stock'])) {
+                            $clipData['image_url'] = $candidate['url'];
+                        } else {
+                            $localUrl = $imageService->downloadAndStore(
+                                $candidate['url'], $tempProjectId, $sceneId . '_' . $selIdx
+                            );
+                            if ($localUrl) $clipData['image_url'] = $localUrl;
                         }
                     }
+
+                    $sceneClips[] = $clipData;
+                }
+
+                if (!empty($sceneClips)) {
+                    $scene['clips'] = $sceneClips;
+                    // Backward compat: first clip's URL as primary
+                    $first = $sceneClips[0];
+                    $scene['video_url'] = $first['video_url'] ?? null;
+                    $scene['image_url'] = $first['image_url'] ?? $first['thumbnail'] ?? null;
                 }
             }
             unset($scene);

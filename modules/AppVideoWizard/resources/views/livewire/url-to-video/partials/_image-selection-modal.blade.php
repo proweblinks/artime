@@ -191,17 +191,18 @@
                         $allSegments = array_filter(preg_split('/\n{2,}/', $editableTranscript));
                         $sceneText = array_values($allSegments)[$sceneIndex] ?? '';
                     }
-                    $selection = $selectedSceneImages[$sceneId] ?? null;
+                    $selection = $selectedSceneImages[$sceneId] ?? [];
                     $isAI = $selection === 'ai';
                     $isAnimated = $sceneAnimateWithAI[$sceneId] ?? false;
-                    // Check if selected candidate is a video
+                    // Multi-clip: selection is an array of candidate indices
+                    $sceneSelections = is_array($selection) ? $selection : [];
+                    $isVideoSelected = false;
                     $selectedCandidate = null;
-                    if (!$isAI && $selection !== null) {
-                        $candidatesList = $sceneImageCandidates[$sceneId] ?? [];
-                        $selectedCandidate = (is_int($selection) || (is_string($selection) && ctype_digit($selection)))
-                            ? ($candidatesList[(int) $selection] ?? null) : null;
+                    if (!$isAI && !empty($sceneSelections)) {
+                        $lastSelIdx = end($sceneSelections);
+                        $selectedCandidate = $candidates[(int) $lastSelIdx] ?? null;
+                        $isVideoSelected = $selectedCandidate && ($selectedCandidate['type'] ?? 'image') === 'video';
                     }
-                    $isVideoSelected = $selectedCandidate && ($selectedCandidate['type'] ?? 'image') === 'video';
                     $videoTrim = $isVideoSelected ? ($sceneVideoEdits[$sceneId] ?? null) : null;
                     $sceneDuration = $generatedSegments[$sceneIndex]['estimated_duration'] ?? 6;
                     $clipDuration = $isVideoSelected ? ($selectedCandidate['duration'] ?? 0) : 0;
@@ -219,9 +220,9 @@
                                 <span class="badge" style="background: #7c3aed20; color: #a78bfa; font-size: 0.65rem;">
                                     <i class="fa-light fa-wand-magic-sparkles me-1"></i>{{ __('AI Image') }}
                                 </span>
-                            @elseif($selection !== null && $selection !== 'ai')
+                            @elseif(!empty($sceneSelections))
                                 <span class="badge" style="background: #f9731620; color: #f97316; font-size: 0.65rem;">
-                                    <i class="fa-light fa-check me-1"></i>{{ __('Selected') }}
+                                    <i class="fa-light fa-check me-1"></i>{{ count($sceneSelections) }} {{ __('selected') }}
                                 </span>
                             @elseif(empty($candidates))
                                 <span class="badge" style="background: #ef444420; color: #f87171; font-size: 0.65rem;">
@@ -233,14 +234,10 @@
                                     <i class="fa-light fa-sparkles me-1"></i>{{ __('Animated') }}
                                 </span>
                             @endif
-                            {{-- Text toggle button --}}
-                            @if(!empty($sceneText))
-                                <button @click="toggleSceneText('{{ $sceneId }}')" type="button"
-                                        class="utv-text-toggle-btn"
-                                        :class="{ 'active': expandedScenes['{{ $sceneId }}'] }">
-                                    <i class="fa-light fa-align-left"></i>
-                                </button>
-                            @endif
+                            {{-- Duration badge --}}
+                            <span class="badge" style="background: #1e3a5f30; color: #38bdf8; font-size: 0.65rem;">
+                                <i class="fa-light fa-clock me-1"></i>{{ number_format($sceneDuration, 1) }}s
+                            </span>
                         </div>
 
                         {{-- Action buttons --}}
@@ -280,17 +277,65 @@
                         </div>
                     </div>
 
-                    {{-- Collapsible scene text --}}
+                    {{-- Scene narration text + duration (always visible) --}}
                     @if(!empty($sceneText))
-                        <div x-show="expandedScenes['{{ $sceneId }}']" x-cloak
-                             x-transition:enter="transition ease-out duration-200"
-                             x-transition:enter-start="opacity-0 transform -translate-y-1"
-                             x-transition:enter-end="opacity-100 transform translate-y-0"
-                             x-transition:leave="transition ease-in duration-150"
-                             x-transition:leave-start="opacity-100"
-                             x-transition:leave-end="opacity-0"
-                             class="mb-2">
-                            <p class="utv-scene-text-full mb-0">{{ $sceneText }}</p>
+                        <div class="mb-2 d-flex align-items-start gap-2">
+                            <p class="mb-0 flex-grow-1" style="font-size: 0.78rem; color: #999; line-height: 1.5;">
+                                {{ Str::limit($sceneText, 120) }}
+                            </p>
+                            <span class="badge flex-shrink-0" style="background: #1e3a5f; color: #38bdf8; font-size: 0.72rem; white-space: nowrap;">
+                                <i class="fa-light fa-clock me-1"></i>{{ number_format($sceneDuration, 1) }}s
+                            </span>
+                        </div>
+                    @endif
+
+                    {{-- Selected clips strip with duration accumulator --}}
+                    @php
+                        $totalClipDuration = 0;
+                        $selectedClipDetails = [];
+                        foreach ($sceneSelections as $pos => $selIdx) {
+                            $c = $candidates[(int) $selIdx] ?? null;
+                            if ($c) {
+                                $dur = ($c['type'] ?? 'image') === 'video' ? (float)($c['duration'] ?? 0) : 0;
+                                $totalClipDuration += $dur;
+                                $selectedClipDetails[] = ['idx' => $selIdx, 'pos' => $pos, 'candidate' => $c, 'duration' => $dur];
+                            }
+                        }
+                        $durationDiff = $totalClipDuration - $sceneDuration;
+                        $hasEnoughClips = $totalClipDuration >= $sceneDuration - 1.0;
+                    @endphp
+
+                    @if(!empty($selectedClipDetails))
+                        <div class="mb-2 p-2 d-flex align-items-center gap-2" style="background: #0a0a0a; border-radius: 8px; border: 1px solid {{ $hasEnoughClips ? '#15803d' : '#92400e' }}40;">
+                            {{-- Mini thumbnails of selected clips --}}
+                            @foreach($selectedClipDetails as $detail)
+                                <div class="position-relative" style="width: 48px; height: 48px; flex-shrink: 0;">
+                                    <img src="{{ $detail['candidate']['thumbnail'] ?? $detail['candidate']['url'] }}"
+                                         style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px; border: 1px solid #333;">
+                                    @if($detail['duration'] > 0)
+                                        <span style="position: absolute; bottom: 1px; right: 1px; background: rgba(0,0,0,0.8); color: #fff; font-size: 0.55rem; padding: 1px 3px; border-radius: 3px;">
+                                            {{ gmdate('i:s', (int) $detail['duration']) }}
+                                        </span>
+                                    @endif
+                                    <button wire:click="removeSceneClip('{{ $sceneId }}', {{ $detail['pos'] }})"
+                                            type="button"
+                                            style="position: absolute; top: -4px; right: -4px; width: 16px; height: 16px; background: #ef4444; color: #fff; border: none; border-radius: 50%; font-size: 0.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1;">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                            @endforeach
+
+                            {{-- Duration summary --}}
+                            <div class="ms-auto text-end" style="font-size: 0.72rem; white-space: nowrap;">
+                                <span style="color: {{ $hasEnoughClips ? '#22c55e' : '#f59e0b' }}; font-weight: 600;">
+                                    {{ number_format($totalClipDuration, 1) }}s / {{ number_format($sceneDuration, 1) }}s
+                                </span>
+                                @if($durationDiff >= 0)
+                                    <small class="d-block" style="color: #22c55e;"><i class="fa-light fa-check me-1"></i>{{ __('Covered') }}</small>
+                                @else
+                                    <small class="d-block" style="color: #f59e0b;">{{ __('Need') }} {{ number_format(abs($durationDiff), 1) }}s {{ __('more') }}</small>
+                                @endif
+                            </div>
                         </div>
                     @endif
 
@@ -374,9 +419,7 @@
                                 @foreach($candidates as $idx => $candidate)
                                     @php
                                         $isSelected = false;
-                                        if (!$isAI && is_array($selection) && ($selection['url'] ?? '') === ($candidate['url'] ?? '')) {
-                                            $isSelected = true;
-                                        } elseif (!$isAI && is_int($selection) && $selection === $idx) {
+                                        if (!$isAI && is_array($selection) && in_array($idx, $selection, true)) {
                                             $isSelected = true;
                                         }
                                     @endphp
@@ -491,22 +534,19 @@
                 $aiCount = 0;
                 $animatedCount = 0;
                 $unselected = 0;
-                foreach ($selectedSceneImages as $sid => $sel) {
+                foreach ($sceneImageCandidates as $sid => $cands) {
+                    $sel = $selectedSceneImages[$sid] ?? [];
                     if ($sel === 'ai') {
                         $aiCount++;
-                    } elseif ($sel !== null) {
-                        $candidates = $sceneImageCandidates[$sid] ?? [];
-                        $selected = (is_int($sel) || (is_string($sel) && ctype_digit($sel)))
-                            ? ($candidates[(int) $sel] ?? null) : null;
-                        if ($selected && ($selected['type'] ?? 'image') === 'video') {
-                            $videoCount++;
-                        } else {
-                            $realCount++;
+                    } elseif (!empty($sel) && is_array($sel)) {
+                        foreach ($sel as $si) {
+                            $c = $cands[(int) $si] ?? null;
+                            if ($c && ($c['type'] ?? 'image') === 'video') $videoCount++;
+                            else $realCount++;
                         }
                     } else {
                         $unselected++;
                     }
-                    // Count animated scenes
                     if (!empty($sceneAnimateWithAI[$sid])) {
                         $animatedCount++;
                     }
