@@ -10,6 +10,24 @@ class StockMedia extends Model
 {
     protected $table = 'wizard_stock_media';
 
+    protected static function booted(): void
+    {
+        static::deleting(function (StockMedia $media) {
+            // Always clean up files from disk when model is deleted
+            $filePath = public_path('stock-media/' . $media->path);
+            if ($media->path && file_exists($filePath)) {
+                @unlink($filePath);
+            }
+
+            if ($media->thumbnail_path) {
+                $thumbPath = public_path('stock-media/' . $media->thumbnail_path);
+                if (file_exists($thumbPath)) {
+                    @unlink($thumbPath);
+                }
+            }
+        });
+    }
+
     protected $fillable = [
         'filename',
         'path',

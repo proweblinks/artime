@@ -145,19 +145,7 @@ class StockMediaController extends Controller
      */
     public function destroy(StockMedia $stockMedia)
     {
-        $filePath = public_path('stock-media/' . $stockMedia->path);
-        if (file_exists($filePath)) {
-            @unlink($filePath);
-        }
-
-        // Delete thumbnail if exists
-        if ($stockMedia->thumbnail_path) {
-            $thumbPath = public_path('stock-media/' . $stockMedia->thumbnail_path);
-            if (file_exists($thumbPath)) {
-                @unlink($thumbPath);
-            }
-        }
-
+        // File cleanup handled automatically by model's deleting event
         $stockMedia->delete();
 
         session()->flash('success', 'Media item deleted successfully.');
@@ -427,19 +415,9 @@ class StockMediaController extends Controller
 
             session()->flash('success', "Category '{$category}' deleted. Items reassigned to '{$reassignTo}'.");
         } else {
-            // Delete all items in category
+            // Delete all items in category (file cleanup handled by model's deleting event)
             $items = StockMedia::where('category', $category)->get();
             foreach ($items as $item) {
-                $filePath = public_path('stock-media/' . $item->path);
-                if (file_exists($filePath)) {
-                    @unlink($filePath);
-                }
-                if ($item->thumbnail_path) {
-                    $thumbPath = public_path('stock-media/' . $item->thumbnail_path);
-                    if (file_exists($thumbPath)) {
-                        @unlink($thumbPath);
-                    }
-                }
                 $item->delete();
             }
 
@@ -525,18 +503,9 @@ class StockMediaController extends Controller
 
         switch ($action) {
             case 'delete':
+                // File cleanup handled automatically by model's deleting event
                 $items = StockMedia::whereIn('id', $ids)->get();
                 foreach ($items as $item) {
-                    $filePath = public_path('stock-media/' . $item->path);
-                    if (file_exists($filePath)) {
-                        @unlink($filePath);
-                    }
-                    if ($item->thumbnail_path) {
-                        $thumbPath = public_path('stock-media/' . $item->thumbnail_path);
-                        if (file_exists($thumbPath)) {
-                            @unlink($thumbPath);
-                        }
-                    }
                     $item->delete();
                 }
                 session()->flash('success', "{$count} item(s) deleted.");
