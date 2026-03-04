@@ -132,8 +132,56 @@ class AppVideoWizardServiceProvider extends ServiceProvider
                 ],
             ];
 
-            // Insert menu and re-sort
+            // Stock Library admin menu (separate from Video Creator)
+            $stockLibraryMenu = [
+                'id' => 'admin-stock-library',
+                'uri' => 'admin/stock-media',
+                'role' => 'admin',
+                'platform' => 0,
+                'section' => 'top',
+                'tab_id' => 10,
+                'tab_name' => 'AI Settings',
+                'position' => 3900,
+                'name' => 'Stock Library',
+                'color' => '#0891b2',
+                'icon' => 'fa-light fa-photo-film',
+                'sub_menu' => [
+                    [
+                        'uri' => 'admin/stock-media',
+                        'name' => 'Dashboard',
+                        'position' => 100,
+                        'icon' => 'fa-light fa-gauge',
+                    ],
+                    [
+                        'uri' => 'admin/stock-media/browse',
+                        'name' => 'Browse Media',
+                        'position' => 90,
+                        'icon' => 'fa-light fa-grid-2',
+                    ],
+                    [
+                        'uri' => 'admin/stock-media/upload',
+                        'name' => 'Upload',
+                        'position' => 80,
+                        'icon' => 'fa-light fa-cloud-arrow-up',
+                    ],
+                    [
+                        'uri' => 'admin/stock-media/categories',
+                        'name' => 'Categories',
+                        'position' => 70,
+                        'icon' => 'fa-light fa-folder-tree',
+                    ],
+                    [
+                        'uri' => 'admin/stock-media/settings',
+                        'name' => 'Settings',
+                        'position' => 60,
+                        'icon' => 'fa-light fa-gear',
+                    ],
+                ],
+            ];
+
+            // Insert menus and re-sort
             $sidebar['top'][] = $videoWizardMenu;
+            $sidebar['top'][] = $stockLibraryMenu;
 
             // Sort by tab_id then position
             usort($sidebar['top'], function ($a, $b) {

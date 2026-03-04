@@ -12,6 +12,7 @@ use Modules\AppVideoWizard\Http\Controllers\Admin\CameraMovementController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\CoveragePatternController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\SeedanceStyleController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\SettingsController;
+use Modules\AppVideoWizard\Http\Controllers\Admin\StockMediaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -298,5 +299,57 @@ Route::middleware(['web', 'auth'])->group(function () {
         // Clear caches
         Route::post('/clear-cache', [VideoWizardAdminController::class, 'clearCache'])
             ->name('admin.video-wizard.clear-cache');
+    });
+
+    // =============================================
+    // STOCK MEDIA LIBRARY (separate from Video Wizard)
+    // =============================================
+    Route::group(['prefix' => 'admin/stock-media'], function () {
+
+        // Dashboard
+        Route::get('/', [StockMediaController::class, 'dashboard'])
+            ->name('admin.stock-media.dashboard');
+
+        // Browse / Manage
+        Route::get('/browse', [StockMediaController::class, 'index'])
+            ->name('admin.stock-media.browse');
+
+        // Upload
+        Route::get('/upload', [StockMediaController::class, 'uploadForm'])
+            ->name('admin.stock-media.upload');
+        Route::post('/upload', [StockMediaController::class, 'upload'])
+            ->name('admin.stock-media.upload.store');
+
+        // Categories
+        Route::get('/categories', [StockMediaController::class, 'categories'])
+            ->name('admin.stock-media.categories');
+        Route::post('/categories', [StockMediaController::class, 'updateCategory'])
+            ->name('admin.stock-media.categories.update');
+        Route::delete('/categories/{category}', [StockMediaController::class, 'deleteCategory'])
+            ->name('admin.stock-media.categories.destroy');
+
+        // Settings
+        Route::get('/settings', [StockMediaController::class, 'settings'])
+            ->name('admin.stock-media.settings');
+        Route::post('/settings', [StockMediaController::class, 'saveSettings'])
+            ->name('admin.stock-media.settings.save');
+
+        // Reindex
+        Route::post('/reindex', [StockMediaController::class, 'reindex'])
+            ->name('admin.stock-media.reindex');
+
+        // Bulk actions
+        Route::post('/bulk-action', [StockMediaController::class, 'bulkAction'])
+            ->name('admin.stock-media.bulk-action');
+
+        // Single item CRUD
+        Route::get('/{stockMedia}/edit', [StockMediaController::class, 'edit'])
+            ->name('admin.stock-media.edit');
+        Route::put('/{stockMedia}', [StockMediaController::class, 'update'])
+            ->name('admin.stock-media.update');
+        Route::delete('/{stockMedia}', [StockMediaController::class, 'destroy'])
+            ->name('admin.stock-media.destroy');
+        Route::post('/{stockMedia}/toggle', [StockMediaController::class, 'toggle'])
+            ->name('admin.stock-media.toggle');
     });
 });
