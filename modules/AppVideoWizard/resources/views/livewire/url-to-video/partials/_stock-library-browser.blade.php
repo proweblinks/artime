@@ -102,7 +102,20 @@
                         </button>
                     @endforeach
                 </div>
-            @elseif(!empty($libraryActiveCategory) || !empty($libraryQuery))
+                @if($libraryHasMore)
+                    <div class="d-flex justify-content-center mt-3">
+                        <button wire:click="loadMoreLibrary" wire:loading.attr="disabled" type="button"
+                                class="btn btn-sm" style="background:#f5f7fa;color:#5a6178;border:1px solid #eef1f5;border-radius:8px;font-size:0.8rem;padding:8px 24px;">
+                            <span wire:loading.remove wire:target="loadMoreLibrary">
+                                <i class="fa-light fa-arrow-down me-1"></i>{{ __('Load More') }}
+                            </span>
+                            <span wire:loading wire:target="loadMoreLibrary">
+                                <i class="fa-light fa-spinner-third fa-spin me-1"></i>{{ __('Loading...') }}
+                            </span>
+                        </button>
+                    </div>
+                @endif
+            @elseif(!empty($libraryActiveCategory) || !empty($librarySearchQuery))
                 <div class="d-flex flex-column align-items-center justify-content-center py-5" style="color:#94a0b8;">
                     <i class="fa-light fa-image-slash mb-2" style="font-size:2rem;"></i>
                     <span style="font-size:0.85rem;">{{ __('No results found') }}</span>

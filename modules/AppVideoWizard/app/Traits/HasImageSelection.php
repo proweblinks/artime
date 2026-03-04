@@ -42,6 +42,9 @@ trait HasImageSelection
     public array $libraryCategories = [];
     public string $libraryActiveCategory = '';
     public array $libraryCategoryResults = [];
+    public int $libraryPage = 1;
+    public bool $libraryHasMore = false;
+    public string $librarySearchQuery = '';
 
     /**
      * Reset all image selection state. Useful when script changes invalidate cached data.
@@ -56,6 +59,9 @@ trait HasImageSelection
         $this->sceneVideoEdits = [];
         $this->showImageSelectionModal = false;
         $this->showLibraryBrowser = false;
+        $this->libraryPage = 1;
+        $this->libraryHasMore = false;
+        $this->librarySearchQuery = '';
     }
 
     /**
@@ -106,7 +112,7 @@ trait HasImageSelection
             $this->selectedSceneImages = [];
             foreach ($this->sceneImageCandidates as $sceneId => $sceneCandidates) {
                 if (!empty($sceneCandidates)) {
-                    $this->selectedSceneImages[$sceneId] = 0;
+                    $this->selectedSceneImages[$sceneId] = [0];
                     $firstCandidate = $sceneCandidates[0];
                     if (($firstCandidate['type'] ?? 'image') === 'video') {
                         $this->sceneAnimateWithAI[$sceneId] = $this->sceneAnimateWithAI[$sceneId] ?? false;
@@ -292,6 +298,9 @@ trait HasImageSelection
         $this->libraryBrowseScene = $sceneId;
         $this->libraryActiveCategory = '';
         $this->libraryCategoryResults = [];
+        $this->libraryPage = 1;
+        $this->libraryHasMore = false;
+        $this->librarySearchQuery = '';
 
         $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
         $this->libraryCategories = $stockService->getCategories();
@@ -304,8 +313,13 @@ trait HasImageSelection
     public function loadLibraryCategory(string $category)
     {
         $this->libraryActiveCategory = $category;
+        $this->librarySearchQuery = '';
+        $this->libraryPage = 1;
+        $perPage = 24;
         $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
-        $this->libraryCategoryResults = $stockService->browseCategory($category, 24);
+        $results = $stockService->browseCategory($category, $perPage + 1);
+        $this->libraryHasMore = count($results) > $perPage;
+        $this->libraryCategoryResults = array_slice($results, 0, $perPage);
     }
 
     /**
@@ -317,8 +331,38 @@ trait HasImageSelection
         if (mb_strlen($query) < 2) return;
 
         $this->libraryActiveCategory = '';
+        $this->librarySearchQuery = $query;
+        $this->libraryPage = 1;
+        $perPage = 24;
         $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
-        $this->libraryCategoryResults = $stockService->search($query, 24);
+        $results = $stockService->search($query, $perPage + 1);
+        $this->libraryHasMore = count($results) > $perPage;
+        $this->libraryCategoryResults = array_slice($results, 0, $perPage);
+    }
+
+    /**
+     * Load more items in the library browser (next page).
+     */
+    public function loadMoreLibrary()
+    {
+        if (!$this->libraryHasMore) return;
+
+        $this->libraryPage++;
+        $perPage = 24;
+        $offset = ($this->libraryPage - 1) * $perPage;
+        $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
+
+        if (!empty($this->librarySearchQuery)) {
+            $results = $stockService->search($this->librarySearchQuery, $perPage + 1, $offset);
+        } elseif (!empty($this->libraryActiveCategory)) {
+            $results = $stockService->browseCategory($this->libraryActiveCategory, $perPage + 1, $offset);
+        } else {
+            return;
+        }
+
+        $this->libraryHasMore = count($results) > $perPage;
+        $newItems = array_slice($results, 0, $perPage);
+        $this->libraryCategoryResults = array_merge($this->libraryCategoryResults, $newItems);
     }
 
     /**
@@ -332,7 +376,7 @@ trait HasImageSelection
         $candidate = $this->libraryCategoryResults[$index];
         $this->sceneImageCandidates[$sceneId][] = $candidate;
         $newIndex = count($this->sceneImageCandidates[$sceneId]) - 1;
-        $this->selectedSceneImages[$sceneId] = $newIndex;
+        $this->selectedSceneImages[$sceneId] = [$newIndex];
 
         if (($candidate['type'] ?? 'image') === 'video') {
             $this->sceneAnimateWithAI[$sceneId] = false;

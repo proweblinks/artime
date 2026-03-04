@@ -12,7 +12,7 @@ class ArtimeStockService
      *
      * @return array Array of candidate arrays (same format as Pexels/Pixabay)
      */
-    public function search(string $query, int $limit = 6, ?string $type = null, ?string $orientation = null): array
+    public function search(string $query, int $limit = 6, int $offset = 0, ?string $type = null, ?string $orientation = null): array
     {
         $query = trim($query);
         if (empty($query)) {
@@ -30,7 +30,8 @@ class ArtimeStockService
                 $builder->orientation($orientation);
             }
 
-            $results = $builder->limit($limit * 2)->get();
+            $fetchLimit = ($limit + $offset) * 2;
+            $results = $builder->limit($fetchLimit)->get();
 
             // Score and convert to candidates
             $candidates = [];
@@ -42,7 +43,7 @@ class ArtimeStockService
             // Sort by score descending
             usort($candidates, fn($a, $b) => ($b['score'] ?? 0) <=> ($a['score'] ?? 0));
 
-            return array_slice($candidates, 0, $limit);
+            return array_slice($candidates, $offset, $limit);
         } catch (\Exception $e) {
             Log::warning('ArtimeStockService: Search failed', [
                 'query' => $query,
@@ -104,7 +105,7 @@ class ArtimeStockService
      *
      * @return array Array of candidate arrays
      */
-    public function browseCategory(string $category, int $limit = 12, ?string $type = null): array
+    public function browseCategory(string $category, int $limit = 12, int $offset = 0, ?string $type = null): array
     {
         try {
             $builder = StockMedia::active()->inCategory($category);
@@ -113,7 +114,7 @@ class ArtimeStockService
                 $builder->ofType($type);
             }
 
-            $results = $builder->orderBy('title')->limit($limit)->get();
+            $results = $builder->orderBy('title')->offset($offset)->limit($limit)->get();
 
             return $results->map(fn($media) => $media->toCandidate(3.0))->toArray();
         } catch (\Exception $e) {

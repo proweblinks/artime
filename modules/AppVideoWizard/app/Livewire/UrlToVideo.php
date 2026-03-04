@@ -757,7 +757,6 @@ class UrlToVideo extends Component
 
         Log::info('UrlToVideo: Recreating project — showing transcript editor', [
             'original_project_id' => $projectId,
-            'image_source' => $imageSource,
             'transcript_words' => $this->transcriptWordCount,
         ]);
     }
