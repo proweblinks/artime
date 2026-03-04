@@ -140,7 +140,7 @@
 
     @if($viewMode === 'grid')
         {{-- Grid View --}}
-        <div class="row g-4">
+        <div class="row g-4" id="media-grid">
             @forelse($items as $item)
                 @include('appvideowizard::admin.stock._media-card', ['item' => $item])
             @empty
@@ -153,6 +153,15 @@
                 </div>
             @endforelse
         </div>
+        @if($items->hasMorePages())
+            <div id="infinite-sentinel" class="d-flex justify-content-center py-4"
+                 data-next-url="{{ $items->nextPageUrl() }}">
+                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <span class="ms-2 text-muted small">Loading more...</span>
+            </div>
+        @endif
     @else
         {{-- Table View --}}
         <div class="card border-0 shadow-sm">
@@ -279,8 +288,8 @@
         </div>
     @endif
 
-    {{-- Pagination --}}
-    @if($items->hasPages())
+    {{-- Pagination (table view only) --}}
+    @if($viewMode === 'table' && $items->hasPages())
         <div class="d-flex justify-content-center mt-4">
             {{ $items->links() }}
         </div>
@@ -293,7 +302,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const bulkCount = document.getElementById('bulk-count');
     const bulkForm = document.getElementById('bulk-form');
     const selectAll = document.getElementById('select-all');
-    const checkboxes = document.querySelectorAll('.bulk-checkbox');
 
     function updateBulkBar() {
         const checked = document.querySelectorAll('.bulk-checkbox:checked');
@@ -301,7 +309,6 @@ document.addEventListener('DOMContentLoaded', function() {
             bulkBar.classList.remove('d-none');
             bulkCount.textContent = checked.length;
 
-            // Sync hidden inputs to bulk form
             bulkForm.querySelectorAll('input[name="ids[]"]').forEach(el => el.remove());
             checked.forEach(cb => {
                 const input = document.createElement('input');
@@ -315,20 +322,57 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    checkboxes.forEach(cb => cb.addEventListener('change', updateBulkBar));
+    function bindCheckboxes() {
+        document.querySelectorAll('.bulk-checkbox').forEach(cb => {
+            cb.removeEventListener('change', updateBulkBar);
+            cb.addEventListener('change', updateBulkBar);
+        });
+    }
+    bindCheckboxes();
 
     if (selectAll) {
         selectAll.addEventListener('change', function() {
-            checkboxes.forEach(cb => { cb.checked = this.checked; });
+            document.querySelectorAll('.bulk-checkbox').forEach(cb => { cb.checked = this.checked; });
             updateBulkBar();
         });
     }
 
     window.clearBulk = function() {
-        checkboxes.forEach(cb => { cb.checked = false; });
+        document.querySelectorAll('.bulk-checkbox').forEach(cb => { cb.checked = false; });
         if (selectAll) selectAll.checked = false;
         updateBulkBar();
     };
+
+    // Infinite scroll for grid view
+    const sentinel = document.getElementById('infinite-sentinel');
+    if (sentinel) {
+        let loading = false;
+        const grid = document.getElementById('media-grid');
+        const observer = new IntersectionObserver((entries) => {
+            if (!entries[0].isIntersecting || loading) return;
+            const nextUrl = sentinel.dataset.nextUrl;
+            if (!nextUrl) { observer.disconnect(); sentinel.remove(); return; }
+            loading = true;
+            fetch(nextUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(r => r.text())
+                .then(html => {
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const newCards = doc.querySelectorAll('#media-grid > *');
+                    newCards.forEach(card => grid.appendChild(document.adoptNode(card)));
+                    const newSentinel = doc.getElementById('infinite-sentinel');
+                    if (newSentinel && newSentinel.dataset.nextUrl) {
+                        sentinel.dataset.nextUrl = newSentinel.dataset.nextUrl;
+                    } else {
+                        observer.disconnect();
+                        sentinel.remove();
+                    }
+                    bindCheckboxes();
+                    loading = false;
+                })
+                .catch(() => { loading = false; });
+        }, { rootMargin: '400px' });
+        observer.observe(sentinel);
+    }
 });
 </script>
 @endsection

@@ -61,7 +61,7 @@ class StockMediaController extends Controller
     public function index(Request $request)
     {
         $viewMode = $request->get('view', 'grid');
-        $perPage = $viewMode === 'grid' ? 24 : 50;
+        $perPage = $viewMode === 'grid' ? 48 : 50;
 
         $query = StockMedia::query();
 
