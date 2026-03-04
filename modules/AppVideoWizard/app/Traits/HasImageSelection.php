@@ -45,6 +45,8 @@ trait HasImageSelection
     public int $libraryPage = 1;
     public bool $libraryHasMore = false;
     public string $librarySearchQuery = '';
+    public string $librarySort = 'title';
+    public string $libraryTypeFilter = '';
 
     /**
      * Reset all image selection state. Useful when script changes invalidate cached data.
@@ -62,6 +64,8 @@ trait HasImageSelection
         $this->libraryPage = 1;
         $this->libraryHasMore = false;
         $this->librarySearchQuery = '';
+        $this->librarySort = 'title';
+        $this->libraryTypeFilter = '';
     }
 
     /**
@@ -301,6 +305,8 @@ trait HasImageSelection
         $this->libraryPage = 1;
         $this->libraryHasMore = false;
         $this->librarySearchQuery = '';
+        $this->librarySort = 'title';
+        $this->libraryTypeFilter = '';
 
         $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
         $this->libraryCategories = $stockService->getCategories();
@@ -316,8 +322,9 @@ trait HasImageSelection
         $this->librarySearchQuery = '';
         $this->libraryPage = 1;
         $perPage = 24;
+        $type = in_array($this->libraryTypeFilter, ['image', 'video']) ? $this->libraryTypeFilter : null;
         $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
-        $results = $stockService->browseCategory($category, $perPage + 1);
+        $results = $stockService->browseCategory($category, $perPage + 1, 0, $type, $this->librarySort);
         $this->libraryHasMore = count($results) > $perPage;
         $this->libraryCategoryResults = array_slice($results, 0, $perPage);
     }
@@ -334,8 +341,9 @@ trait HasImageSelection
         $this->librarySearchQuery = $query;
         $this->libraryPage = 1;
         $perPage = 24;
+        $type = in_array($this->libraryTypeFilter, ['image', 'video']) ? $this->libraryTypeFilter : null;
         $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
-        $results = $stockService->search($query, $perPage + 1);
+        $results = $stockService->search($query, $perPage + 1, 0, $type);
         $this->libraryHasMore = count($results) > $perPage;
         $this->libraryCategoryResults = array_slice($results, 0, $perPage);
     }
@@ -351,11 +359,12 @@ trait HasImageSelection
         $perPage = 24;
         $offset = ($this->libraryPage - 1) * $perPage;
         $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
+        $type = in_array($this->libraryTypeFilter, ['image', 'video']) ? $this->libraryTypeFilter : null;
 
         if (!empty($this->librarySearchQuery)) {
-            $results = $stockService->search($this->librarySearchQuery, $perPage + 1, $offset);
+            $results = $stockService->search($this->librarySearchQuery, $perPage + 1, $offset, $type);
         } elseif (!empty($this->libraryActiveCategory)) {
-            $results = $stockService->browseCategory($this->libraryActiveCategory, $perPage + 1, $offset);
+            $results = $stockService->browseCategory($this->libraryActiveCategory, $perPage + 1, $offset, $type, $this->librarySort);
         } else {
             return;
         }
@@ -363,6 +372,47 @@ trait HasImageSelection
         $this->libraryHasMore = count($results) > $perPage;
         $newItems = array_slice($results, 0, $perPage);
         $this->libraryCategoryResults = array_merge($this->libraryCategoryResults, $newItems);
+    }
+
+    /**
+     * Change sort order and re-fetch library results.
+     */
+    public function updateLibrarySort(string $sort)
+    {
+        if (!in_array($sort, ['title', 'shortest', 'longest', 'newest'])) return;
+        $this->librarySort = $sort;
+        $this->reloadLibraryResults();
+    }
+
+    /**
+     * Change type filter and re-fetch library results.
+     */
+    public function updateLibraryTypeFilter(string $type)
+    {
+        $this->libraryTypeFilter = $type === $this->libraryTypeFilter ? '' : $type;
+        $this->reloadLibraryResults();
+    }
+
+    /**
+     * Re-fetch library results with current sort/filter settings.
+     */
+    protected function reloadLibraryResults(): void
+    {
+        $this->libraryPage = 1;
+        $perPage = 24;
+        $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
+        $type = in_array($this->libraryTypeFilter, ['image', 'video']) ? $this->libraryTypeFilter : null;
+
+        if (!empty($this->librarySearchQuery)) {
+            $results = $stockService->search($this->librarySearchQuery, $perPage + 1, 0, $type);
+        } elseif (!empty($this->libraryActiveCategory)) {
+            $results = $stockService->browseCategory($this->libraryActiveCategory, $perPage + 1, 0, $type, $this->librarySort);
+        } else {
+            return;
+        }
+
+        $this->libraryHasMore = count($results) > $perPage;
+        $this->libraryCategoryResults = array_slice($results, 0, $perPage);
     }
 
     /**

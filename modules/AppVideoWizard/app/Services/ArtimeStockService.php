@@ -105,7 +105,7 @@ class ArtimeStockService
      *
      * @return array Array of candidate arrays
      */
-    public function browseCategory(string $category, int $limit = 12, int $offset = 0, ?string $type = null): array
+    public function browseCategory(string $category, int $limit = 12, int $offset = 0, ?string $type = null, string $sort = 'title'): array
     {
         try {
             $builder = StockMedia::active()->inCategory($category);
@@ -114,7 +114,14 @@ class ArtimeStockService
                 $builder->ofType($type);
             }
 
-            $results = $builder->orderBy('title')->offset($offset)->limit($limit)->get();
+            match ($sort) {
+                'shortest' => $builder->orderByRaw('duration IS NULL, duration ASC'),
+                'longest' => $builder->orderByRaw('duration IS NULL, duration DESC'),
+                'newest' => $builder->orderByDesc('created_at'),
+                default => $builder->orderBy('title'),
+            };
+
+            $results = $builder->offset($offset)->limit($limit)->get();
 
             return $results->map(fn($media) => $media->toCandidate(3.0))->toArray();
         } catch (\Exception $e) {

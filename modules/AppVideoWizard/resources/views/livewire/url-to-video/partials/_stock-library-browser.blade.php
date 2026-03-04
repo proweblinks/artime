@@ -77,6 +77,50 @@
             </div>
         @endif
 
+        {{-- Sort & Filter toolbar --}}
+        @if(!empty($libraryActiveCategory) || !empty($librarySearchQuery))
+            <div class="px-4 pb-2 d-flex align-items-center gap-2 flex-wrap">
+                {{-- Type filter chips --}}
+                <div class="d-flex gap-1">
+                    <button wire:click="updateLibraryTypeFilter('video')" type="button"
+                            class="utv-lib-filter-chip {{ $libraryTypeFilter === 'video' ? 'active' : '' }}">
+                        <i class="fa-light fa-video" style="font-size:0.65rem;"></i> {{ __('Videos') }}
+                    </button>
+                    <button wire:click="updateLibraryTypeFilter('image')" type="button"
+                            class="utv-lib-filter-chip {{ $libraryTypeFilter === 'image' ? 'active' : '' }}">
+                        <i class="fa-light fa-image" style="font-size:0.65rem;"></i> {{ __('Images') }}
+                    </button>
+                </div>
+
+                <span style="color:#d0d5dd;">|</span>
+
+                {{-- Sort options --}}
+                <div class="d-flex gap-1">
+                    <button wire:click="updateLibrarySort('title')" type="button"
+                            class="utv-lib-filter-chip {{ $librarySort === 'title' ? 'active' : '' }}">
+                        <i class="fa-light fa-arrow-down-a-z" style="font-size:0.65rem;"></i> {{ __('A-Z') }}
+                    </button>
+                    <button wire:click="updateLibrarySort('shortest')" type="button"
+                            class="utv-lib-filter-chip {{ $librarySort === 'shortest' ? 'active' : '' }}">
+                        <i class="fa-light fa-clock" style="font-size:0.65rem;"></i> {{ __('Shortest') }}
+                    </button>
+                    <button wire:click="updateLibrarySort('longest')" type="button"
+                            class="utv-lib-filter-chip {{ $librarySort === 'longest' ? 'active' : '' }}">
+                        <i class="fa-light fa-hourglass" style="font-size:0.65rem;"></i> {{ __('Longest') }}
+                    </button>
+                    <button wire:click="updateLibrarySort('newest')" type="button"
+                            class="utv-lib-filter-chip {{ $librarySort === 'newest' ? 'active' : '' }}">
+                        <i class="fa-light fa-sparkles" style="font-size:0.65rem;"></i> {{ __('Newest') }}
+                    </button>
+                </div>
+
+                {{-- Result count --}}
+                <span class="ms-auto" style="font-size:0.7rem;color:#94a0b8;">
+                    {{ count($libraryCategoryResults) }}{{ $libraryHasMore ? '+' : '' }} {{ __('items') }}
+                </span>
+            </div>
+        @endif
+
         {{-- Results grid --}}
         <div class="card-body p-4 pt-2" style="overflow-y:auto;">
             @if(!empty($libraryCategoryResults))
@@ -253,6 +297,31 @@
         opacity: 1 !important;
         background: rgba(239,68,68,0.8);
         pointer-events: none;
+    }
+    .utv-lib-filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 10px;
+        border-radius: 6px;
+        border: 1px solid #eef1f5;
+        background: #f5f7fa;
+        color: #5a6178;
+        font-size: 0.68rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+    }
+    .utv-lib-filter-chip:hover {
+        background: #eef1f5;
+        color: #1a1a2e;
+        border-color: #d0d5dd;
+    }
+    .utv-lib-filter-chip.active {
+        background: rgba(3,252,244,0.12);
+        color: #0891b2;
+        border-color: rgba(3,252,244,0.35);
     }
 </style>
 @endif
