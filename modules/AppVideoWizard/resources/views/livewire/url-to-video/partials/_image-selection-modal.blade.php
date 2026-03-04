@@ -291,7 +291,7 @@
                     @if(!empty($sceneText))
                         <div class="mb-2 d-flex align-items-start gap-2">
                             <p class="mb-0 flex-grow-1" style="font-size: 0.78rem; color: var(--at-text-secondary, #5a6178); line-height: 1.5;">
-                                {{ Str::limit($sceneText, 120) }}
+                                {{ $sceneText }}
                             </p>
                             <span class="badge flex-shrink-0" style="background: #1e3a5f; color: #38bdf8; font-size: 0.72rem; white-space: nowrap;">
                                 <i class="fa-light fa-clock me-1"></i>{{ number_format($sceneDuration, 1) }}s
@@ -363,7 +363,8 @@
                                     class="btn btn-sm" style="background: #03fcf4; color: #0a2e2e; border-radius: 8px; white-space: nowrap;">
                                 <i class="fa-light fa-magnifying-glass me-1"></i>{{ __('Search') }}
                             </button>
-                            <button @click="$wire.searchExternalStock('{{ $sceneId }}', sceneQuery)" type="button"
+                            @php $externalFallback = ($sceneSearchSuggestions[$sceneId] ?? [])[0] ?? ''; @endphp
+                            <button @click="$wire.searchExternalStock('{{ $sceneId }}', sceneQuery || '{{ addslashes($externalFallback) }}')" type="button"
                                     class="btn btn-sm" style="background: #f5f7fa; color: #5a6178; border: 1px solid #eef1f5; border-radius: 8px; white-space: nowrap; font-size: 0.75rem;"
                                     title="{{ __('Search Pexels, Pixabay & Wikimedia') }}">
                                 <i class="fa-light fa-globe me-1"></i>{{ __('External') }}
