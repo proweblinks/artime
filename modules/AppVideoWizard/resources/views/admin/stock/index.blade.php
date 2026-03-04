@@ -133,7 +133,7 @@
 
     @if($viewMode === 'grid')
         {{-- Grid View --}}
-        <div class="row g-3">
+        <div class="row g-4">
             @forelse($items as $item)
                 @include('appvideowizard::admin.stock._media-card', ['item' => $item])
             @empty
