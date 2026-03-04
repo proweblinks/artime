@@ -482,7 +482,7 @@ class VisualConsistencyService
 
     /**
      * Get the character reference image requirements for a scene.
-     * Used for models that support face consistency (like NanoBanana Pro).
+     * Used for models that support face consistency (like NanoBanana 2).
      */
     public function getCharacterReferences(WizardProject $project, array $scene): array
     {

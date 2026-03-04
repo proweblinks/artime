@@ -224,7 +224,7 @@ class UrlToVideoOrchestrator
         $project->updateProgress('generating_images', 50, 'Generating images');
 
         $scenes = $project->scenes ?? [];
-        $imageModel = get_option('story_mode_image_model', 'nanobanana-pro');
+        $imageModel = get_option('story_mode_image_model', 'nanobanana2');
         $wizardProject = $this->createTempWizardProject($project);
 
         $updatedScenes = [];

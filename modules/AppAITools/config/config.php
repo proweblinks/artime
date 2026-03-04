@@ -269,12 +269,12 @@ return [
     | 'default' uses AI::process() which routes to whatever the admin configured.
     */
     'thumbnail_image_models' => [
-        'nanobanana-pro' => [
-            'name' => 'NanoBanana Pro',
-            'description' => 'Best quality, 4K output, up to 5 face references',
+        'nanobanana2' => [
+            'name' => 'NanoBanana 2',
+            'description' => 'Pro quality at flash speed, 4K output, up to 5 face references',
             'credits' => 6,
             'provider' => 'gemini',
-            'model' => 'gemini-3-pro-image-preview',
+            'model' => 'gemini-3.1-flash-image-preview',
             'resolution' => '4K',
             'maxHumanRefs' => 5,
         ],

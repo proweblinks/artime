@@ -35,7 +35,7 @@ class VwWorkflowSeeder extends Seeder
                     'mode' => 'generate',
                     'chaos_level' => 50,
                     'camera_move' => 'none',
-                    'image_model' => 'nanobanana-pro',
+                    'image_model' => 'nanobanana2',
                     'ai_tier' => 'economy',
                 ],
             ]
@@ -62,7 +62,7 @@ class VwWorkflowSeeder extends Seeder
                     'mode' => 'generate',
                     'chaos_level' => 85,
                     'camera_move' => 'handheld',
-                    'image_model' => 'nanobanana-pro',
+                    'image_model' => 'nanobanana2',
                     'ai_tier' => 'economy',
                 ],
             ]
@@ -171,7 +171,7 @@ class VwWorkflowSeeder extends Seeder
                 'config' => [
                     'service' => 'ImageGenerationService',
                     'method' => 'generateSceneImage',
-                    'model' => 'nanobanana-pro',
+                    'model' => 'nanobanana2',
                     'aspect_ratio' => 'from_project',
                 ],
                 'inputs' => [
@@ -510,7 +510,7 @@ RULES;
                 'defaults' => [
                     'mode' => 'clone',
                     'camera_move' => 'none',
-                    'image_model' => 'nanobanana-pro',
+                    'image_model' => 'nanobanana2',
                     'ai_tier' => 'economy',
                 ],
             ]
@@ -723,7 +723,7 @@ RULES;
                 'config' => [
                     'service' => 'ImageGenerationService',
                     'method' => 'generateSceneImage',
-                    'model' => 'nanobanana-pro',
+                    'model' => 'nanobanana2',
                     'aspect_ratio' => 'from_project',
                 ],
                 'inputs' => [

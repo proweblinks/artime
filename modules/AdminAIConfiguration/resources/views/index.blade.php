@@ -497,9 +497,9 @@
                     <div class="col-md-6 mb-4">
                         <label class="form-label">{{ __('Image Generation Model') }}</label>
                         <select class="form-select" name="story_mode_image_model">
-                            <option value="nanobanana-pro" {{ get_option('story_mode_image_model', 'nanobanana-pro') == 'nanobanana-pro' ? 'selected' : '' }}>NanoBanana Pro (Best Quality)</option>
-                            <option value="nanobanana" {{ get_option('story_mode_image_model', 'nanobanana-pro') == 'nanobanana' ? 'selected' : '' }}>NanoBanana (Fast)</option>
-                            <option value="hidream" {{ get_option('story_mode_image_model', 'nanobanana-pro') == 'hidream' ? 'selected' : '' }}>HiDream (Artistic)</option>
+                            <option value="nanobanana2" {{ get_option('story_mode_image_model', 'nanobanana2') == 'nanobanana2' ? 'selected' : '' }}>NanoBanana 2 (Gemini 3.1 Flash Image)</option>
+                            <option value="nanobanana" {{ get_option('story_mode_image_model', 'nanobanana2') == 'nanobanana' ? 'selected' : '' }}>NanoBanana (Fast)</option>
+                            <option value="hidream" {{ get_option('story_mode_image_model', 'nanobanana2') == 'hidream' ? 'selected' : '' }}>HiDream (Artistic)</option>
                         </select>
                     </div>
 

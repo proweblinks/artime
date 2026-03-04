@@ -16,7 +16,7 @@ use Modules\AppVideoWizard\Services\LLMExpansionService;
  * StructuredPromptBuilderService
  *
  * Builds structured JSON-based prompts for photorealistic image generation.
- * This service creates prompts optimized for NanoBanana Pro and other
+ * This service creates prompts optimized for NanoBanana 2 and other
  * high-quality image generation models.
  *
  * The structured approach provides:

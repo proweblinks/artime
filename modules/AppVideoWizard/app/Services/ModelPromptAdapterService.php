@@ -38,7 +38,7 @@ class ModelPromptAdapterService
             'maxTokens' => 4096,
             'truncation' => 'none',
         ],
-        'nanobanana-pro' => [
+        'nanobanana2' => [
             'tokenizer' => 'gemini',
             'maxTokens' => 8192,
             'truncation' => 'none',
@@ -151,7 +151,7 @@ class ModelPromptAdapterService
      * Adapt a prompt for the target model.
      *
      * @param string $prompt The original prompt
-     * @param string $modelId The target model ID (hidream, nanobanana, nanobanana-pro)
+     * @param string $modelId The target model ID (hidream, nanobanana, nanobanana2)
      * @param array $options Additional options (shotType, etc.)
      * @return string The adapted prompt
      */

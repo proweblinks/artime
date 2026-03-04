@@ -40,9 +40,9 @@ class ImageGenerationService
     /**
      * Model configurations with token costs matching reference implementation.
      *
-     * Correct Model IDs (as of Jan 2026):
+     * Correct Model IDs (as of Mar 2026):
      * - gemini-2.5-flash-image: Nano Banana - Fast, cost-effective, up to 1024px
-     * - gemini-3-pro-image-preview: Nano Banana Pro - Best quality, 4K, supports up to 5 human refs
+     * - gemini-3.1-flash-image-preview: Nano Banana 2 - Pro quality at flash speed, 4K, up to 5 human refs
      *
      * @see https://ai.google.dev/gemini-api/docs/image-generation
      */
@@ -54,13 +54,13 @@ class ImageGenerationService
             'provider' => 'runpod',
             'async' => true,
         ],
-        'nanobanana-pro' => [
-            'name' => 'NanoBanana Pro',
-            'description' => 'Best quality, superior face consistency (up to 5 reference faces), 4K output',
+        'nanobanana2' => [
+            'name' => 'NanoBanana 2',
+            'description' => 'Pro quality at flash speed, superior face consistency (up to 5 reference faces), 4K output',
             'tokenCost' => 3,
             'provider' => 'gemini',
-            'model' => 'gemini-3-pro-image-preview', // Gemini 3 Pro Image (Nano Banana Pro)
-            'resolution' => '4K', // Pro supports up to 4K
+            'model' => 'gemini-3.1-flash-image-preview', // Gemini 3.1 Flash Image (Nano Banana 2)
+            'resolution' => '4K', // Supports up to 4K
             'quality' => 'hd',
             'async' => false,
             'maxHumanRefs' => 5, // Supports up to 5 human reference images
@@ -3887,23 +3887,21 @@ EOT;
                 'aspectRatio' => $detectedAspectRatio,
             ];
 
-            // Use gemini-2.5-flash-image as primary for image editing — it's reliable.
-            // gemini-3-pro-image-preview has a persistent MALFORMED_FUNCTION_CALL bug
-            // with image-to-image editing (its internal thinking mechanism breaks).
+            // Use gemini-3.1-flash-image-preview as primary for image editing — pro quality at flash speed.
             $result = $this->geminiService->generateImageFromImage($base64Image, $editPrompt, array_merge($editOptions, [
-                'model' => 'gemini-2.5-flash-image',
+                'model' => 'gemini-3.1-flash-image-preview',
             ]));
 
-            // Fallback to gemini-3-pro-image-preview if flash fails
+            // Fallback to gemini-2.5-flash-image if primary fails
             if (empty($result['imageData'])) {
                 Log::warning('Primary edit model failed, trying fallback', [
-                    'primary' => 'gemini-2.5-flash-image',
-                    'fallback' => 'gemini-3-pro-image-preview',
+                    'primary' => 'gemini-3.1-flash-image-preview',
+                    'fallback' => 'gemini-2.5-flash-image',
                     'primaryError' => $result['error'] ?? 'No image data',
                 ]);
 
                 $result = $this->geminiService->generateImageFromImage($base64Image, $editPrompt, array_merge($editOptions, [
-                    'model' => 'gemini-3-pro-image-preview',
+                    'model' => 'gemini-2.5-flash-image',
                 ]));
             }
 

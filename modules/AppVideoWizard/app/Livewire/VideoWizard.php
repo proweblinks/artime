@@ -962,7 +962,7 @@ class VideoWizard extends Component
     public array $storyboard = [
         'scenes' => [],
         'styleBible' => null,
-        'imageModel' => 'nanobanana-pro', // Default to NanoBanana Pro (3 tokens) - HiDream requires RunPod setup
+        'imageModel' => 'nanobanana2', // Default to NanoBanana 2 (3 tokens) - HiDream requires RunPod setup
         'visualStyle' => [
             'mood' => '',
             'lighting' => '',
@@ -2267,7 +2267,7 @@ class VideoWizard extends Component
         $this->storyboard = [
             'scenes' => [],
             'styleBible' => null,
-            'imageModel' => 'nanobanana-pro',
+            'imageModel' => 'nanobanana2',
             'visualStyle' => [
                 'mood' => '',
                 'lighting' => '',
@@ -9387,7 +9387,7 @@ PROMPT;
             $result = $imageService->generateSceneImage($project, $scene, array_merge([
                 'sceneIndex' => $sceneIndex,
                 'teamId' => session('current_team_id', 0),
-                'model' => $this->storyboard['imageModel'] ?? 'nanobanana-pro', // Use UI-selected model
+                'model' => $this->storyboard['imageModel'] ?? 'nanobanana2', // Use UI-selected model
                 // CRITICAL: Pass sceneMemory for Reference Cascade face consistency
                 'sceneMemory' => $this->sceneMemory,
                 'storyboard' => $this->storyboard,
@@ -9536,7 +9536,7 @@ PROMPT;
                     $result = $imageService->generateSceneImage($project, $scene, array_merge([
                         'sceneIndex' => $index,
                         'teamId' => session('current_team_id', 0),
-                        'model' => $this->storyboard['imageModel'] ?? 'nanobanana-pro',
+                        'model' => $this->storyboard['imageModel'] ?? 'nanobanana2',
                         // CRITICAL: Pass sceneMemory for Reference Cascade face consistency
                         'sceneMemory' => $this->sceneMemory,
                         'storyboard' => $this->storyboard,
@@ -10833,7 +10833,7 @@ PROMPT;
                     $ref['referenceImageMimeType'] = $character['referenceImageMimeType'] ?? 'image/png';
                 }
 
-                // Add face reference if available (from NanoBanana Pro)
+                // Add face reference if available (from NanoBanana 2)
                 if (!empty($character['faceReferenceId'])) {
                     $ref['faceReferenceId'] = $character['faceReferenceId'];
                 }
@@ -12146,8 +12146,8 @@ PROMPT;
                 'description' => 'Artistic & cinematic style',
                 'tokenCost' => 2,
             ],
-            'nanobanana-pro' => [
-                'name' => 'NanoBanana Pro',
+            'nanobanana2' => [
+                'name' => 'NanoBanana 2',
                 'description' => 'High quality, fast generation',
                 'tokenCost' => 3,
             ],
@@ -13094,7 +13094,7 @@ PROMPT;
         $this->storyboard = [
             'scenes' => [],
             'styleBible' => null,
-            'imageModel' => 'nanobanana-pro',
+            'imageModel' => 'nanobanana2',
             'visualStyle' => [
                 'mood' => '',
                 'lighting' => '',
@@ -18367,7 +18367,7 @@ PROMPT;
                 'id' => $character['id'],
                 'visualDescription' => $prompt,
             ], [
-                'model' => 'nanobanana-pro',
+                'model' => 'nanobanana2',
                 'sceneIndex' => null, // Portraits don't belong to any scene
                 'negativePrompt' => $negativePrompt,
                 'isCharacterPortrait' => true, // Flag for portrait mode
@@ -18488,7 +18488,7 @@ PROMPT;
             $imageService = app(ImageGenerationService::class);
 
             // Use Pro model for hero frame (best face consistency)
-            $heroModel = $this->storyboard['heroFrameModel'] ?? 'nanobanana-pro';
+            $heroModel = $this->storyboard['heroFrameModel'] ?? 'nanobanana2';
 
             Log::info('SmartReference: Generating hero frame', [
                 'projectId' => $this->projectId,
@@ -18973,7 +18973,7 @@ PROMPT;
                 'id' => 'style_ref_' . uniqid(),
                 'visualDescription' => $prompt,
             ], [
-                'model' => 'nanobanana-pro',
+                'model' => 'nanobanana2',
                 'sceneIndex' => null, // Style references don't belong to any scene
             ]);
 
@@ -19940,7 +19940,7 @@ EOT;
                 'id' => $location['id'],
                 'visualDescription' => $prompt,
             ], [
-                'model' => 'nanobanana-pro',
+                'model' => 'nanobanana2',
                 'sceneIndex' => null, // Location references don't belong to any scene
                 'negativePrompt' => $negativePrompt,
                 'isLocationReference' => true, // Flag for empty environment mode
@@ -30824,7 +30824,7 @@ PROMPT;
                         'id' => $shot['id'],
                         'visualDescription' => $enhancedPrompt,
                     ], array_merge([
-                        'model' => $this->storyboard['imageModel'] ?? 'nanobanana-pro',
+                        'model' => $this->storyboard['imageModel'] ?? 'nanobanana2',
                         'sceneIndex' => $sceneIndex,
                         // Shot-specific context for StructuredPromptBuilder
                         'shot_type' => $shot['type'] ?? 'medium',
@@ -31315,7 +31315,7 @@ PROMPT;
 
                             // Build options for image generation
                             $generationOptions = [
-                                'model' => $this->storyboard['imageModel'] ?? 'nanobanana-pro',
+                                'model' => $this->storyboard['imageModel'] ?? 'nanobanana2',
                                 'sceneIndex' => $sceneIndex,
                                 'shot_type' => $shotType,
                                 'shot_index' => $shotIndex,
@@ -31655,7 +31655,7 @@ PROMPT;
                     'id' => "collage_{$sceneIndex}_page_{$pageIndex}_region_{$regionIdx}",
                     'visualDescription' => $shotPrompt,
                 ], [
-                    'model' => $this->storyboard['imageModel'] ?? 'nanobanana-pro',
+                    'model' => $this->storyboard['imageModel'] ?? 'nanobanana2',
                     'sceneIndex' => $sceneIndex,
                     'teamId' => session('current_team_id', 0),
                     'sceneMemory' => $this->sceneMemory,
@@ -39510,7 +39510,7 @@ DESC;
 
             $jobsManager = app(QueuedJobsManager::class);
             $jobId = $jobsManager->dispatchImageGeneration($project, $scenes, [
-                'model' => $this->storyboard['imageModel'] ?? 'nanobanana-pro',
+                'model' => $this->storyboard['imageModel'] ?? 'nanobanana2',
                 'teamId' => session('current_team_id', 0),
             ]);
 

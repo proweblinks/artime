@@ -16,7 +16,7 @@ class AiThumbnails extends Component
     public string $title = '';
     public string $category = 'general';
     public string $style = 'professional';
-    public string $imageModel = 'nanobanana-pro';
+    public string $imageModel = 'nanobanana2';
     public int $variations = 2;
     public string $customPrompt = '';
 
@@ -388,7 +388,7 @@ class AiThumbnails extends Component
         $this->title = '';
         $this->category = 'general';
         $this->style = 'professional';
-        $this->imageModel = 'nanobanana-pro';
+        $this->imageModel = 'nanobanana2';
         $this->variations = 2;
         $this->customPrompt = '';
         $this->youtubeUrl = '';

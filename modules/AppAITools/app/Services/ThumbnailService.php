@@ -57,7 +57,7 @@ class ThumbnailService
         $userId = auth()->id();
         $mode = $params['mode'] ?? 'quick';
         $variations = min(max($params['variations'] ?? 2, 1), 4);
-        $imageModelKey = $params['imageModel'] ?? 'nanobanana-pro';
+        $imageModelKey = $params['imageModel'] ?? 'nanobanana2';
         $imageModelConfig = $this->resolveImageModel($imageModelKey);
 
         $history = AiToolHistory::create([
@@ -207,7 +207,7 @@ class ThumbnailService
     }
 
     /**
-     * Quick mode with Gemini (NanoBanana / NanoBanana Pro): text-to-image via GeminiService.
+     * Quick mode with Gemini (NanoBanana / NanoBanana 2): text-to-image via GeminiService.
      */
     protected function generateQuickGemini(string $prompt, int $variations, string $storagePath, int $historyId, array $modelConfig, array $additionalImages = []): array
     {
@@ -283,7 +283,7 @@ class ThumbnailService
 
     /**
      * Reference/Upgrade mode: image-to-image with GeminiService.
-     * Now routes through the correct Gemini model (NanoBanana / NanoBanana Pro).
+     * Now routes through the correct Gemini model (NanoBanana / NanoBanana 2).
      */
     protected function generateWithReference(string $prompt, string $refBase64, int $variations, string $storagePath, int $historyId, array $modelConfig, array $additionalImages = []): array
     {
@@ -398,13 +398,13 @@ class ThumbnailService
         $imageBase64 = base64_encode(Storage::disk('public')->get($diskPath));
         $gemini = app(GeminiService::class);
 
-        // Use NanoBanana Pro (Gemini 3 Pro) for best upscale quality
-        $proModel = config('appaitools.thumbnail_image_models.nanobanana-pro', []);
+        // Use NanoBanana 2 (Gemini 3.1 Flash Image) for best upscale quality
+        $proModel = config('appaitools.thumbnail_image_models.nanobanana2', []);
         $result = $gemini->generateImageFromImage(
             $imageBase64,
             'Upscale this image to the highest possible resolution. Maintain ALL details, textures, colors, and composition exactly as they are. Do not change, add, or remove any elements. Only increase resolution and sharpness.',
             [
-                'model' => $proModel['model'] ?? 'gemini-3-pro-image-preview',
+                'model' => $proModel['model'] ?? 'gemini-3.1-flash-image-preview',
                 'aspectRatio' => '16:9',
                 'resolution' => '4K',
                 'mimeType' => 'image/png',

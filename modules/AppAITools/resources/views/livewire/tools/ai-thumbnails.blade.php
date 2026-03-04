@@ -877,7 +877,7 @@ x-init="
                 @foreach($imageModels as $key => $m)
                 <button class="aith-model-btn {{ $imageModel === $key ? 'aith-model-active' : '' }}"
                     wire:click="$set('imageModel', '{{ $key }}')">
-                    @if($key === 'nanobanana-pro')
+                    @if($key === 'nanobanana2')
                     <span class="aith-model-badge-pro">PRO</span>
                     @endif
                     <span class="aith-model-name">{{ $m['name'] }}</span>
@@ -931,8 +931,8 @@ x-init="
             <textarea wire:model="customPrompt" class="aith-textarea" rows="2" placeholder="{{ __('Additional creative direction...') }}"></textarea>
         </div>
 
-        {{-- Bulk Face Lock (NanoBanana Pro only) --}}
-        @if($imageModel === 'nanobanana-pro')
+        {{-- Bulk Face Lock (NanoBanana 2 only) --}}
+        @if($imageModel === 'nanobanana2')
         <div class="aith-form-group" style="margin-top:0.5rem;">
             <label class="aith-checkbox-item">
                 <input type="checkbox" wire:model.live="bulkFaceLockEnabled">
@@ -1093,7 +1093,7 @@ x-init="
             </button>
             <div class="aith-feature-content">
                 <div class="aith-feature-grid">
-                    <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('NanoBanana Pro: 4K output, 5 face references') }}</div>
+                    <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('NanoBanana 2: 4K output, 5 face references') }}</div>
                     <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('NanoBanana: Fast quality with face consistency') }}</div>
                     <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('3 modes: Quick, Reference & Upgrade') }}</div>
                     <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('YouTube URL auto-fetch & thumbnail upgrade') }}</div>
@@ -1181,7 +1181,7 @@ x-init="
                 @foreach($imageModels as $key => $m)
                 <button class="aith-model-btn {{ $imageModel === $key ? 'aith-model-active' : '' }}"
                     wire:click="$set('imageModel', '{{ $key }}')">
-                    @if($key === 'nanobanana-pro')
+                    @if($key === 'nanobanana2')
                     <span class="aith-model-badge-pro">PRO</span>
                     @endif
                     <span class="aith-model-name">{{ $m['name'] }}</span>
@@ -1332,8 +1332,8 @@ x-init="
                     </div>
                 </div>
 
-                {{-- Face Lock (NanoBanana Pro only) --}}
-                @if($imageModel === 'nanobanana-pro')
+                {{-- Face Lock (NanoBanana 2 only) --}}
+                @if($imageModel === 'nanobanana2')
                 <div class="aith-form-group" style="margin-top:0.5rem;">
                     <label class="aith-checkbox-item">
                         <input type="checkbox" wire:model.live="faceLockEnabled">

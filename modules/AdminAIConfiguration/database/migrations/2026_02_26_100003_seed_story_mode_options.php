@@ -12,7 +12,7 @@ return new class extends Migration
         'story_mode_enabled' => '1',
         'story_mode_ai_engine' => 'gemini',
         'story_mode_ai_model' => 'gemini-2.5-flash',
-        'story_mode_image_model' => 'nanobanana-pro',
+        'story_mode_image_model' => 'nanobanana2',
         'story_mode_video_model' => 'seedance-1.5-pro',
         'story_mode_tts_provider' => 'auto',
         'story_mode_default_voice' => 'nova',

@@ -1454,7 +1454,7 @@
                 {{-- Image Model Selector --}}
                 <select class="vw-social-model-select" wire:model.live="storyboard.imageModel">
                     <option value="nanobanana">NanoBanana (Fast)</option>
-                    <option value="nanobanana_pro">NanoBanana Pro (Quality)</option>
+                    <option value="nanobanana2">NanoBanana 2 (Quality)</option>
                     <option value="hidream">HiDream (Premium)</option>
                 </select>
 

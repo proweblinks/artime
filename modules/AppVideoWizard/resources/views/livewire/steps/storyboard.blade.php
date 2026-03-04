@@ -587,7 +587,7 @@ function getCameraMovementIcon($movement) {
                                 @php
                                     $imageModels = [
                                         'hidream' => ['name' => 'HiDream', 'cost' => 2, 'desc' => 'Artistic & cinematic'],
-                                        'nanobanana-pro' => ['name' => 'NanoBanana Pro', 'cost' => 3, 'desc' => 'High quality'],
+                                        'nanobanana2' => ['name' => 'NanoBanana 2', 'cost' => 3, 'desc' => 'High quality'],
                                         'nanobanana' => ['name' => 'NanoBanana', 'cost' => 1, 'desc' => 'Quick drafts'],
                                     ];
                                 @endphp
@@ -955,7 +955,7 @@ function getCameraMovementIcon($movement) {
                         // Image models for cost display
                         $imageModels = [
                             'hidream' => ['name' => 'HiDream', 'cost' => 2],
-                            'nanobanana-pro' => ['name' => 'NanoBanana Pro', 'cost' => 3],
+                            'nanobanana2' => ['name' => 'NanoBanana 2', 'cost' => 3],
                             'nanobanana' => ['name' => 'NanoBanana', 'cost' => 1],
                         ];
                         $selectedModel = $storyboard['imageModel'] ?? 'nanobanana';

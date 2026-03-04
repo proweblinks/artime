@@ -27,7 +27,7 @@ class AiImageExecutor implements NodeExecutorInterface
     {
         $service = app(ImageGenerationService::class);
         $method = $config['method'] ?? 'generateSceneImage';
-        $model = $config['model'] ?? 'nanobanana-pro';
+        $model = $config['model'] ?? 'nanobanana2';
         $aspectRatio = $config['aspect_ratio'] ?? $project->aspect_ratio ?? '9:16';
 
         $prompt = $inputs['prompt'] ?? '';
