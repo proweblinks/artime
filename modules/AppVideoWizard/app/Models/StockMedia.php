@@ -4,6 +4,7 @@ namespace Modules\AppVideoWizard\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StockMedia extends Model
 {
@@ -28,6 +29,7 @@ class StockMedia extends Model
         'thumbnail_path',
         'orientation',
         'is_active',
+        'report_count',
     ];
 
     protected $casts = [
@@ -37,6 +39,7 @@ class StockMedia extends Model
         'duration' => 'float',
         'fps' => 'float',
         'is_active' => 'boolean',
+        'report_count' => 'integer',
     ];
 
     /**
@@ -114,6 +117,22 @@ class StockMedia extends Model
     public function scopeOrientation(Builder $query, string $orientation): Builder
     {
         return $query->where('orientation', $orientation);
+    }
+
+    /**
+     * Reports for this media item.
+     */
+    public function reports(): HasMany
+    {
+        return $this->hasMany(StockMediaReport::class);
+    }
+
+    /**
+     * Scope: only reported media (report_count > 0).
+     */
+    public function scopeReported(Builder $query): Builder
+    {
+        return $query->where('report_count', '>', 0);
     }
 
     /**

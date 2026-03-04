@@ -42,16 +42,15 @@ class ImageSourceService
         foreach ($scenes as $scene) {
             $sceneId = $scene['id'] ?? 'scene_0';
             $sceneText = $scene['text'] ?? '';
-            $candidates = [];
 
-            // Step 0: Category-based search (most reliable for curated library)
-            // When subject maps to a known category, pull directly from that category
+            $categoryResults = [];
+            $sceneSpecificResults = [];
+            $subjectResults = [];
+
+            // Pass A: Category browse — cap at 3 (not 8) to leave room for scene-specific
             if ($matchedCategory) {
                 try {
-                    $categoryResults = $stockService->browseCategoryExcluding($matchedCategory, 8, $usedStockIds);
-                    foreach ($categoryResults as $item) {
-                        $candidates[] = $item;
-                    }
+                    $categoryResults = $stockService->browseCategoryExcluding($matchedCategory, 3, $usedStockIds);
                 } catch (\Exception $e) {
                     Log::warning('ImageSourceService: Category search failed', [
                         'scene_id' => $sceneId,
@@ -61,17 +60,36 @@ class ImageSourceService
                 }
             }
 
-            // Step 1: Subject-focused FULLTEXT search (supplements category results)
-            if (count($candidates) < 4 && !empty($subject)) {
+            // Pass B: Scene-specific keyword search — ALWAYS runs (no count gate)
+            $stockQuery = $this->buildStockSearchQuery($sceneText, $subject);
+            if (!empty($stockQuery)) {
+                $excludeIds = array_merge(
+                    $usedStockIds,
+                    array_filter(array_column($categoryResults, 'stock_id'))
+                );
+
+                Log::info('ImageSourceService: Scene-specific search', [
+                    'scene_id' => $sceneId,
+                    'query' => $stockQuery,
+                    'scene_text_preview' => Str::limit($sceneText, 80),
+                ]);
+
                 try {
-                    $existingIds = array_merge(
-                        $usedStockIds,
-                        array_filter(array_column($candidates, 'stock_id'))
-                    );
-                    $subjectResults = $stockService->searchExcluding($subject, 8 - count($candidates), $existingIds);
-                    foreach ($subjectResults as $item) {
-                        $candidates[] = $item;
-                    }
+                    $sceneSpecificResults = $stockService->searchExcluding($stockQuery, 5, $excludeIds);
+                } catch (\Exception $e) {
+                    // Scene-specific search failed — continue with other passes
+                }
+            }
+
+            // Pass C: Subject FULLTEXT — only if A+B yield < 4
+            $combinedSoFar = array_merge($sceneSpecificResults, $categoryResults);
+            if (count($combinedSoFar) < 4 && !empty($subject)) {
+                $excludeIds = array_merge(
+                    $usedStockIds,
+                    array_filter(array_column($combinedSoFar, 'stock_id'))
+                );
+                try {
+                    $subjectResults = $stockService->searchExcluding($subject, 8 - count($combinedSoFar), $excludeIds);
                 } catch (\Exception $e) {
                     Log::warning('ImageSourceService: Subject search failed', [
                         'scene_id' => $sceneId,
@@ -80,58 +98,37 @@ class ImageSourceService
                 }
             }
 
-            // Step 2: If not enough from subject, supplement with scene-specific keywords
-            if (count($candidates) < 4) {
-                $stockQuery = $this->buildStockSearchQuery($sceneText, $subject);
+            // Merge: scene-specific first → subject → category → dedupe within scene
+            $merged = array_merge($sceneSpecificResults, $subjectResults, $categoryResults);
 
-                Log::info('ImageSourceService: Supplementing with scene query', [
-                    'scene_id' => $sceneId,
-                    'query' => $stockQuery,
-                    'subject_found' => count($candidates),
-                    'scene_text_preview' => Str::limit($sceneText, 80),
-                ]);
-
-                if (!empty($stockQuery)) {
-                    try {
-                        $existingIds = array_merge(
-                            $usedStockIds,
-                            array_filter(array_column($candidates, 'stock_id'))
-                        );
-                        $sceneResults = $stockService->searchExcluding(
-                            $stockQuery,
-                            8 - count($candidates),
-                            $existingIds
-                        );
-                        foreach ($sceneResults as $item) {
-                            $candidates[] = $item;
-                        }
-                    } catch (\Exception $e) {
-                        // Scene supplement failed — subject results are enough
-                    }
+            // Deduplicate by stock_id within this scene
+            $seenIds = [];
+            $candidates = [];
+            foreach ($merged as $item) {
+                $sid = $item['stock_id'] ?? null;
+                if ($sid && isset($seenIds[$sid])) {
+                    continue;
                 }
+                if ($sid) {
+                    $seenIds[$sid] = true;
+                }
+                $candidates[] = $item;
             }
 
-            // Step 3: Fallback without exclusion if still empty
-            if (empty($candidates) && !empty($subject)) {
-                try {
-                    $candidates = $stockService->search($subject, 8);
-                } catch (\Exception $e) {
-                    // Silently fail — scenes without stock will show "no images" state
-                }
-            }
+            // Sort by score descending, best first
+            usort($candidates, fn($a, $b) => ($b['score'] ?? 0) <=> ($a['score'] ?? 0));
 
-            // Collect stock_ids from this scene's candidates into the exclusion set
+            // Top 8
+            $candidates = array_slice($candidates, 0, 8);
+
+            // Track all candidate stock_ids for cross-scene dedup
             foreach ($candidates as $c) {
                 if (!empty($c['stock_id'])) {
                     $usedStockIds[] = $c['stock_id'];
                 }
             }
 
-            // Sort by score descending, best first
-            usort($candidates, fn($a, $b) => ($b['score'] ?? 0) <=> ($a['score'] ?? 0));
-
-            // Remove internal score from output, limit to top 8 per scene (images + videos)
-            $candidates = array_slice($candidates, 0, 8);
+            // Remove internal score from output
             $candidates = array_map(function ($c) {
                 unset($c['_score']);
                 return $c;

@@ -20,6 +20,12 @@
                 <i class="fa-light fa-{{ $item->type === 'image' ? 'image' : 'video' }} me-1"></i>{{ $item->type }}
             </span>
 
+            @if($item->report_count > 0)
+                <span class="position-absolute badge bg-danger" style="top: 28px; right: 8px; font-size: 10px;">
+                    <i class="fa-light fa-flag me-1"></i>{{ $item->report_count }}
+                </span>
+            @endif
+
             @if(!$item->is_active)
                 <span class="position-absolute badge bg-danger" style="bottom: 8px; right: 8px; font-size: 10px;">Inactive</span>
             @endif

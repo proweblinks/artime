@@ -489,6 +489,15 @@
                                                 {{ __('Wiki') }}
                                             @endif
                                         </span>
+                                        @if(!empty($candidate['stock_id']))
+                                            <span class="utv-report-btn"
+                                                  x-data="{ reported: false }"
+                                                  @click.stop="if (reported) return; if (!confirm('Report this media as inappropriate or broken?')) return; fetch('/api/stock-media/{{ $candidate['stock_id'] }}/report', { method: 'POST', headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'} }).then(r => { reported = true; if (r.status === 409) { /* already reported */ } }).catch(() => {})"
+                                                  :class="{ 'utv-report-btn--reported': reported }"
+                                                  :title="reported ? '{{ __('Reported') }}' : '{{ __('Report this media') }}'">
+                                                <i class="fa-solid fa-flag" style="font-size: 9px;"></i>
+                                            </span>
+                                        @endif
                                     </button>
                                 @endforeach
                                 {{-- Load More button at end of row --}}
@@ -894,6 +903,31 @@
         padding: 2px 6px;
         border-radius: 4px;
         white-space: nowrap;
+    }
+    .utv-report-btn {
+        position: absolute;
+        bottom: 4px;
+        right: 4px;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0,0,0,0.5);
+        color: #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.15s, background 0.15s, color 0.15s;
+        z-index: 5;
+    }
+    .utv-image-thumb:hover .utv-report-btn { opacity: 1; }
+    .utv-report-btn:hover { background: rgba(220,38,38,0.8); color: #fff; }
+    .utv-report-btn--reported {
+        opacity: 1 !important;
+        background: rgba(220,38,38,0.85);
+        color: #fff;
+        pointer-events: none;
     }
     /* Small icon-only action buttons (search, upload) */
     .utv-img-action-btn {

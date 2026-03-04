@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\AppVideoWizard\Http\Controllers\AppVideoWizardController;
+use Modules\AppVideoWizard\Http\Controllers\StockMediaReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,3 +18,8 @@ Route::put('/runpod/video-upload/{token}', [AppVideoWizardController::class, 'ru
 // Public route for RunPod Kokoro TTS to upload generated audio (no auth, uses signed token)
 Route::put('/runpod/audio-upload/{token}', [AppVideoWizardController::class, 'runpodAudioUpload'])
     ->name('api.runpod.audio-upload');
+
+// Report stock media (public, one report per IP per item)
+Route::post('/stock-media/{stockMedia}/report', [StockMediaReportController::class, 'report'])
+    ->middleware('throttle:5,1')
+    ->name('api.stock-media.report');

@@ -82,6 +82,9 @@ class StockMediaController extends Controller
         } elseif ($request->get('status') === 'inactive') {
             $query->where('is_active', false);
         }
+        if ($request->get('reported') === 'yes') {
+            $query->where('report_count', '>', 0)->orderByDesc('report_count');
+        }
 
         // Default sort: newest first (unless search applied, which sorts by relevance)
         if (!$search) {
@@ -557,6 +560,18 @@ class StockMediaController extends Controller
                 break;
         }
 
+        return back();
+    }
+
+    /**
+     * Clear all reports for a media item.
+     */
+    public function clearReports(StockMedia $stockMedia)
+    {
+        $stockMedia->reports()->delete();
+        $stockMedia->update(['report_count' => 0]);
+
+        session()->flash('success', 'Reports cleared for "' . $stockMedia->title . '".');
         return back();
     }
 

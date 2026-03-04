@@ -50,7 +50,7 @@
         <div class="card-body py-3">
             <form method="GET" action="{{ route('admin.stock-media.browse') }}" class="row g-2 align-items-end">
                 <input type="hidden" name="view" value="{{ $viewMode }}">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small text-muted mb-1">Search</label>
                     <input type="text" name="search" class="form-control form-control-sm"
                            placeholder="Search title, tags..." value="{{ request('search') }}">
@@ -89,6 +89,13 @@
                         <option value="">All</option>
                         <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
                         <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label small text-muted mb-1">Reports</label>
+                    <select name="reported" class="form-select form-select-sm">
+                        <option value="">All</option>
+                        <option value="yes" {{ request('reported') === 'yes' ? 'selected' : '' }}>Reported</option>
                     </select>
                 </div>
                 <div class="col-md-2 d-flex gap-1">
@@ -164,6 +171,7 @@
                             <th>Duration</th>
                             <th>Size</th>
                             <th>Status</th>
+                            <th>Reports</th>
                             <th style="width: 100px;">Actions</th>
                         </tr>
                     </thead>
@@ -212,6 +220,13 @@
                                     </form>
                                 </td>
                                 <td class="align-middle">
+                                    @if($item->report_count > 0)
+                                        <span class="badge bg-danger">{{ $item->report_count }}</span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                                <td class="align-middle">
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
                                             <i class="fa fa-ellipsis-v"></i>
@@ -227,6 +242,16 @@
                                                     </button>
                                                 </form>
                                             </li>
+                                            @if($item->report_count > 0)
+                                                <li>
+                                                    <form action="{{ route('admin.stock-media.clear-reports', $item) }}" method="POST">
+                                                        @csrf
+                                                        <button class="dropdown-item text-warning">
+                                                            <i class="fa-light fa-flag me-2"></i>Clear Reports ({{ $item->report_count }})
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            @endif
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
                                                 <form action="{{ route('admin.stock-media.destroy', $item) }}" method="POST"
@@ -241,7 +266,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="text-center py-5">
+                                <td colspan="11" class="text-center py-5">
                                     <i class="fa-light fa-photo-film fs-40 text-muted opacity-50 mb-3 d-block"></i>
                                     <p class="text-muted">No media items found.</p>
                                     <a href="{{ route('admin.stock-media.upload') }}" class="btn btn-primary btn-sm">Upload Media</a>

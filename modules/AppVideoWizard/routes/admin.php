@@ -351,5 +351,7 @@ Route::middleware(['web', 'auth'])->group(function () {
             ->name('admin.stock-media.destroy');
         Route::post('/{stockMedia}/toggle', [StockMediaController::class, 'toggle'])
             ->name('admin.stock-media.toggle');
+        Route::post('/{stockMedia}/clear-reports', [StockMediaController::class, 'clearReports'])
+            ->name('admin.stock-media.clear-reports');
     });
 });
