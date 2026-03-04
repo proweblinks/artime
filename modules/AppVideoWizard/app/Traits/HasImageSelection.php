@@ -490,16 +490,21 @@ trait HasImageSelection
         $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
         $existingIds = array_filter(array_column($this->sceneImageCandidates[$sceneId] ?? [], 'stock_id'));
 
+        // Use scene narration text for search instead of global subject
+        $sceneText = $this->sceneSearchSuggestions[$sceneId]['scene_text'] ?? '';
         $subject = (property_exists($this, 'storedContentBrief') ? ($this->storedContentBrief['subject'] ?? null) : null)
             ?? $this->prompt ?? '';
-        $matchedCategory = !empty($subject) ? $stockService->findMatchingCategory($subject) : null;
+
+        // Try scene-specific category first, fall back to subject-based
+        $searchTerm = !empty($sceneText) ? $sceneText : $subject;
+        $matchedCategory = !empty($searchTerm) ? $stockService->findMatchingCategory($searchTerm) : null;
         $added = 0;
 
         try {
             if ($matchedCategory) {
                 $results = $stockService->browseCategoryExcluding($matchedCategory, 8, $existingIds);
             } else {
-                $results = $stockService->searchExcluding($subject, 8, $existingIds);
+                $results = $stockService->searchExcluding($searchTerm, 8, $existingIds);
             }
 
             foreach ($results as $item) {

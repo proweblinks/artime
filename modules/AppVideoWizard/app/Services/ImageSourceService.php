@@ -30,44 +30,17 @@ class ImageSourceService
 
         $stockService = new ArtimeStockService();
 
-        // Pre-detect matching category for the subject (e.g. "travel" → travel, "aurora" → nature)
-        $matchedCategory = !empty($subject) ? $stockService->findMatchingCategory($subject) : null;
-        if ($matchedCategory) {
-            Log::info('ImageSourceService: Category match for subject', [
-                'subject' => $subject,
-                'category' => $matchedCategory,
-            ]);
-        }
-
         foreach ($scenes as $scene) {
             $sceneId = $scene['id'] ?? 'scene_0';
             $sceneText = $scene['text'] ?? '';
 
-            $categoryResults = [];
             $sceneSpecificResults = [];
+            $categoryResults = [];
             $subjectResults = [];
 
-            // Pass A: Category browse — cap at 3 (not 8) to leave room for scene-specific
-            if ($matchedCategory) {
-                try {
-                    $categoryResults = $stockService->browseCategoryExcluding($matchedCategory, 3, $usedStockIds);
-                } catch (\Exception $e) {
-                    Log::warning('ImageSourceService: Category search failed', [
-                        'scene_id' => $sceneId,
-                        'category' => $matchedCategory,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
-
-            // Pass B: Scene-specific keyword search — ALWAYS runs (no count gate)
+            // Pass A (PRIMARY): Scene-specific keyword search — runs first, gets most slots
             $stockQuery = $this->buildStockSearchQuery($sceneText, $subject);
             if (!empty($stockQuery)) {
-                $excludeIds = array_merge(
-                    $usedStockIds,
-                    array_filter(array_column($categoryResults, 'stock_id'))
-                );
-
                 Log::info('ImageSourceService: Scene-specific search', [
                     'scene_id' => $sceneId,
                     'query' => $stockQuery,
@@ -75,13 +48,31 @@ class ImageSourceService
                 ]);
 
                 try {
-                    $sceneSpecificResults = $stockService->searchExcluding($stockQuery, 5, $excludeIds);
+                    $sceneSpecificResults = $stockService->searchExcluding($stockQuery, 6, $usedStockIds);
                 } catch (\Exception $e) {
                     // Scene-specific search failed — continue with other passes
                 }
             }
 
-            // Pass C: Subject FULLTEXT — only if A+B yield < 4
+            // Pass B: Per-scene category detection from scene text (NOT global subject)
+            $sceneCategory = !empty($sceneText) ? $stockService->findMatchingCategory($sceneText) : null;
+            if ($sceneCategory && count($sceneSpecificResults) < 4) {
+                $excludeIds = array_merge(
+                    $usedStockIds,
+                    array_filter(array_column($sceneSpecificResults, 'stock_id'))
+                );
+                try {
+                    $categoryResults = $stockService->browseCategoryExcluding($sceneCategory, 3, $excludeIds);
+                } catch (\Exception $e) {
+                    Log::warning('ImageSourceService: Category search failed', [
+                        'scene_id' => $sceneId,
+                        'category' => $sceneCategory,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            // Pass C: Subject fallback — only if A+B yield < 4
             $combinedSoFar = array_merge($sceneSpecificResults, $categoryResults);
             if (count($combinedSoFar) < 4 && !empty($subject)) {
                 $excludeIds = array_merge(
@@ -98,8 +89,8 @@ class ImageSourceService
                 }
             }
 
-            // Merge: scene-specific first → subject → category → dedupe within scene
-            $merged = array_merge($sceneSpecificResults, $subjectResults, $categoryResults);
+            // Merge: scene-specific first → category → subject
+            $merged = array_merge($sceneSpecificResults, $categoryResults, $subjectResults);
 
             // Deduplicate by stock_id within this scene
             $seenIds = [];
@@ -445,35 +436,35 @@ class ImageSourceService
             'every', 'you', 'your', 'we', 'they', 'one', 'two', 'three',
         ]);
 
-        $subjectParts = [];
         $sceneParts = [];
+        $subjectParts = [];
 
-        // 1. Extract key words from subject/title — cap at 2 to avoid dominating
+        // 1. Extract nouns/adjectives from scene text — these are the PRIMARY search terms
+        $textWords = preg_split('/[\s,\.\!\?\;\:\(\)\[\]\"\']+/', strtolower($sceneText));
+        foreach ($textWords as $w) {
+            $clean = preg_replace('/[^a-z]/', '', $w);
+            if (mb_strlen($clean) >= 4 && !isset($stopWords[$clean])) {
+                $sceneParts[] = $clean;
+            }
+        }
+        $sceneParts = array_values(array_unique($sceneParts));
+        $sceneParts = array_slice($sceneParts, 0, 5); // Up to 5 scene-specific words
+
+        // 2. Extract 1 key word from subject — only as supplementary context
         if (!empty($subject)) {
             $subjectWords = preg_split('/[\s,\-:]+/', strtolower($subject));
             foreach ($subjectWords as $w) {
                 $clean = preg_replace('/[^a-z]/', '', $w);
-                if (mb_strlen($clean) >= 3 && !isset($stopWords[$clean])) {
+                if (mb_strlen($clean) >= 3 && !isset($stopWords[$clean]) && !in_array($clean, $sceneParts)) {
                     $subjectParts[] = $clean;
                 }
             }
         }
         $subjectParts = array_values(array_unique($subjectParts));
-        $subjectParts = array_slice($subjectParts, 0, 2); // Cap subject at 2 words
+        $subjectParts = array_slice($subjectParts, 0, 1); // Cap subject at 1 word
 
-        // 2. Extract nouns/adjectives from scene text — allow up to 4 scene-specific words
-        $textWords = preg_split('/[\s,\.\!\?\;\:\(\)\[\]\"\']+/', strtolower($sceneText));
-        foreach ($textWords as $w) {
-            $clean = preg_replace('/[^a-z]/', '', $w);
-            if (mb_strlen($clean) >= 4 && !isset($stopWords[$clean]) && !in_array($clean, $subjectParts)) {
-                $sceneParts[] = $clean;
-            }
-        }
-        $sceneParts = array_values(array_unique($sceneParts));
-        $sceneParts = array_slice($sceneParts, 0, 4); // Up to 4 scene-specific words
-
-        // Combine: subject words first, then scene-specific words
-        $parts = array_merge($subjectParts, $sceneParts);
+        // Combine: scene-specific words first, then subject as context
+        $parts = array_merge($sceneParts, $subjectParts);
 
         return implode(' ', $parts);
     }
