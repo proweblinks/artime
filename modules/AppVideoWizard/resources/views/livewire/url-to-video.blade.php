@@ -293,21 +293,6 @@
                             </div>
                         </div>
 
-                        {{-- Real Images Toggle --}}
-                        <button wire:click="$toggle('useRealImages')" type="button"
-                                class="utv-tool-btn {{ $useRealImages ? 'active' : '' }}">
-                            <i class="fa-light fa-camera"></i>
-                            <span>{{ $useRealImages ? __('Real Images') : __('AI Images') }}</span>
-                        </button>
-
-                        {{-- Edit Images (direct access when candidates already sourced) --}}
-                        @if($useRealImages && !empty($sceneImageCandidates))
-                            <button wire:click="openImageSelection" type="button"
-                                    class="utv-tool-btn active">
-                                <i class="fa-light fa-images"></i>
-                                <span>{{ __('Edit Images') }}</span>
-                            </button>
-                        @endif
                     </div>
 
                     {{-- Submit Button --}}
@@ -398,6 +383,9 @@
             </div>
         </div>
     @endif
+
+    {{-- Script Generation Overlay --}}
+    @include('appvideowizard::livewire.partials._script-generation-overlay')
 
     {{-- Modals --}}
     @include('appvideowizard::livewire.url-to-video.partials._transcript-modal')

@@ -225,6 +225,12 @@ class StoryModeOrchestrator
             $progress = 50 + (int) (($i / count($scenes)) * 20);
             $project->updateProgress('generating_images', $progress, "Generating image (" . ($i + 1) . "/" . count($scenes) . ")");
 
+            // Skip AI generation if scene already has a pre-assigned image
+            if (!empty($scene['image_url'])) {
+                $updatedScenes[] = $scene;
+                continue;
+            }
+
             try {
                 $sceneData = [
                     'id' => $scene['id'] ?? "scene_{$i}",

@@ -10,11 +10,14 @@ use Illuminate\Support\Facades\Log;
 use Modules\AppVideoWizard\Models\StoryModeProject;
 use Modules\AppVideoWizard\Models\StoryModeStyle;
 use Modules\AppVideoWizard\Services\StoryModeScriptService;
+use Modules\AppVideoWizard\Services\ImageSourceService;
 use Modules\AppVideoWizard\Jobs\StoryModeGenerationJob;
+use Modules\AppVideoWizard\Traits\HasImageSelection;
 
 class StoryMode extends Component
 {
     use WithFileUploads;
+    use HasImageSelection;
 
     // Input state
     public string $prompt = '';
@@ -105,7 +108,7 @@ class StoryMode extends Component
     }
 
     /**
-     * Confirm transcript and kick off the full pipeline.
+     * Confirm transcript — segment and source images for the media selection step.
      */
     public function confirmTranscript()
     {
@@ -113,25 +116,132 @@ class StoryMode extends Component
             return;
         }
 
-        $this->showTranscriptModal = false;
+        // If we already have candidates, verify scene count still matches
+        if (!empty($this->sceneImageCandidates)) {
+            $scriptService = new StoryModeScriptService();
+            $targetDuration = (int) get_option('story_mode_default_duration', 35);
+            $currentSegments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
+            $currentCount = count($currentSegments);
+            $cachedCount = count($this->sceneImageCandidates);
+
+            if ($currentCount === $cachedCount) {
+                $this->generatedSegments = $currentSegments;
+                $this->showTranscriptModal = false;
+                $this->showImageSelectionModal = true;
+                return;
+            }
+
+            // Scene count changed — invalidate stale candidates
+            Log::info('StoryMode: Transcript changed scene count, re-sourcing images', [
+                'cached' => $cachedCount, 'current' => $currentCount,
+            ]);
+            $this->resetImageSelectionState();
+        }
+
+        // Segment the transcript and source images
+        $scriptService = new StoryModeScriptService();
+        $targetDuration = (int) get_option('story_mode_default_duration', 35);
+        $segments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
+
+        // Source images (opens image selection modal via trait)
+        $this->sourceImagesForScenes($segments, ['subject' => $this->prompt], []);
+    }
+
+    /**
+     * Confirm image selection and dispatch the generation pipeline.
+     * Downloads selected images/videos and creates the project with pre-assigned scene media.
+     */
+    public function confirmImageSelection()
+    {
+        $this->showImageSelectionModal = false;
         $this->isGenerating = true;
 
         try {
-            // Re-segment if transcript was edited
             $scriptService = new StoryModeScriptService();
             $targetDuration = (int) get_option('story_mode_default_duration', 35);
             $segments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
             $wordCount = str_word_count($this->editableTranscript);
 
-            // Build initial scenes array from segments
+            // Build scenes array with pre-assigned images from selection
             $scenes = [];
+            $imageService = new ImageSourceService();
+            $tempProjectId = time();
+
             foreach ($segments as $i => $segment) {
-                $scenes[] = [
+                $scene = [
                     'id' => 'scene_' . $i,
                     'index' => $i,
                     'text' => $segment['text'],
                     'estimated_duration' => $segment['estimated_duration'],
                 ];
+
+                $sceneId = $scene['id'];
+                $selection = $this->selectedSceneImages[$sceneId] ?? [];
+
+                if ($selection !== 'ai' && !empty($selection)) {
+                    $candidates = $this->sceneImageCandidates[$sceneId] ?? [];
+                    $sceneClips = [];
+
+                    foreach ((array) $selection as $selIdx) {
+                        $candidate = (is_int($selIdx) || ctype_digit((string) $selIdx))
+                            ? ($candidates[(int) $selIdx] ?? null) : null;
+
+                        if (!$candidate || empty($candidate['url'])) continue;
+
+                        $clipData = ['type' => $candidate['type'] ?? 'image'];
+                        $isVideo = $clipData['type'] === 'video';
+
+                        if ($isVideo) {
+                            if (($candidate['source'] ?? '') === 'artime_stock') {
+                                $clipData['video_url'] = $candidate['url'];
+                            } else {
+                                $localUrl = $imageService->downloadAndStoreVideo(
+                                    $candidate['url'], $tempProjectId, $sceneId . '_' . $selIdx
+                                );
+                                if ($localUrl) $clipData['video_url'] = $localUrl;
+                            }
+                            $clipData['duration'] = $candidate['duration'] ?? 0;
+                            if (!empty($candidate['thumbnail'])) {
+                                $clipData['thumbnail'] = $candidate['thumbnail'];
+                            }
+                        } else {
+                            if (in_array($candidate['source'] ?? '', ['upload', 'artime_stock'])) {
+                                $clipData['image_url'] = $candidate['url'];
+                            } else {
+                                $localUrl = $imageService->downloadAndStore(
+                                    $candidate['url'], $tempProjectId, $sceneId . '_' . $selIdx
+                                );
+                                if ($localUrl) $clipData['image_url'] = $localUrl;
+                            }
+                        }
+
+                        $sceneClips[] = $clipData;
+                    }
+
+                    if (!empty($sceneClips)) {
+                        $scene['clips'] = $sceneClips;
+                        $first = $sceneClips[0];
+                        $scene['video_url'] = $first['video_url'] ?? null;
+                        $scene['image_url'] = $first['image_url'] ?? $first['thumbnail'] ?? null;
+                    }
+                }
+
+                // Attach crop/position data, animation flag, and video edits
+                if (!empty($this->sceneCropData[$sceneId])) {
+                    $scene['crop'] = $this->sceneCropData[$sceneId];
+                }
+                if (!empty($this->sceneVideoEdits[$sceneId])) {
+                    $edit = $this->sceneVideoEdits[$sceneId];
+                    $hasUserEdits = ($edit['trimStart'] ?? 0) > 0
+                        || !empty($edit['flipH'])
+                        || !empty($edit['flipV']);
+                    if ($hasUserEdits) {
+                        $scene['video_edit'] = $edit;
+                    }
+                }
+                $scene['animate_with_ai'] = $this->sceneAnimateWithAI[$sceneId] ?? false;
+
+                $scenes[] = $scene;
             }
 
             // Create the project
@@ -156,6 +266,7 @@ class StoryMode extends Component
                     'ai_engine' => get_option('story_mode_ai_engine', 'gemini'),
                     'video_resolution' => $this->videoResolution,
                     'video_quality' => $this->videoQuality,
+                    'image_source' => !empty($this->selectedSceneImages) ? 'real_images' : 'ai',
                     'attached_file' => $this->attachedFile
                         ? $this->attachedFile->store('story-mode/attachments', 'public')
                         : null,

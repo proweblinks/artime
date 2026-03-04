@@ -12,10 +12,12 @@ use Modules\AppVideoWizard\Services\UrlContentExtractorService;
 use Modules\AppVideoWizard\Services\StoryModeScriptService;
 use Modules\AppVideoWizard\Services\ImageSourceService;
 use Modules\AppVideoWizard\Jobs\UrlToVideoGenerationJob;
+use Modules\AppVideoWizard\Traits\HasImageSelection;
 
 class UrlToVideo extends Component
 {
     use WithFileUploads;
+    use HasImageSelection;
 
     // Input state
     public string $prompt = '';
@@ -56,36 +58,6 @@ class UrlToVideo extends Component
     public bool $showVoiceModal = false;
     public bool $isGeneratingScript = false;
     public bool $isGenerating = false;
-
-    // Real Images mode (default: true — show image selection modal, user can opt-in to AI Images)
-    public bool $useRealImages = true;
-    public bool $showImageSelectionModal = false;
-    public bool $isSourcingImages = false;
-    public array $sceneImageCandidates = [];
-    public array $sceneSearchSuggestions = [];
-    public array $selectedSceneImages = [];
-    public $uploadedSceneImage;
-    public string $uploadTargetScene = '';
-
-    // Search state
-    public string $searchQuery = '';
-    public string $searchType = 'all'; // 'all', 'images', 'videos'
-
-    // Per-scene AI animation toggle (opt-in to Seedance)
-    public array $sceneAnimateWithAI = [];
-
-    // Crop/position data for 9:16 framing
-    public array $sceneCropData = [];
-
-    // Video edit data (trim + flip) per scene
-    public array $sceneVideoEdits = [];
-
-    // Library browser state
-    public bool $showLibraryBrowser = false;
-    public string $libraryBrowseScene = '';
-    public array $libraryCategories = [];
-    public string $libraryActiveCategory = '';
-    public array $libraryCategoryResults = [];
 
     // Active project tracking
     public ?int $activeProjectId = null;
@@ -262,8 +234,8 @@ class UrlToVideo extends Component
     }
 
     /**
-     * Confirm transcript and dispatch generation pipeline.
-     * If Real Images mode is on, fork to image sourcing flow instead.
+     * Confirm transcript and source images for media selection.
+     * Always goes through the image selection modal now.
      */
     public function confirmTranscript()
     {
@@ -271,598 +243,85 @@ class UrlToVideo extends Component
             return;
         }
 
-        // If Real Images mode is enabled, source images first (or reuse if already sourced)
-        if ($this->useRealImages) {
-            // If we already have candidates, verify scene count still matches the transcript
-            if (!empty($this->sceneImageCandidates)) {
-                $scriptService = new StoryModeScriptService();
-                $targetDuration = $this->videoDuration;
-                $currentSegments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
-                $currentCount = count($currentSegments);
-                $cachedCount = count($this->sceneImageCandidates);
-
-                if ($currentCount === $cachedCount) {
-                    // Scene count matches — safe to reuse cached candidates
-                    $this->generatedSegments = $currentSegments;
-                    $this->showTranscriptModal = false;
-                    $this->showImageSelectionModal = true;
-                    return;
-                }
-
-                // Scene count changed — invalidate stale candidates
-                Log::info('UrlToVideo: Transcript changed scene count, re-sourcing images', [
-                    'cached' => $cachedCount, 'current' => $currentCount,
-                ]);
-                $this->sceneImageCandidates = [];
-                $this->sceneSearchSuggestions = [];
-                $this->selectedSceneImages = [];
-            }
-
-            $this->showTranscriptModal = false;
-            $this->isSourcingImages = true;
-
-            try {
-                $scriptService = new StoryModeScriptService();
-                $targetDuration = $this->videoDuration;
-                $segments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
-
-                $scenes = [];
-                foreach ($segments as $i => $segment) {
-                    $scenes[] = [
-                        'id' => 'scene_' . $i,
-                        'index' => $i,
-                        'text' => $segment['text'],
-                        'estimated_duration' => $segment['estimated_duration'],
-                    ];
-                }
-
-                // Sync generatedSegments with actual scene segmentation so modal shows text for all scenes
-                $this->generatedSegments = $segments;
-
-                $imageService = new ImageSourceService();
-                // Ensure content brief has a subject for stock search
-                // Prefer the raw user prompt over AI-generated title — "funny cats"
-                // is far more search-relevant than "The Secret Life of 'Funny' Cats"
-                $contentBrief = $this->storedContentBrief;
-                if (empty($contentBrief['subject'])) {
-                    $contentBrief['subject'] = $this->prompt ?: $this->generatedTitle;
-                }
-                $result = $imageService->sourceForScenes(
-                    $scenes,
-                    $this->storedExtractedContent,
-                    $contentBrief
-                );
-
-                // Split structured result into candidates and suggestions
-                $this->sceneImageCandidates = [];
-                $this->sceneSearchSuggestions = [];
-                foreach ($result as $sceneId => $data) {
-                    $this->sceneImageCandidates[$sceneId] = $data['candidates'] ?? [];
-                    $this->sceneSearchSuggestions[$sceneId] = $data['suggestions'] ?? [];
-                }
-
-                // If recreating from an existing project, prepend original clips
-                if ($this->recreateFromProjectId) {
-                    $origProject = UrlToVideoProject::find($this->recreateFromProjectId);
-                    if ($origProject) {
-                        $originalScenes = $origProject->scenes ?? [];
-                        foreach ($originalScenes as $origScene) {
-                            $sceneId = $origScene['id'] ?? null;
-                            if (!$sceneId || !isset($this->sceneImageCandidates[$sceneId])) continue;
-
-                            $hasVideo = !empty($origScene['video_url']);
-                            $hasImage = !empty($origScene['image_url']);
-                            if (!$hasVideo && !$hasImage) continue;
-
-                            $candidate = [
-                                'url' => $hasVideo ? $origScene['video_url'] : $origScene['image_url'],
-                                'thumbnail' => $origScene['image_url'] ?? ($hasVideo ? $origScene['video_url'] : ''),
-                                'title' => 'Previous selection',
-                                'width' => 0,
-                                'height' => 0,
-                                'source' => 'previous_selection',
-                                'score' => 10.0,
-                            ];
-                            if ($hasVideo) {
-                                $candidate['type'] = 'video';
-                                $candidate['duration'] = $origScene['estimated_duration'] ?? 0;
-                            }
-
-                            // Remove duplicate URLs from fresh candidates
-                            $origUrl = $candidate['url'];
-                            $this->sceneImageCandidates[$sceneId] = array_values(array_filter(
-                                $this->sceneImageCandidates[$sceneId],
-                                fn($c) => ($c['url'] ?? '') !== $origUrl
-                            ));
-
-                            // Prepend original as first candidate
-                            array_unshift($this->sceneImageCandidates[$sceneId], $candidate);
-
-                            // Restore crop/video-edit/animation from original
-                            if (!empty($origScene['crop'])) {
-                                $this->sceneCropData[$sceneId] = $origScene['crop'];
-                            }
-                            if (!empty($origScene['video_edit'])) {
-                                $this->sceneVideoEdits[$sceneId] = $origScene['video_edit'];
-                            }
-                            if (isset($origScene['animate_with_ai'])) {
-                                $this->sceneAnimateWithAI[$sceneId] = $origScene['animate_with_ai'];
-                            }
-                        }
-                    }
-                    $this->recreateFromProjectId = null; // Consumed
-                }
-
-                // Auto-select first candidate per scene and auto-trim long video clips
-                $this->selectedSceneImages = [];
-                foreach ($this->sceneImageCandidates as $sceneId => $sceneCandidates) {
-                    if (!empty($sceneCandidates)) {
-                        $this->selectedSceneImages[$sceneId] = 0; // Index of first candidate
-                        $firstCandidate = $sceneCandidates[0];
-                        if (($firstCandidate['type'] ?? 'image') === 'video') {
-                            $this->sceneAnimateWithAI[$sceneId] = $this->sceneAnimateWithAI[$sceneId] ?? false;
-                            if (!isset($this->sceneVideoEdits[$sceneId])) {
-                                $this->autoTrimVideoClip($sceneId, $firstCandidate);
-                            }
-                        }
-                    } else {
-                        $this->selectedSceneImages[$sceneId] = 'ai'; // No candidates → AI fallback
-                    }
-                }
-
-                $this->showImageSelectionModal = true;
-            } catch (\Exception $e) {
-                Log::error('UrlToVideo: Image sourcing failed', ['error' => $e->getMessage()]);
-                session()->flash('error', 'Failed to source images: ' . $e->getMessage());
-            } finally {
-                $this->isSourcingImages = false;
-            }
-
-            return;
-        }
-
-        // Standard flow: create project and dispatch immediately
-        $this->showTranscriptModal = false;
-        $this->isGenerating = true;
-
-        try {
-            $this->dispatchGenerationPipeline();
-        } catch (\Exception $e) {
-            Log::error('UrlToVideo: Pipeline dispatch failed', ['error' => $e->getMessage()]);
-            session()->flash('error', 'Video generation failed: ' . $e->getMessage());
-        } finally {
-            $this->isGenerating = false;
-        }
-    }
-
-    /**
-     * Go back from image selection modal to transcript modal.
-     */
-    public function backToTranscript()
-    {
-        $this->showImageSelectionModal = false;
-        $this->showTranscriptModal = true;
-    }
-
-    /**
-     * Directly open image selection modal (when candidates already exist).
-     */
-    public function openImageSelection()
-    {
+        // If we already have candidates, verify scene count still matches the transcript
         if (!empty($this->sceneImageCandidates)) {
-            $this->showTranscriptModal = false;
-            $this->showImageSelectionModal = true;
-        }
-    }
+            $scriptService = new StoryModeScriptService();
+            $targetDuration = $this->videoDuration;
+            $currentSegments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
+            $currentCount = count($currentSegments);
+            $cachedCount = count($this->sceneImageCandidates);
 
-    /**
-     * Toggle a clip selection for a scene (multi-clip: add/remove from array).
-     */
-    public function selectSceneImage(string $sceneId, int $candidateIndex)
-    {
-        // Initialize as array if needed
-        if (!isset($this->selectedSceneImages[$sceneId]) || !is_array($this->selectedSceneImages[$sceneId])) {
-            $this->selectedSceneImages[$sceneId] = [];
-        }
-
-        $clips = $this->selectedSceneImages[$sceneId];
-
-        // Toggle: if already selected, remove it; otherwise add it
-        $pos = array_search($candidateIndex, $clips);
-        if ($pos !== false) {
-            array_splice($clips, $pos, 1);
-        } else {
-            $clips[] = $candidateIndex;
-        }
-
-        $this->selectedSceneImages[$sceneId] = array_values($clips);
-
-        // Handle video-specific logic for last added clip
-        $candidates = $this->sceneImageCandidates[$sceneId] ?? [];
-        $candidate = $candidates[$candidateIndex] ?? null;
-
-        if ($candidate && ($candidate['type'] ?? 'image') === 'video') {
-            $this->sceneAnimateWithAI[$sceneId] = false;
-        }
-    }
-
-    /**
-     * Remove a clip from a scene's selection by position.
-     */
-    public function removeSceneClip(string $sceneId, int $clipPosition)
-    {
-        if (isset($this->selectedSceneImages[$sceneId]) && is_array($this->selectedSceneImages[$sceneId])) {
-            array_splice($this->selectedSceneImages[$sceneId], $clipPosition, 1);
-            $this->selectedSceneImages[$sceneId] = array_values($this->selectedSceneImages[$sceneId]);
-        }
-    }
-
-    /**
-     * Reorder a clip within a scene's selection (move from one position to another).
-     */
-    public function reorderSceneClip(string $sceneId, int $fromPos, int $toPos)
-    {
-        $clips = $this->selectedSceneImages[$sceneId] ?? [];
-        if (!is_array($clips) || !isset($clips[$fromPos]) || $toPos < 0 || $toPos >= count($clips)) return;
-        $item = array_splice($clips, $fromPos, 1)[0];
-        array_splice($clips, $toPos, 0, [$item]);
-        $this->selectedSceneImages[$sceneId] = $clips;
-    }
-
-    /**
-     * Toggle AI-generated image for a scene. Click again to revert to empty selection.
-     */
-    public function markSceneForAI(string $sceneId)
-    {
-        $current = $this->selectedSceneImages[$sceneId] ?? [];
-        if ($current === 'ai') {
-            // Toggle off: revert to empty
-            $this->selectedSceneImages[$sceneId] = [];
-            $this->sceneAnimateWithAI[$sceneId] = false;
-        } else {
-            $this->selectedSceneImages[$sceneId] = 'ai';
-            $this->sceneAnimateWithAI[$sceneId] = true;
-        }
-    }
-
-    /**
-     * Toggle per-scene AI animation (Seedance) on/off.
-     */
-    public function toggleSceneAnimation(string $sceneId)
-    {
-        $this->sceneAnimateWithAI[$sceneId] = !($this->sceneAnimateWithAI[$sceneId] ?? false);
-    }
-
-    /**
-     * Update crop/position focal point for a scene image.
-     */
-    public function updateSceneCrop(string $sceneId, float $focalX, float $focalY)
-    {
-        $this->sceneCropData[$sceneId] = [
-            'focalX' => max(0, min(1, $focalX)),
-            'focalY' => max(0, min(1, $focalY)),
-        ];
-    }
-
-    /**
-     * Update video edit parameters (trim start/end, flip H/V) for a scene.
-     */
-    public function updateSceneVideoEdit(string $sceneId, float $trimStart, float $trimEnd, bool $flipH, bool $flipV)
-    {
-        $this->sceneVideoEdits[$sceneId] = [
-            'trimStart' => max(0, $trimStart),
-            'trimEnd' => max(0, $trimEnd),
-            'flipH' => $flipH,
-            'flipV' => $flipV,
-        ];
-    }
-
-    /**
-     * Auto-trim a video clip to fit the scene duration.
-     * If clip is longer than scene, set trimEnd to scene duration.
-     * Preserves existing flip settings if user already edited.
-     */
-    protected function autoTrimVideoClip(string $sceneId, array $candidate): void
-    {
-        $clipDuration = (float) ($candidate['duration'] ?? 0);
-        $sceneDuration = $this->getSceneDuration($sceneId);
-
-        if ($clipDuration > 0 && $sceneDuration > 0 && $clipDuration > $sceneDuration) {
-            // Preserve existing flip if user already set it
-            $existing = $this->sceneVideoEdits[$sceneId] ?? null;
-            $this->sceneVideoEdits[$sceneId] = [
-                'trimStart' => 0,
-                'trimEnd' => round($sceneDuration, 1),
-                'flipH' => $existing['flipH'] ?? false,
-                'flipV' => $existing['flipV'] ?? false,
-            ];
-        } else {
-            // Clip fits within scene — clear trim (keep flip if set)
-            $existing = $this->sceneVideoEdits[$sceneId] ?? null;
-            if ($existing) {
-                // Only keep flip settings, remove trim
-                $this->sceneVideoEdits[$sceneId] = [
-                    'trimStart' => 0,
-                    'trimEnd' => $clipDuration > 0 ? $clipDuration : $sceneDuration,
-                    'flipH' => $existing['flipH'] ?? false,
-                    'flipV' => $existing['flipV'] ?? false,
-                ];
-            } else {
-                unset($this->sceneVideoEdits[$sceneId]);
+            if ($currentCount === $cachedCount) {
+                $this->generatedSegments = $currentSegments;
+                $this->showTranscriptModal = false;
+                $this->showImageSelectionModal = true;
+                return;
             }
-        }
-    }
 
-    /**
-     * Get the estimated duration for a scene from generated segments.
-     */
-    protected function getSceneDuration(string $sceneId): float
-    {
-        $sceneIndex = (int) str_replace('scene_', '', $sceneId);
-        return (float) ($this->generatedSegments[$sceneIndex]['estimated_duration'] ?? 6.0);
-    }
-
-    /**
-     * Open the full library browser for a scene.
-     */
-    public function openLibraryBrowser(string $sceneId)
-    {
-        $this->libraryBrowseScene = $sceneId;
-        $this->libraryActiveCategory = '';
-        $this->libraryCategoryResults = [];
-
-        $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
-        $this->libraryCategories = $stockService->getCategories();
-        $this->showLibraryBrowser = true;
-    }
-
-    /**
-     * Load clips from a specific category in the library browser.
-     */
-    public function loadLibraryCategory(string $category)
-    {
-        $this->libraryActiveCategory = $category;
-
-        $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
-        $this->libraryCategoryResults = $stockService->browseCategory($category, 24);
-    }
-
-    /**
-     * Search the library browser by text query.
-     */
-    public function searchLibrary(string $query)
-    {
-        $query = trim($query);
-        if (mb_strlen($query) < 2) {
-            return;
-        }
-
-        $this->libraryActiveCategory = '';
-        $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
-        $this->libraryCategoryResults = $stockService->search($query, 24);
-    }
-
-    /**
-     * Select a clip from the library browser and add it to the scene.
-     */
-    public function selectFromLibrary(int $index)
-    {
-        $sceneId = $this->libraryBrowseScene;
-        if (empty($sceneId) || !isset($this->libraryCategoryResults[$index])) {
-            return;
-        }
-
-        $candidate = $this->libraryCategoryResults[$index];
-
-        // Add to scene candidates and auto-select
-        $this->sceneImageCandidates[$sceneId][] = $candidate;
-        $newIndex = count($this->sceneImageCandidates[$sceneId]) - 1;
-        $this->selectedSceneImages[$sceneId] = $newIndex;
-
-        // If video, disable animation and auto-trim
-        if (($candidate['type'] ?? 'image') === 'video') {
-            $this->sceneAnimateWithAI[$sceneId] = false;
-            $this->autoTrimVideoClip($sceneId, $candidate);
-        }
-
-        $this->showLibraryBrowser = false;
-    }
-
-    /**
-     * Execute a scene search with media type filtering.
-     * Called via wire:click from the search UI.
-     */
-    public function executeSceneSearch(string $sceneId, string $query = '', string $type = '')
-    {
-        // Use passed params or fall back to component properties
-        $query = trim($query ?: $this->searchQuery);
-        $type = $type ?: $this->searchType;
-
-        if (mb_strlen($query) < 2) {
-            return;
-        }
-
-        Log::info('UrlToVideo: executeSceneSearch called', [
-            'scene' => $sceneId,
-            'query' => $query,
-            'type' => $type,
-        ]);
-
-        $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
-        $added = 0;
-
-        try {
-            // Search Artime Stock only (local curated media)
-            $stockType = ($type === 'videos') ? 'video' : (($type === 'images') ? 'image' : null);
-            $stockResults = $stockService->search($query, 12, $stockType);
-
-            // Replace existing candidates with fresh search results (keep uploads)
-            $uploads = array_filter($this->sceneImageCandidates[$sceneId] ?? [], function ($c) {
-                return ($c['source'] ?? '') === 'upload';
-            });
-            $this->sceneImageCandidates[$sceneId] = array_values($uploads);
-
-            foreach ($stockResults as $r) {
-                $this->sceneImageCandidates[$sceneId][] = $r;
-                $added++;
-            }
-        } catch (\Exception $e) {
-            Log::warning('UrlToVideo: Scene search failed', [
-                'scene' => $sceneId,
-                'query' => $query,
-                'error' => $e->getMessage(),
+            // Scene count changed — invalidate stale candidates
+            Log::info('UrlToVideo: Transcript changed scene count, re-sourcing images', [
+                'cached' => $cachedCount, 'current' => $currentCount,
             ]);
-            session()->flash('searchError', 'Search failed: ' . $e->getMessage());
+            $this->sceneImageCandidates = [];
+            $this->sceneSearchSuggestions = [];
+            $this->selectedSceneImages = [];
         }
 
-        if ($added > 0) {
-            session()->flash('searchSuccess', "Found {$added} results for \"{$query}\"");
-        } else {
-            session()->flash('searchError', "No results found for \"{$query}\"");
-        }
+        // Segment the transcript and source images
+        $scriptService = new StoryModeScriptService();
+        $targetDuration = $this->videoDuration;
+        $segments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
 
-        // Reset search input
-        $this->searchQuery = '';
-    }
+        // Use the trait's sourceImagesForScenes which handles sourcing + opening modal
+        $this->sourceImagesForScenes($segments, $this->storedContentBrief, $this->storedExtractedContent);
 
-    /**
-     * Load more stock candidates for a scene.
-     * Fetches additional results from the matched category or subject, excluding already-shown items.
-     */
-    public function loadMoreCandidates(string $sceneId)
-    {
-        $stockService = new \Modules\AppVideoWizard\Services\ArtimeStockService();
+        // If recreating from an existing project, prepend original clips after sourcing
+        if ($this->recreateFromProjectId) {
+            $origProject = UrlToVideoProject::find($this->recreateFromProjectId);
+            if ($origProject) {
+                $originalScenes = $origProject->scenes ?? [];
+                foreach ($originalScenes as $origScene) {
+                    $sceneId = $origScene['id'] ?? null;
+                    if (!$sceneId || !isset($this->sceneImageCandidates[$sceneId])) continue;
 
-        // Collect IDs already shown in this scene
-        $existingIds = array_filter(array_column($this->sceneImageCandidates[$sceneId] ?? [], 'stock_id'));
+                    $hasVideo = !empty($origScene['video_url']);
+                    $hasImage = !empty($origScene['image_url']);
+                    if (!$hasVideo && !$hasImage) continue;
 
-        $subject = $this->storedContentBrief['subject'] ?? $this->prompt ?? '';
-        $matchedCategory = !empty($subject) ? $stockService->findMatchingCategory($subject) : null;
-        $added = 0;
+                    $candidate = [
+                        'url' => $hasVideo ? $origScene['video_url'] : $origScene['image_url'],
+                        'thumbnail' => $origScene['image_url'] ?? ($hasVideo ? $origScene['video_url'] : ''),
+                        'title' => 'Previous selection',
+                        'width' => 0,
+                        'height' => 0,
+                        'source' => 'previous_selection',
+                        'score' => 10.0,
+                    ];
+                    if ($hasVideo) {
+                        $candidate['type'] = 'video';
+                        $candidate['duration'] = $origScene['estimated_duration'] ?? 0;
+                    }
 
-        try {
-            if ($matchedCategory) {
-                // Load more from the matched category
-                $results = $stockService->browseCategoryExcluding($matchedCategory, 8, $existingIds);
-            } else {
-                // Fallback to FULLTEXT search with exclusion
-                $results = $stockService->searchExcluding($subject, 8, $existingIds);
+                    $origUrl = $candidate['url'];
+                    $this->sceneImageCandidates[$sceneId] = array_values(array_filter(
+                        $this->sceneImageCandidates[$sceneId],
+                        fn($c) => ($c['url'] ?? '') !== $origUrl
+                    ));
+
+                    array_unshift($this->sceneImageCandidates[$sceneId], $candidate);
+
+                    if (!empty($origScene['crop'])) {
+                        $this->sceneCropData[$sceneId] = $origScene['crop'];
+                    }
+                    if (!empty($origScene['video_edit'])) {
+                        $this->sceneVideoEdits[$sceneId] = $origScene['video_edit'];
+                    }
+                    if (isset($origScene['animate_with_ai'])) {
+                        $this->sceneAnimateWithAI[$sceneId] = $origScene['animate_with_ai'];
+                    }
+                }
             }
-
-            foreach ($results as $item) {
-                $this->sceneImageCandidates[$sceneId][] = $item;
-                $added++;
-            }
-        } catch (\Exception $e) {
-            Log::warning('UrlToVideo: loadMoreCandidates failed', [
-                'scene' => $sceneId,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        if ($added === 0) {
-            session()->flash('searchError', 'No more clips available');
-        }
-    }
-
-    /**
-     * Search external stock sources (Pexels, Pixabay, Wikimedia) for a scene.
-     * Only called when user explicitly clicks "Browse External".
-     */
-    public function searchExternalStock(string $sceneId, string $query = '')
-    {
-        $query = trim($query ?: $this->searchQuery);
-        if (mb_strlen($query) < 2) {
-            return;
-        }
-
-        Log::info('UrlToVideo: searchExternalStock called', [
-            'scene' => $sceneId,
-            'query' => $query,
-        ]);
-
-        $imageService = new ImageSourceService();
-        $added = 0;
-
-        try {
-            // Search images (Wikimedia + Pexels/Pixabay photos)
-            $wikiResults = $imageService->searchWikimedia($query, 5);
-            foreach ($wikiResults as $r) {
-                $this->sceneImageCandidates[$sceneId][] = array_merge($r, [
-                    'source' => $r['source'] ?? 'wikimedia',
-                ]);
-                $added++;
-            }
-
-            $photoResults = $imageService->searchStockPhotos($query, 5);
-            foreach ($photoResults as $r) {
-                $this->sceneImageCandidates[$sceneId][] = $r;
-                $added++;
-            }
-
-            // Search video clips (Pexels + Pixabay videos)
-            $videoResults = $imageService->searchVideoClips($query, 5);
-            foreach ($videoResults as $r) {
-                $this->sceneImageCandidates[$sceneId][] = $r;
-                $added++;
-            }
-        } catch (\Exception $e) {
-            Log::warning('UrlToVideo: External stock search failed', [
-                'scene' => $sceneId,
-                'query' => $query,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        if ($added > 0) {
-            session()->flash('searchSuccess', "Found {$added} external results for \"{$query}\"");
-        } else {
-            session()->flash('searchError', "No external results found for \"{$query}\"");
-        }
-
-        $this->searchQuery = '';
-    }
-
-    /**
-     * Backward-compatible alias for suggestion chips.
-     */
-    public function searchMoreImages(string $sceneId, string $query)
-    {
-        $this->executeSceneSearch($sceneId, $query, 'all');
-    }
-
-    /**
-     * Handle uploaded scene image.
-     */
-    public function updatedUploadedSceneImage()
-    {
-        $sceneId = $this->uploadTargetScene;
-        if (empty($sceneId) || !$this->uploadedSceneImage) {
-            return;
-        }
-
-        try {
-            $path = $this->uploadedSceneImage->store('url-to-video/uploads', 'public');
-            $publicUrl = url('/public/storage/' . $path);
-
-            // Add as new candidate and auto-select it
-            $newCandidate = [
-                'url' => $publicUrl,
-                'thumbnail' => $publicUrl,
-                'source' => 'upload',
-                'title' => $this->uploadedSceneImage->getClientOriginalName(),
-                'width' => 0,
-                'height' => 0,
-            ];
-
-            $this->sceneImageCandidates[$sceneId][] = $newCandidate;
-            $newIndex = count($this->sceneImageCandidates[$sceneId]) - 1;
-            $this->selectedSceneImages[$sceneId] = $newIndex;
-
-            $this->uploadedSceneImage = null;
-            $this->uploadTargetScene = '';
-        } catch (\Exception $e) {
-            Log::warning('UrlToVideo: Image upload failed', ['error' => $e->getMessage()]);
+            $this->recreateFromProjectId = null;
         }
     }
 
@@ -970,9 +429,7 @@ class UrlToVideo extends Component
             $this->creativeConceptPitch = $result['concept_pitch'] ?? $concept['pitch'] ?? null;
 
             // Clear image candidates since script changed
-            $this->sceneImageCandidates = [];
-            $this->sceneSearchSuggestions = [];
-            $this->selectedSceneImages = [];
+            $this->resetImageSelectionState();
         } catch (\Exception $e) {
             Log::error('UrlToVideo: Creative concept script generation failed', ['error' => $e->getMessage()]);
             session()->flash('error', 'Failed to generate script: ' . $e->getMessage());
@@ -1003,10 +460,10 @@ class UrlToVideo extends Component
         }
 
         $sourceType = $this->detectedSourceType ?: 'prompt';
-        $imageSource = $this->useRealImages ? 'real_images' : 'ai';
+        $imageSource = !empty($this->selectedSceneImages) ? 'real_images' : 'ai';
 
-        // If real images mode, download selected images and assign URLs to scenes
-        if ($this->useRealImages && !empty($this->selectedSceneImages)) {
+        // Download selected images and assign URLs to scenes
+        if (!empty($this->selectedSceneImages)) {
             $imageService = new ImageSourceService();
 
             // Create a temporary project ID for file storage
@@ -1151,12 +608,7 @@ class UrlToVideo extends Component
         $this->editableTranscript = null;
         $this->generatedTitle = null;
         $this->generatedSegments = [];
-        $this->sceneImageCandidates = [];
-        $this->sceneSearchSuggestions = [];
-        $this->selectedSceneImages = [];
-        $this->sceneAnimateWithAI = [];
-        $this->sceneCropData = [];
-        $this->sceneVideoEdits = [];
+        $this->resetImageSelectionState();
     }
 
     public function updatedCreativeMode()
@@ -1164,12 +616,7 @@ class UrlToVideo extends Component
         $this->editableTranscript = null;
         $this->generatedTitle = null;
         $this->generatedSegments = [];
-        $this->sceneImageCandidates = [];
-        $this->sceneSearchSuggestions = [];
-        $this->selectedSceneImages = [];
-        $this->sceneAnimateWithAI = [];
-        $this->sceneCropData = [];
-        $this->sceneVideoEdits = [];
+        $this->resetImageSelectionState();
         $this->creativeConceptTitle = null;
         $this->creativeConceptPitch = null;
         $this->alternativeConcepts = [];
@@ -1181,12 +628,7 @@ class UrlToVideo extends Component
         $this->editableTranscript = null;
         $this->generatedTitle = null;
         $this->generatedSegments = [];
-        $this->sceneImageCandidates = [];
-        $this->sceneSearchSuggestions = [];
-        $this->selectedSceneImages = [];
-        $this->sceneAnimateWithAI = [];
-        $this->sceneCropData = [];
-        $this->sceneVideoEdits = [];
+        $this->resetImageSelectionState();
     }
 
     public function updatedEditableTranscript()
@@ -1303,19 +745,11 @@ class UrlToVideo extends Component
         $this->creativeConceptTitle = $meta['creative_concept_title'] ?? null;
         $this->creativeConceptPitch = $meta['creative_concept_pitch'] ?? null;
 
-        // Determine image source mode
-        $imageSource = $meta['image_source'] ?? 'ai';
-        $this->useRealImages = ($imageSource === 'real_images');
-
         // Store the original project ID so confirmTranscript can restore clips
         $this->recreateFromProjectId = $projectId;
 
         // Reset cached image selections (will be rebuilt on confirmTranscript)
-        $this->sceneImageCandidates = [];
-        $this->selectedSceneImages = [];
-        $this->sceneCropData = [];
-        $this->sceneVideoEdits = [];
-        $this->sceneAnimateWithAI = [];
+        $this->resetImageSelectionState();
 
         // Close the detail modal and show the transcript editor
         $this->detailProjectId = null;

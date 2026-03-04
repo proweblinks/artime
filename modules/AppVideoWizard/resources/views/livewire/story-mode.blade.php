@@ -317,8 +317,25 @@
         @endif
     </div>
 
+    {{-- Script Generation Overlay --}}
+    @include('appvideowizard::livewire.partials._script-generation-overlay')
+
+    {{-- Image Sourcing Overlay --}}
+    @if($isSourcingImages)
+        <div class="d-flex align-items-center justify-content-center"
+             style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 10100;">
+            <div class="text-center">
+                <i class="fa-light fa-spinner-third fa-spin mb-3" style="font-size: 2rem; color: #03fcf4;"></i>
+                <p class="fw-semibold mb-1" style="color: #fff;">{{ __('Finding images for your scenes...') }}</p>
+                <p class="text-muted" style="font-size: 0.85rem;">{{ __('Searching stock photos and video clips') }}</p>
+            </div>
+        </div>
+    @endif
+
     {{-- Modals --}}
     @include('appvideowizard::livewire.story-mode.partials._transcript-modal')
+    @include('appvideowizard::livewire.url-to-video.partials._image-selection-modal')
+    @include('appvideowizard::livewire.url-to-video.partials._stock-library-browser')
     @include('appvideowizard::livewire.story-mode.partials._voice-modal')
     @include('appvideowizard::livewire.story-mode.partials._style-modal')
 

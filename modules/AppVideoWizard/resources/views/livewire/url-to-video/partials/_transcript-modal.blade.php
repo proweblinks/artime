@@ -122,46 +122,6 @@
                 </div>
             @endif
 
-            {{-- Video Settings --}}
-            <div class="d-flex align-items-center gap-3 mt-3 p-3" style="background: #f5f7fa; border-radius: 10px;"
-                 x-data="{
-                     resolution: @js($videoResolution),
-                     quality: @js($videoQuality),
-                     init() {
-                         this.$watch('quality', (val) => {
-                             if (val === 'fast' && this.resolution === '480p') {
-                                 this.resolution = '720p';
-                                 $wire.set('videoResolution', '720p');
-                             }
-                             $wire.set('videoQuality', val);
-                         });
-                         this.$watch('resolution', (val) => {
-                             $wire.set('videoResolution', val);
-                         });
-                     }
-                 }">
-                <div class="d-flex align-items-center gap-2 flex-grow-1">
-                    <i class="fa-light fa-film" style="font-size: 0.85rem; color: var(--at-text-muted, #94a0b8);"></i>
-                    <small style="white-space: nowrap; color: var(--at-text-muted, #94a0b8);">{{ __('Resolution') }}</small>
-                    <select x-model="resolution"
-                            class="form-select form-select-sm border-0"
-                            style="background: #ffffff; border-radius: 6px; font-size: 0.8rem; width: auto; padding: 4px 28px 4px 10px; color: var(--at-text, #1a1a2e);">
-                        <option value="480p" x-show="quality !== 'fast'">480p</option>
-                        <option value="720p">720p</option>
-                        <option value="1080p">1080p</option>
-                    </select>
-                </div>
-                <div class="d-flex align-items-center gap-2 flex-grow-1">
-                    <i class="fa-light fa-gauge-high" style="font-size: 0.85rem; color: var(--at-text-muted, #94a0b8);"></i>
-                    <small style="white-space: nowrap; color: var(--at-text-muted, #94a0b8);">{{ __('Quality') }}</small>
-                    <select x-model="quality"
-                            class="form-select form-select-sm border-0"
-                            style="background: #ffffff; border-radius: 6px; font-size: 0.8rem; width: auto; padding: 4px 28px 4px 10px; color: var(--at-text, #1a1a2e);">
-                        <option value="pro">Pro</option>
-                        <option value="fast">Fast</option>
-                    </select>
-                </div>
-            </div>
         </div>
 
         {{-- Footer --}}
@@ -172,9 +132,16 @@
             </button>
             <button wire:click="confirmTranscript" type="button"
                     class="btn flex-grow-1 fw-semibold" style="background: #03fcf4; color: #0a2e2e; border-radius: 10px;"
+                    wire:loading.attr="disabled" wire:target="confirmTranscript"
                     {{ empty($editableTranscript) ? 'disabled' : '' }}>
-                <i class="fa-light fa-video me-1"></i>
-                {{ __('Generate Video') }}
+                <span wire:loading.remove wire:target="confirmTranscript">
+                    <i class="fa-light fa-images me-1"></i>
+                    {{ __('Select Media') }}
+                </span>
+                <span wire:loading wire:target="confirmTranscript">
+                    <i class="fa-light fa-spinner-third fa-spin me-1"></i>
+                    {{ __('Finding media...') }}
+                </span>
             </button>
         </div>
     </div>
