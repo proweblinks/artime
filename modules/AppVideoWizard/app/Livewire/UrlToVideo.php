@@ -615,6 +615,8 @@ class UrlToVideo extends Component
                 'creative_concept_pitch' => $this->creativeConceptPitch,
                 'character_bible' => $this->characterBible,
                 'interactive_studio' => !empty($this->sceneVisualScript),
+                'visual_style' => $this->selectedVisualStyle ?? 'cinematic',
+                'visual_style_config' => self::VISUAL_STYLE_PRESETS[$this->selectedVisualStyle ?? 'cinematic'] ?? null,
             ],
         ]);
 

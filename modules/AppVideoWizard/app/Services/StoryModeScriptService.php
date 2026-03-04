@@ -252,21 +252,37 @@ For each narration segment, output detailed creative direction:
    - Professional: "fade", "wipeleft", "dissolve", "smoothleft"
    - For the LAST scene: use "fade" (will be the fade-to-black)
 7. **transition_duration**: Duration in seconds (0.3 for energetic, 0.5 for normal, 0.8 for calm, 1.0 for mysterious/dramatic)
-8. **video_action**: A single present-tense action sentence describing what the subject DOES in this scene.
-   This is for VIDEO generation — describe physical movement, not a static image.
-   Rules:
-   - Use active verbs: "walks", "turns", "reaches", "opens", "runs"
-   - Be specific about body parts and directions: "reaches forward with right hand", "turns head to look over shoulder"
-   - One clear action per scene — do NOT combine multiple actions
-   - Match the narration content — the video should visually depict what the narrator says
-   - Do NOT describe appearance or clothing (the source image defines this)
+8. **video_action**: A RICH scene description for AI video generation (2-4 sentences of flowing prose).
+   This text is sent to Seedance video AI — quality directly determines video quality.
+
+   Structure as natural flowing narrative:
+   - SENTENCE 1: Open with the SETTING — where is this? What does the environment look like?
+     Include atmospheric details: particles, light behavior, reflections, textures.
+   - SENTENCE 2-3: Describe the PRIMARY ACTION with explicit physical motion.
+     Specify body parts and directions: "extends right hand", "turns head to look over left shoulder".
+     Include interaction effects: what happens to objects touched, light changes, particle reactions.
+   - SENTENCE 4 (optional): Environmental response — how the setting reacts to the action.
+     Dust shifts, light changes, reflections move, fabric billows, etc.
+
+   CRITICAL RULES:
+   - Use active present-tense verbs ONLY. BANNED: "goes", "moves", "starts", "begins", "is"
+   - Describe EXPLICIT motion — Seedance cannot infer movement from static descriptions
+   - Include physical details: "fingers trail along dusty spines" NOT "touches books"
+   - Include atmospheric texture: dust motes, light shafts, reflections, smoke, particles
+   - Do NOT describe clothing/appearance (the source image defines this)
    - Do NOT describe facial expressions (video model cannot control these)
-   Examples:
-   - "walks slowly through the dark corridor, trailing fingers along dusty bookshelves"
-   - "picks up the antique bookmark and holds it toward the light"
-   - "steps backward as a spectral form materializes between the stacks"
-   - "opens the old tome and turns its yellowed pages"
-   - For scenes without characters: "dust motes drift through shafts of warm light" or "pages flutter as a cold wind sweeps through"
+   - Do NOT include camera directions (camera_motion field handles this separately)
+   - Do NOT include style/aesthetic directions (applied separately during prompt assembly)
+
+   GOOD examples:
+   - "Inside a vast server room bathed in cool blue-purple neon, intricate data streams flow as visible threads of light, converging from multiple terminals onto a central glowing AI core. The core pulses steadily brighter as each data thread arrives, casting shifting geometric shadows across the glass floor panels."
+   - "In a dimly lit digital studio, the artist leans forward toward the glowing monitor, extending their right hand to trace along the rapidly forming landscape. Colors bloom outward from the fingertip as forests and mountains render in real-time, each new element casting soft light across the workspace."
+   - "A grand concert hall interior drenched in warm amber spotlight. Holographic musical notes materialize from the vintage piano keys, spiraling upward through dusty golden air before coalescing into floating orchestral score sheets that drift across the polished black piano lid."
+
+   BAD examples (too vague — these produce mediocre video):
+   - "The data flows to the AI core" — no setting, no atmosphere, no physical detail
+   - "The artist uses AI to create art" — no specific motion, no environment
+   - "Musical notes appear around the piano" — no atmosphere, no physical behavior
 
 IMPORTANT RULES:
 - Never use the same transition_type for more than 2 consecutive scenes — variety is key

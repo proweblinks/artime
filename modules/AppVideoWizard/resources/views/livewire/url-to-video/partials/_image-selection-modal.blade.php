@@ -215,6 +215,39 @@
             </div>
         </div>
 
+        {{-- Visual Style Picker (AI Studio mode only) --}}
+        @if($isAIStudioMode || ($allAI && !empty($sceneVisualScript)))
+            <div class="px-4 pt-1 pb-2" style="border-bottom: 1px solid #eef1f5;">
+                <div class="d-flex align-items-center gap-2" style="overflow-x: auto; scrollbar-width: thin; -webkit-overflow-scrolling: touch;">
+                    <span style="font-size: 0.7rem; color: var(--at-text-muted, #94a0b8); white-space: nowrap; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">{{ __('Style') }}</span>
+                    @foreach($this->getVisualStylePresets() as $styleId => $styleConfig)
+                        <button wire:click="setVisualStyle('{{ $styleId }}')" type="button"
+                                class="d-flex align-items-center gap-1 px-3 py-1"
+                                style="border: 2px solid {{ $selectedVisualStyle === $styleId ? $styleConfig['color'] : 'transparent' }};
+                                       background: {{ $selectedVisualStyle === $styleId ? $styleConfig['color'] . '15' : '#f8f9fb' }};
+                                       border-radius: 20px; cursor: pointer; white-space: nowrap; font-size: 0.75rem;
+                                       color: {{ $selectedVisualStyle === $styleId ? $styleConfig['color'] : '#6b7280' }};
+                                       font-weight: {{ $selectedVisualStyle === $styleId ? '600' : '500' }};
+                                       transition: all 0.15s ease; flex-shrink: 0;">
+                            <i class="{{ $styleConfig['icon'] }}" style="font-size: 0.8rem;"></i>
+                            {{ __($styleConfig['name']) }}
+                        </button>
+                    @endforeach
+                    @if(!empty($sceneVisualScript))
+                        <button wire:click="regenerateAllPrompts" type="button"
+                                class="d-flex align-items-center gap-1 px-3 py-1"
+                                style="border: 1px dashed #7c3aed40; background: transparent; border-radius: 20px;
+                                       cursor: pointer; white-space: nowrap; font-size: 0.7rem; color: #7c3aed;
+                                       font-weight: 500; flex-shrink: 0;"
+                                title="{{ __('Regenerate all prompts with the selected style') }}">
+                            <i class="fa-light fa-arrows-rotate" style="font-size: 0.7rem;"></i>
+                            {{ __('Regen Prompts') }}
+                        </button>
+                    @endif
+                </div>
+            </div>
+        @endif
+
         {{-- Visual Script Loading State --}}
         @if($isGeneratingVisualScript)
             <div class="card-body p-4 pt-2" style="overflow-y: auto;">

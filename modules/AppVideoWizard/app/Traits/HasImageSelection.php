@@ -70,6 +70,112 @@ trait HasImageSelection
     // AI Studio: Active scene for preview panel
     public string $activeStudioScene = '';
 
+    // AI Studio: Visual style
+    public string $selectedVisualStyle = 'cinematic';
+
+    protected const VISUAL_STYLE_PRESETS = [
+        'cinematic' => [
+            'name' => 'Cinematic',
+            'icon' => 'fa-light fa-film',
+            'color' => '#f59e0b',
+            'imagePrefix' => 'Cinematic shot, dramatic lighting, film grain, shallow depth of field',
+            'imageSuffix' => 'anamorphic lens, professional color grading',
+            'videoAnchor' => 'Cinematic, film grain, anamorphic lens flare',
+            'videoLighting' => 'dramatic directional lighting with natural shadows',
+            'videoColor' => 'rich color grading with warm highlights and cool shadows',
+        ],
+        'photorealistic' => [
+            'name' => 'Photorealistic',
+            'icon' => 'fa-light fa-camera',
+            'color' => '#3b82f6',
+            'imagePrefix' => 'Photorealistic, highly detailed, professional photography, 8K',
+            'imageSuffix' => 'sharp focus, natural lighting, realistic textures',
+            'videoAnchor' => 'Photorealistic, hyper-detailed, natural movement',
+            'videoLighting' => 'natural lighting with realistic shadows',
+            'videoColor' => 'true-to-life color reproduction',
+        ],
+        'pixar' => [
+            'name' => 'Pixar 3D',
+            'icon' => 'fa-light fa-cube',
+            'color' => '#8b5cf6',
+            'imagePrefix' => 'Pixar-quality 3D animation, smooth surfaces, expressive characters, vibrant',
+            'imageSuffix' => 'subsurface scattering, volumetric lighting, polished render',
+            'videoAnchor' => '3D animation style, smooth character movement, Pixar quality',
+            'videoLighting' => 'soft volumetric studio lighting with colorful bounced light',
+            'videoColor' => 'vivid saturated colors with warm tones',
+        ],
+        'anime' => [
+            'name' => 'Anime',
+            'icon' => 'fa-light fa-sparkles',
+            'color' => '#ec4899',
+            'imagePrefix' => 'Anime style, manga aesthetic, cel-shaded, vibrant colors, clean lines',
+            'imageSuffix' => 'expressive characters, detailed backgrounds, Studio Ghibli quality',
+            'videoAnchor' => 'Anime style, cel-shaded animation, vibrant',
+            'videoLighting' => 'stylized anime lighting with sharp highlights',
+            'videoColor' => 'vibrant anime color palette with bold highlights',
+        ],
+        'illustration' => [
+            'name' => 'Illustration',
+            'icon' => 'fa-light fa-palette',
+            'color' => '#10b981',
+            'imagePrefix' => 'Digital illustration, concept art, artstation trending',
+            'imageSuffix' => 'highly detailed, vibrant colors, professional artwork',
+            'videoAnchor' => 'Digital illustration style, painterly motion',
+            'videoLighting' => 'stylized artistic lighting',
+            'videoColor' => 'vibrant illustration color palette',
+        ],
+        'watercolor' => [
+            'name' => 'Watercolor',
+            'icon' => 'fa-light fa-paintbrush',
+            'color' => '#06b6d4',
+            'imagePrefix' => 'Watercolor painting, soft edges, flowing colors, artistic',
+            'imageSuffix' => 'painterly, organic textures, paper texture visible',
+            'videoAnchor' => 'Watercolor painting aesthetic, soft flowing edges',
+            'videoLighting' => 'soft diffused natural light',
+            'videoColor' => 'watercolor washes with bleeding color transitions',
+        ],
+        'noir' => [
+            'name' => 'Film Noir',
+            'icon' => 'fa-light fa-moon',
+            'color' => '#6b7280',
+            'imagePrefix' => 'Film noir, black and white, high contrast, deep shadows',
+            'imageSuffix' => 'venetian blinds shadows, moody atmosphere, classic cinema',
+            'videoAnchor' => 'Film noir, black and white, high contrast',
+            'videoLighting' => 'harsh directional key light with deep noir shadows',
+            'videoColor' => 'monochrome with rich tonal range',
+        ],
+        'cyberpunk' => [
+            'name' => 'Cyberpunk',
+            'icon' => 'fa-light fa-microchip',
+            'color' => '#a855f7',
+            'imagePrefix' => 'Cyberpunk, neon lights, futuristic, rain-soaked streets, holographic',
+            'imageSuffix' => 'neon reflections, dystopian atmosphere, Blade Runner',
+            'videoAnchor' => 'Cyberpunk neon, rain reflections, holographic displays',
+            'videoLighting' => 'neon-lit with cool blue and hot pink rim lights',
+            'videoColor' => 'teal-and-magenta neon color grading',
+        ],
+        'vintage' => [
+            'name' => 'Vintage Film',
+            'icon' => 'fa-light fa-cassette-tape',
+            'color' => '#d97706',
+            'imagePrefix' => 'Vintage photograph, retro aesthetic, 1970s film stock',
+            'imageSuffix' => 'film grain, faded warm colors, nostalgic mood',
+            'videoAnchor' => 'Vintage film stock, visible grain, retro',
+            'videoLighting' => 'warm amber natural light with soft diffusion',
+            'videoColor' => 'faded warm tones, yellow-green vintage tint',
+        ],
+        'minimalist' => [
+            'name' => 'Minimalist',
+            'icon' => 'fa-light fa-square',
+            'color' => '#94a3b8',
+            'imagePrefix' => 'Minimalist design, clean composition, negative space, modern',
+            'imageSuffix' => 'elegant simplicity, subtle shadows',
+            'videoAnchor' => 'Clean minimalist, negative space, modern',
+            'videoLighting' => 'clean even studio lighting with subtle shadows',
+            'videoColor' => 'muted desaturated palette with selective color accents',
+        ],
+    ];
+
     /**
      * Reset all image selection state. Useful when script changes invalidate cached data.
      */
@@ -99,6 +205,7 @@ trait HasImageSelection
         $this->sceneVideoStatus = [];
         $this->sceneGeneratedVideos = [];
         $this->activeStudioScene = '';
+        $this->selectedVisualStyle = 'cinematic';
     }
 
     /**
@@ -420,11 +527,11 @@ trait HasImageSelection
             $aspectRatio = $this->aspectRatio ?? '9:16';
             $teamId = session('current_team_id');
 
-            // Build style instruction from content brief
+            // Build style instruction from selected visual style + content brief
             $brief = property_exists($this, 'storedContentBrief') ? ($this->storedContentBrief ?? []) : [];
             $tone = $brief['tone'] ?? 'professional';
-            $category = $brief['content_category'] ?? 'general';
-            $styleInstruction = "Cinematic, photorealistic, {$tone} tone, {$category} content";
+            $style = self::VISUAL_STYLE_PRESETS[$this->selectedVisualStyle] ?? self::VISUAL_STYLE_PRESETS['cinematic'];
+            $styleInstruction = "{$style['imagePrefix']}. {$tone} tone. {$style['imageSuffix']}";
 
             $scriptService = new StoryModeScriptService();
             $visualScript = $scriptService->buildVisualScript($segments, $styleInstruction, $aspectRatio, $teamId);
@@ -490,6 +597,52 @@ trait HasImageSelection
     public function setActiveStudioScene(string $sceneId): void
     {
         $this->activeStudioScene = $sceneId;
+    }
+
+    // ────────────────────────────────────────────────────────────────────
+    // AI Studio: Visual Style System
+    // ────────────────────────────────────────────────────────────────────
+
+    /**
+     * Get the visual style presets for the frontend.
+     */
+    public function getVisualStylePresets(): array
+    {
+        return self::VISUAL_STYLE_PRESETS;
+    }
+
+    /**
+     * Set the active visual style.
+     */
+    public function setVisualStyle(string $styleId): void
+    {
+        if (!isset(self::VISUAL_STYLE_PRESETS[$styleId])) {
+            return;
+        }
+
+        $this->selectedVisualStyle = $styleId;
+
+        if (!empty($this->sceneVisualScript)) {
+            $this->dispatch('notify', type: 'info', message: __('Style updated. Click "Regenerate Prompts" to apply to existing scenes.'));
+        }
+    }
+
+    /**
+     * Get the active style's config array.
+     */
+    public function getActiveStyleConfig(): array
+    {
+        return self::VISUAL_STYLE_PRESETS[$this->selectedVisualStyle] ?? self::VISUAL_STYLE_PRESETS['cinematic'];
+    }
+
+    /**
+     * Regenerate all prompts with the currently selected style.
+     */
+    public function regenerateAllPrompts(): void
+    {
+        if (empty($this->sceneVisualScript)) return;
+
+        $this->generateVisualScript();
     }
 
     // ────────────────────────────────────────────────────────────────────
@@ -738,54 +891,129 @@ trait HasImageSelection
     }
 
     /**
-     * Build a Seedance video prompt for interactive mode.
+     * Build a Seedance 2.0 quality video prompt for interactive mode.
+     * Produces flowing prose with style, lighting, color, and audio cues.
      */
     protected function buildInteractiveVideoPrompt(array $visual, int $sceneIndex): string
     {
+        $style = self::VISUAL_STYLE_PRESETS[$this->selectedVisualStyle]
+            ?? self::VISUAL_STYLE_PRESETS['cinematic'];
+
         $parts = [];
 
+        // 1. CORE: Rich video action (2-4 sentences from AI)
         $videoAction = trim($visual['video_action'] ?? '');
         if (!empty($videoAction)) {
-            $parts[] = $videoAction;
+            $parts[] = rtrim($videoAction, '.');
+        }
+        if (empty($parts)) {
+            // Fallback: extract setting from image prompt
+            $imgPrompt = $visual['image_prompt'] ?? '';
+            $firstSentence = strtok($imgPrompt, '.');
+            if (!empty($firstSentence)) {
+                $parts[] = trim($firstSentence);
+            }
         }
 
         if (empty($parts)) {
             return $visual['camera_motion'] ?? 'slow zoom in';
         }
 
+        // 2. CAMERA: Woven naturally into the narrative
         $cameraMotion = $visual['camera_motion'] ?? 'slow zoom in';
         $cameraMap = [
-            'slow zoom in'      => 'Slow push-in camera',
-            'slow zoom out'     => 'Slow pull-back camera',
-            'dramatic zoom in'  => 'Fast push-in camera',
-            'pan left'          => 'Slow pan left',
-            'pan right'         => 'Slow pan right',
-            'tilt up'           => 'Slow tilt up',
-            'tilt down'         => 'Slow tilt down',
-            'push to subject'   => 'Slow push-in to subject',
-            'rise and reveal'   => 'Crane shot rising upward',
-            'settle in'         => 'Subtle settle, nearly locked-off',
-            'breathe'           => 'Very subtle breathing movement',
+            'slow zoom in'      => 'The camera slowly pushes in closer',
+            'slow zoom out'     => 'The camera gradually pulls back to reveal more',
+            'dramatic zoom in'  => 'The camera rapidly pushes in',
+            'pan left'          => 'The camera pans slowly to the left',
+            'pan right'         => 'The camera pans slowly to the right',
+            'pan left slow'     => 'The camera drifts gently to the left',
+            'pan right slow'    => 'The camera drifts gently to the right',
+            'tilt up'           => 'The camera tilts slowly upward',
+            'tilt down'         => 'The camera tilts slowly downward',
+            'push to subject'   => 'The camera pushes steadily toward the subject',
+            'rise and reveal'   => 'The camera rises upward in a crane shot, revealing the scene',
+            'settle in'         => 'The camera settles with a subtle, nearly locked-off motion',
+            'breathe'           => 'The camera holds with a very subtle breathing motion',
+            'zoom in pan right' => 'The camera pushes in while panning right',
+            'zoom out pan left' => 'The camera pulls back while panning left',
+            'diagonal drift'    => 'The camera drifts diagonally in a floating motion',
         ];
-        $parts[] = $cameraMap[strtolower(trim($cameraMotion))] ?? 'Slow push-in camera';
+        $parts[] = $cameraMap[strtolower(trim($cameraMotion))] ?? 'The camera slowly pushes in';
 
+        // 3. STYLE: Visual anchor from selected style
+        $parts[] = $style['videoAnchor'];
+
+        // 4. LIGHTING: Mood-specific + style-specific
         $mood = strtolower(trim($visual['mood'] ?? ''));
-        $moodMap = [
-            'calm' => 'Soft natural lighting', 'dramatic' => 'High-contrast dramatic lighting',
-            'energetic' => 'Bright dynamic lighting', 'tense' => 'Harsh directional lighting',
-            'mysterious' => 'Low-key lighting with atmospheric haze', 'epic' => 'Golden hour cinematic lighting',
-            'professional' => 'Clean balanced lighting', 'hopeful' => 'Bright natural light',
+        $moodLightingMap = [
+            'calm'         => 'soft natural lighting',
+            'dramatic'     => 'high-contrast dramatic lighting',
+            'energetic'    => 'bright dynamic lighting',
+            'tense'        => 'harsh directional lighting with deep shadows',
+            'mysterious'   => 'low-key lighting with atmospheric haze',
+            'epic'         => 'golden hour cinematic lighting',
+            'playful'      => 'warm cheerful lighting',
+            'nostalgic'    => 'warm amber tones with soft diffusion',
+            'professional' => 'clean balanced lighting',
+            'hopeful'      => 'bright natural light breaking through',
+            'horror'       => 'dim flickering light with heavy shadows',
+            'intimate'     => 'soft warm close lighting',
         ];
-        $parts[] = ($moodMap[$mood] ?? 'Clean balanced lighting') . '.';
-        $parts[] = 'Ambient sound only.';
+        $moodLighting = $moodLightingMap[$mood] ?? 'clean balanced lighting';
+        $lightingText = $moodLighting;
+        if (!empty($style['videoLighting']) && $style['videoLighting'] !== $moodLighting) {
+            $lightingText = $style['videoLighting'] . ', ' . $moodLighting;
+        }
+        $parts[] = $lightingText;
 
-        $prompt = implode(' ', $parts);
+        // 5. COLOR TREATMENT from style
+        if (!empty($style['videoColor'])) {
+            $parts[] = $style['videoColor'];
+        }
 
+        // 6. AUDIO: Context-aware from video_action setting description
+        $parts[] = $this->extractAudioFromScene($visual);
+
+        // Assemble as flowing prose
+        $prompt = implode('. ', array_filter($parts)) . '.';
+
+        // Clean up double periods, extra spaces
+        $prompt = preg_replace('/\.\s*\./', '.', $prompt);
+        $prompt = preg_replace('/\s{2,}/', ' ', $prompt);
+
+        // Sanitize via SeedancePromptService
         if (class_exists(SeedancePromptService::class)) {
             $prompt = SeedancePromptService::sanitize($prompt);
         }
 
-        return $prompt;
+        return trim($prompt);
+    }
+
+    /**
+     * Extract context-aware audio direction from scene content.
+     */
+    protected function extractAudioFromScene(array $visual): string
+    {
+        $text = strtolower(($visual['video_action'] ?? '') . ' ' . ($visual['image_prompt'] ?? ''));
+        $cueMap = [
+            'rain' => 'rain and distant thunder', 'storm' => 'thunder and heavy rainfall',
+            'ocean' => 'ocean waves', 'forest' => 'birds and rustling leaves',
+            'city' => 'distant traffic and urban hum', 'street' => 'footsteps and city noise',
+            'office' => 'keyboard clicks and air conditioning', 'kitchen' => 'sizzling',
+            'fire' => 'crackling fire', 'night' => 'crickets and nighttime ambiance',
+            'snow' => 'crunching snow underfoot', 'water' => 'flowing water',
+            'crowd' => 'murmuring crowd', 'piano' => 'piano resonance',
+            'server' => 'quiet electronic hum', 'studio' => 'quiet ambient hum',
+            'concert' => 'hall reverb', 'library' => 'quiet reverberant space',
+            'garden' => 'birds chirping', 'wind' => 'wind and rustling',
+        ];
+        foreach ($cueMap as $keyword => $sound) {
+            if (str_contains($text, $keyword)) {
+                return "Only {$sound}";
+            }
+        }
+        return 'Ambient sound only';
     }
 
     /**

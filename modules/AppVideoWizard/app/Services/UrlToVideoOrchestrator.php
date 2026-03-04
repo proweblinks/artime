@@ -127,11 +127,17 @@ class UrlToVideoOrchestrator
 
         $aspectRatio = $project->aspect_ratio ?? '9:16';
 
-        // Derive a style instruction from content brief
+        // Derive style instruction from visual style config (if set) or content brief
         $brief = $project->content_brief ?? [];
         $tone = $brief['tone'] ?? 'professional';
-        $category = $brief['content_category'] ?? 'general';
-        $styleInstruction = "Cinematic, photorealistic, {$tone} tone, {$category} content";
+        $metadata = $project->metadata ?? [];
+        $styleConfig = $metadata['visual_style_config'] ?? null;
+        if ($styleConfig && !empty($styleConfig['imagePrefix'])) {
+            $styleInstruction = "{$styleConfig['imagePrefix']}. {$tone} tone. {$styleConfig['imageSuffix']}";
+        } else {
+            $category = $brief['content_category'] ?? 'general';
+            $styleInstruction = "Cinematic, photorealistic, {$tone} tone, {$category} content";
+        }
 
         $segments = array_map(fn ($s) => [
             'text' => $s['text'] ?? '',
@@ -312,6 +318,7 @@ class UrlToVideoOrchestrator
         $scenes = $project->scenes ?? [];
         $wizardProject = $this->createTempWizardProject($project);
         $styleInstruction = $project->metadata['style_instruction'] ?? '';
+        $styleConfig = $project->metadata['visual_style_config'] ?? null;
         $aspectRatio = $project->aspect_ratio ?? '9:16';
         $imageUrls = array_map(fn($s) => $s['image_url'] ?? null, $scenes);
 
@@ -346,7 +353,7 @@ class UrlToVideoOrchestrator
 
                 $animationOptions = [
                     'imageUrl' => $imageUrl,
-                    'prompt' => $this->buildVideoPrompt($scene, $styleInstruction, $aspectRatio),
+                    'prompt' => $this->buildVideoPrompt($scene, $styleInstruction, $aspectRatio, $styleConfig),
                     'duration' => $clipDuration,
                     'sceneIndex' => $i,
                     'resolution' => $project->metadata['video_resolution'] ?? '480p',
@@ -584,13 +591,14 @@ class UrlToVideoOrchestrator
     /**
      * Build a Seedance video prompt for a scene.
      */
-    protected function buildVideoPrompt(array $scene, string $styleInstruction, string $aspectRatio): string
+    protected function buildVideoPrompt(array $scene, string $styleInstruction, string $aspectRatio, ?array $styleConfig = null): string
     {
         $parts = [];
 
+        // 1. CORE: Rich video action (2-4 sentences from AI)
         $videoAction = trim($scene['video_action'] ?? '');
         if (!empty($videoAction)) {
-            $parts[] = $videoAction;
+            $parts[] = rtrim($videoAction, '.');
         } else {
             $narration = trim($scene['text'] ?? '');
             if (!empty($narration)) {
@@ -605,42 +613,71 @@ class UrlToVideoOrchestrator
             return $scene['camera_motion'] ?? 'slow zoom in';
         }
 
+        // 2. CAMERA: Woven naturally into the narrative
         $cameraMotion = $scene['camera_motion'] ?? 'slow zoom in';
         $parts[] = $this->mapCameraToSeedance($cameraMotion);
 
-        $style = !empty($styleInstruction) ? $styleInstruction : 'Cinematic, photorealistic';
-        $parts[] = rtrim($style, '.') . '.';
+        // 3. STYLE: Use style config anchor if available, else raw instruction
+        if ($styleConfig && !empty($styleConfig['videoAnchor'])) {
+            $parts[] = $styleConfig['videoAnchor'];
+        } else {
+            $style = !empty($styleInstruction) ? $styleInstruction : 'Cinematic, photorealistic';
+            $parts[] = rtrim($style, '.');
+        }
 
+        // 4. LIGHTING: Mood-specific + style-specific
         $mood = strtolower(trim($scene['mood'] ?? ''));
-        $parts[] = $this->mapMoodToLighting($mood) . '.';
-        $parts[] = 'Ambient sound only.';
+        $moodLighting = $this->mapMoodToLighting($mood);
+        if ($styleConfig && !empty($styleConfig['videoLighting']) && $styleConfig['videoLighting'] !== $moodLighting) {
+            $parts[] = $styleConfig['videoLighting'] . ', ' . strtolower($moodLighting);
+        } else {
+            $parts[] = $moodLighting;
+        }
 
-        $prompt = implode(' ', $parts);
+        // 5. COLOR TREATMENT from style
+        if ($styleConfig && !empty($styleConfig['videoColor'])) {
+            $parts[] = $styleConfig['videoColor'];
+        }
+
+        // 6. AUDIO: Context-aware from scene content
+        $parts[] = $this->extractAudioFromScene($scene);
+
+        // Assemble as flowing prose
+        $prompt = implode('. ', array_filter($parts)) . '.';
+
+        // Clean up double periods, extra spaces
+        $prompt = preg_replace('/\.\s*\./', '.', $prompt);
+        $prompt = preg_replace('/\s{2,}/', ' ', $prompt);
 
         if (class_exists(SeedancePromptService::class)) {
             $prompt = SeedancePromptService::sanitize($prompt);
         }
 
-        return $prompt;
+        return trim($prompt);
     }
 
     protected function mapCameraToSeedance(string $cameraMotion): string
     {
         $map = [
-            'slow zoom in'      => 'Slow push-in camera',
-            'slow zoom out'     => 'Slow pull-back camera',
-            'dramatic zoom in'  => 'Fast push-in camera',
-            'pan left'          => 'Slow pan left',
-            'pan right'         => 'Slow pan right',
-            'tilt up'           => 'Slow tilt up',
-            'tilt down'         => 'Slow tilt down',
-            'push to subject'   => 'Slow push-in to subject',
-            'rise and reveal'   => 'Crane shot rising upward',
-            'settle in'         => 'Subtle settle, nearly locked-off',
-            'breathe'           => 'Very subtle breathing movement',
+            'slow zoom in'      => 'The camera slowly pushes in closer',
+            'slow zoom out'     => 'The camera gradually pulls back to reveal more',
+            'dramatic zoom in'  => 'The camera rapidly pushes in',
+            'pan left'          => 'The camera pans slowly to the left',
+            'pan right'         => 'The camera pans slowly to the right',
+            'pan left slow'     => 'The camera drifts gently to the left',
+            'pan right slow'    => 'The camera drifts gently to the right',
+            'tilt up'           => 'The camera tilts slowly upward',
+            'tilt down'         => 'The camera tilts slowly downward',
+            'push to subject'   => 'The camera pushes steadily toward the subject',
+            'rise and reveal'   => 'The camera rises upward in a crane shot, revealing the scene',
+            'settle in'         => 'The camera settles with a subtle, nearly locked-off motion',
+            'breathe'           => 'The camera holds with a very subtle breathing motion',
+            'zoom in pan right' => 'The camera pushes in while panning right',
+            'zoom out pan left' => 'The camera pulls back while panning left',
+            'diagonal drift'    => 'The camera drifts diagonally in a floating motion',
         ];
 
-        return $map[strtolower(trim($cameraMotion))] ?? 'Slow push-in camera';
+        return $map[strtolower(trim($cameraMotion))] ?? 'The camera slowly pushes in';
     }
 
     protected function mapMoodToLighting(string $mood): string
@@ -653,12 +690,40 @@ class UrlToVideoOrchestrator
             'mysterious'   => 'Low-key lighting with atmospheric haze',
             'epic'         => 'Golden hour cinematic lighting',
             'playful'      => 'Warm cheerful lighting',
-            'nostalgic'    => 'Warm amber tones, soft diffused light',
+            'nostalgic'    => 'Warm amber tones with soft diffusion',
             'professional' => 'Clean balanced lighting',
             'hopeful'      => 'Bright natural light breaking through',
+            'horror'       => 'Dim flickering light with heavy shadows',
+            'intimate'     => 'Soft warm close lighting',
         ];
 
         return $map[$mood] ?? 'Clean balanced lighting';
+    }
+
+    /**
+     * Extract context-aware audio direction from scene content.
+     */
+    protected function extractAudioFromScene(array $scene): string
+    {
+        $text = strtolower(($scene['video_action'] ?? '') . ' ' . ($scene['image_prompt'] ?? '') . ' ' . ($scene['text'] ?? ''));
+        $cueMap = [
+            'rain' => 'rain and distant thunder', 'storm' => 'thunder and heavy rainfall',
+            'ocean' => 'ocean waves', 'forest' => 'birds and rustling leaves',
+            'city' => 'distant traffic and urban hum', 'street' => 'footsteps and city noise',
+            'office' => 'keyboard clicks and air conditioning', 'kitchen' => 'sizzling',
+            'fire' => 'crackling fire', 'night' => 'crickets and nighttime ambiance',
+            'snow' => 'crunching snow underfoot', 'water' => 'flowing water',
+            'crowd' => 'murmuring crowd', 'piano' => 'piano resonance',
+            'server' => 'quiet electronic hum', 'studio' => 'quiet ambient hum',
+            'concert' => 'hall reverb', 'library' => 'quiet reverberant space',
+            'garden' => 'birds chirping', 'wind' => 'wind and rustling',
+        ];
+        foreach ($cueMap as $keyword => $sound) {
+            if (str_contains($text, $keyword)) {
+                return "Only {$sound}";
+            }
+        }
+        return 'Ambient sound only';
     }
 
     protected function calculateClipDuration(?float $audioDuration): int
