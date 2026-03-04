@@ -298,6 +298,26 @@
         background: rgba(239,68,68,0.8);
         pointer-events: none;
     }
+    .utv-video-badge {
+        position: absolute;
+        top: 6px;
+        left: 6px;
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 7px;
+        border-radius: 4px;
+        background: rgba(0,0,0,0.65);
+        color: #fff;
+        font-size: 0.65rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        pointer-events: none;
+    }
+    .utv-video-badge i {
+        font-size: 0.5rem;
+    }
     .utv-lib-filter-chip {
         display: inline-flex;
         align-items: center;
