@@ -219,29 +219,58 @@
     </div>
 
     {{-- ===== BOTTOM ZONE: Galleries (full width) ===== --}}
-    <div class="story-gallery-zone">
+    <div class="story-gallery-zone" x-data="{ showAll: false, showGalleryAll: false }">
 
         {{-- User's Recent Projects --}}
         @if($this->userProjects->isNotEmpty())
             <div class="mb-5">
-                <h5 class="fw-bold mb-3" style="font-size: 1.1rem; color: var(--at-text, #1a1a2e);">{{ __('My Projects') }}</h5>
-                <div class="story-masonry">
-                    @foreach($this->userProjects->take(8) as $project)
-                        @include('appvideowizard::livewire.story-mode.partials._project-card', ['project' => $project])
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h5 class="fw-bold mb-0" style="font-size: 1.1rem; color: var(--at-text, #1a1a2e);">
+                        {{ __('My Projects') }}
+                        <span style="font-weight: 400; color: var(--at-text-muted, #94a0b8); font-size: 0.85rem; margin-left: 6px;">{{ $this->userProjects->count() }}</span>
+                    </h5>
+                </div>
+                <div class="story-project-grid">
+                    @foreach($this->userProjects as $idx => $project)
+                        <div x-show="showAll || {{ $idx }} < 8" style="{{ $idx >= 8 ? 'display:none;' : '' }}">
+                            @include('appvideowizard::livewire.story-mode.partials._project-card', ['project' => $project])
+                        </div>
                     @endforeach
                 </div>
+                @if($this->userProjects->count() > 8)
+                    <div class="text-center mt-4" x-show="!showAll">
+                        <button @click="showAll = true" type="button" class="story-show-more-btn">
+                            <i class="fa-light fa-chevron-down me-1"></i>
+                            {{ __('Show More') }}
+                        </button>
+                    </div>
+                @endif
             </div>
         @endif
 
         {{-- Gallery --}}
         @if(isset($galleryProjects) && $galleryProjects->isNotEmpty())
             <div class="mb-4">
-                <h5 class="fw-bold mb-3" style="font-size: 1.1rem; color: var(--at-text, #1a1a2e);">{{ __('Top story mode') }}</h5>
-                <div class="story-masonry">
-                    @foreach($galleryProjects as $project)
-                        @include('appvideowizard::livewire.story-mode.partials._project-card', ['project' => $project])
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h5 class="fw-bold mb-0" style="font-size: 1.1rem; color: var(--at-text, #1a1a2e);">
+                        {{ __('Explore') }}
+                    </h5>
+                </div>
+                <div class="story-project-grid">
+                    @foreach($galleryProjects as $gIdx => $project)
+                        <div x-show="showGalleryAll || {{ $gIdx }} < 8" style="{{ $gIdx >= 8 ? 'display:none;' : '' }}">
+                            @include('appvideowizard::livewire.story-mode.partials._project-card', ['project' => $project])
+                        </div>
                     @endforeach
                 </div>
+                @if($galleryProjects->count() > 8)
+                    <div class="text-center mt-4" x-show="!showGalleryAll">
+                        <button @click="showGalleryAll = true" type="button" class="story-show-more-btn">
+                            <i class="fa-light fa-chevron-down me-1"></i>
+                            {{ __('Show More') }}
+                        </button>
+                    </div>
+                @endif
             </div>
         @endif
     </div>
@@ -419,19 +448,22 @@
             box-shadow: 0 0 0 1px #03fcf4;
         }
 
-        /* Gallery grid — auto-fill centered */
-        .story-masonry {
+        /* Project grid — 4 columns responsive */
+        .story-project-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 14px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
         }
+        @media (max-width: 1200px) { .story-project-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 768px) { .story-project-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 480px) { .story-project-grid { grid-template-columns: 1fr; } }
 
         /* Project cards */
         .project-card-wrap {
         }
         .project-card {
             cursor: pointer;
-            border-radius: 10px;
+            border-radius: 12px;
             overflow: hidden;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             background: #ffffff;
@@ -439,13 +471,80 @@
             position: relative;
         }
         .project-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.1);
         }
-        .project-card img {
+        .project-card:hover .story-card-play-overlay {
+            opacity: 1;
+        }
+        .project-card img,
+        .project-card video {
             display: block;
             width: 100%;
             height: auto;
+        }
+        .story-card-play-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.25);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+            z-index: 2;
+        }
+        .story-card-play-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.92);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        .story-card-play-icon i {
+            font-size: 1rem;
+            color: #1a1a2e;
+            margin-left: 2px;
+        }
+        .story-card-meta {
+            padding: 10px 12px;
+        }
+        .story-card-title {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--at-text, #1a1a2e);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.3;
+        }
+        .story-card-date {
+            font-size: 0.72rem;
+            color: var(--at-text-muted, #94a0b8);
+            margin-top: 2px;
+        }
+        .story-show-more-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 24px;
+            background: #f5f7fa;
+            border: 1px solid #eef1f5;
+            border-radius: 10px;
+            color: var(--at-text-secondary, #5a6178);
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .story-show-more-btn:hover {
+            background: #eef1f5;
+            border-color: #d0d5dd;
         }
     </style>
 </div>
