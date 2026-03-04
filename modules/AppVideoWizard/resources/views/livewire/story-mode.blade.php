@@ -219,58 +219,100 @@
     </div>
 
     {{-- ===== BOTTOM ZONE: Galleries (full width) ===== --}}
-    <div class="story-gallery-zone" x-data="{ showAll: false, showGalleryAll: false }">
+    <div class="story-gallery-zone">
 
         {{-- User's Recent Projects --}}
         @if($this->userProjects->isNotEmpty())
+            @php
+                $grouped = $this->userProjects->groupBy('aspect_ratio');
+                $ratioOrder = ['16:9', '1:1', '9:16'];
+                $ratioLabels = ['16:9' => __('Landscape'), '1:1' => __('Square'), '9:16' => __('Portrait')];
+                $ratioIcons = ['16:9' => 'fa-rectangle-wide', '1:1' => 'fa-square', '9:16' => 'fa-rectangle-vertical'];
+                $totalCount = $this->userProjects->count();
+                $hasMultipleRatios = $grouped->count() > 1;
+            @endphp
             <div class="mb-5">
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <h5 class="fw-bold mb-0" style="font-size: 1.1rem; color: var(--at-text, #1a1a2e);">
                         {{ __('My Projects') }}
-                        <span style="font-weight: 400; color: var(--at-text-muted, #94a0b8); font-size: 0.85rem; margin-left: 6px;">{{ $this->userProjects->count() }}</span>
+                        <span style="font-weight: 400; color: var(--at-text-muted, #94a0b8); font-size: 0.85rem; margin-left: 6px;">{{ $totalCount }}</span>
                     </h5>
                 </div>
-                <div class="story-project-grid">
-                    @foreach($this->userProjects as $idx => $project)
-                        <div x-show="showAll || {{ $idx }} < 8" style="{{ $idx >= 8 ? 'display:none;' : '' }}">
-                            @include('appvideowizard::livewire.story-mode.partials._project-card', ['project' => $project])
+
+                @foreach($ratioOrder as $ratio)
+                    @if($grouped->has($ratio))
+                        @php $ratioProjects = $grouped[$ratio]; @endphp
+                        <div class="mb-4" x-data="{ expanded: false }">
+                            @if($hasMultipleRatios)
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <i class="fa-light {{ $ratioIcons[$ratio] }}" style="font-size: 0.8rem; color: var(--at-text-muted, #94a0b8);"></i>
+                                    <span style="font-size: 0.8rem; font-weight: 600; color: var(--at-text-secondary, #5a6178);">{{ $ratioLabels[$ratio] }}</span>
+                                    <span style="font-size: 0.75rem; color: var(--at-text-muted, #94a0b8);">{{ $ratioProjects->count() }}</span>
+                                </div>
+                            @endif
+                            <div class="story-project-grid {{ $ratio === '16:9' ? 'landscape' : ($ratio === '1:1' ? 'square' : '') }}">
+                                @foreach($ratioProjects as $idx => $project)
+                                    <div x-show="expanded || {{ $idx }} < 8" style="{{ $idx >= 8 ? 'display:none;' : '' }}">
+                                        @include('appvideowizard::livewire.story-mode.partials._project-card', ['project' => $project])
+                                    </div>
+                                @endforeach
+                            </div>
+                            @if($ratioProjects->count() > 8)
+                                <div class="text-center mt-3" x-show="!expanded">
+                                    <button @click="expanded = true" type="button" class="story-show-more-btn">
+                                        <i class="fa-light fa-chevron-down me-1"></i>
+                                        {{ __('Show More') }}
+                                    </button>
+                                </div>
+                            @endif
                         </div>
-                    @endforeach
-                </div>
-                @if($this->userProjects->count() > 8)
-                    <div class="text-center mt-4" x-show="!showAll">
-                        <button @click="showAll = true" type="button" class="story-show-more-btn">
-                            <i class="fa-light fa-chevron-down me-1"></i>
-                            {{ __('Show More') }}
-                        </button>
-                    </div>
-                @endif
+                    @endif
+                @endforeach
             </div>
         @endif
 
         {{-- Gallery --}}
         @if(isset($galleryProjects) && $galleryProjects->isNotEmpty())
+            @php
+                $galleryGrouped = $galleryProjects->groupBy('aspect_ratio');
+                $galleryHasMultiple = $galleryGrouped->count() > 1;
+            @endphp
             <div class="mb-4">
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <h5 class="fw-bold mb-0" style="font-size: 1.1rem; color: var(--at-text, #1a1a2e);">
                         {{ __('Explore') }}
                     </h5>
                 </div>
-                <div class="story-project-grid">
-                    @foreach($galleryProjects as $gIdx => $project)
-                        <div x-show="showGalleryAll || {{ $gIdx }} < 8" style="{{ $gIdx >= 8 ? 'display:none;' : '' }}">
-                            @include('appvideowizard::livewire.story-mode.partials._project-card', ['project' => $project])
+
+                @foreach($ratioOrder as $ratio)
+                    @if($galleryGrouped->has($ratio))
+                        @php $galleryRatioProjects = $galleryGrouped[$ratio]; @endphp
+                        <div class="mb-4" x-data="{ expanded: false }">
+                            @if($galleryHasMultiple)
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <i class="fa-light {{ $ratioIcons[$ratio] }}" style="font-size: 0.8rem; color: var(--at-text-muted, #94a0b8);"></i>
+                                    <span style="font-size: 0.8rem; font-weight: 600; color: var(--at-text-secondary, #5a6178);">{{ $ratioLabels[$ratio] }}</span>
+                                    <span style="font-size: 0.75rem; color: var(--at-text-muted, #94a0b8);">{{ $galleryRatioProjects->count() }}</span>
+                                </div>
+                            @endif
+                            <div class="story-project-grid {{ $ratio === '16:9' ? 'landscape' : ($ratio === '1:1' ? 'square' : '') }}">
+                                @foreach($galleryRatioProjects as $gIdx => $project)
+                                    <div x-show="expanded || {{ $gIdx }} < 8" style="{{ $gIdx >= 8 ? 'display:none;' : '' }}">
+                                        @include('appvideowizard::livewire.story-mode.partials._project-card', ['project' => $project])
+                                    </div>
+                                @endforeach
+                            </div>
+                            @if($galleryRatioProjects->count() > 8)
+                                <div class="text-center mt-3" x-show="!expanded">
+                                    <button @click="expanded = true" type="button" class="story-show-more-btn">
+                                        <i class="fa-light fa-chevron-down me-1"></i>
+                                        {{ __('Show More') }}
+                                    </button>
+                                </div>
+                            @endif
                         </div>
-                    @endforeach
-                </div>
-                @if($galleryProjects->count() > 8)
-                    <div class="text-center mt-4" x-show="!showGalleryAll">
-                        <button @click="showGalleryAll = true" type="button" class="story-show-more-btn">
-                            <i class="fa-light fa-chevron-down me-1"></i>
-                            {{ __('Show More') }}
-                        </button>
-                    </div>
-                @endif
+                    @endif
+                @endforeach
             </div>
         @endif
     </div>
@@ -448,15 +490,30 @@
             box-shadow: 0 0 0 1px #03fcf4;
         }
 
-        /* Project grid — 4 columns responsive */
+        /* Project grid — 4 columns responsive (portrait default) */
         .story-project-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 20px;
         }
-        @media (max-width: 1200px) { .story-project-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media (max-width: 768px) { .story-project-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 480px) { .story-project-grid { grid-template-columns: 1fr; } }
+        .story-project-grid.landscape {
+            grid-template-columns: repeat(3, 1fr);
+        }
+        .story-project-grid.square {
+            grid-template-columns: repeat(4, 1fr);
+        }
+        @media (max-width: 1200px) {
+            .story-project-grid { grid-template-columns: repeat(3, 1fr); }
+            .story-project-grid.landscape { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 768px) {
+            .story-project-grid { grid-template-columns: repeat(2, 1fr); }
+            .story-project-grid.landscape { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 480px) {
+            .story-project-grid { grid-template-columns: 1fr; }
+            .story-project-grid.landscape { grid-template-columns: 1fr; }
+        }
 
         /* Project cards */
         .project-card-wrap {
