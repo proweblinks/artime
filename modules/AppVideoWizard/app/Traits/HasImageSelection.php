@@ -223,6 +223,68 @@ trait HasImageSelection
     }
 
     /**
+     * Toggle all scenes between AI-generated and stock images.
+     * If all are already AI, revert to stock; otherwise set all to AI.
+     */
+    public function toggleAllScenesAI(): void
+    {
+        if ($this->areAllScenesAI()) {
+            $this->clearAllScenesAI();
+        } else {
+            $this->setAllScenesAI();
+        }
+    }
+
+    /**
+     * Set all scenes to use AI-generated images.
+     */
+    public function setAllScenesAI(): void
+    {
+        foreach ($this->sceneImageCandidates as $sceneId => $candidates) {
+            $this->selectedSceneImages[$sceneId] = 'ai';
+            $this->sceneAnimateWithAI[$sceneId] = true;
+        }
+    }
+
+    /**
+     * Revert all scenes from AI back to their first stock candidate.
+     * Scenes with no candidates stay on AI.
+     */
+    public function clearAllScenesAI(): void
+    {
+        foreach ($this->sceneImageCandidates as $sceneId => $candidates) {
+            if (!empty($candidates)) {
+                $this->selectedSceneImages[$sceneId] = [0];
+                $this->sceneAnimateWithAI[$sceneId] = false;
+
+                $firstCandidate = $candidates[0];
+                if (($firstCandidate['type'] ?? 'image') === 'video') {
+                    $this->autoTrimVideoClip($sceneId, $firstCandidate);
+                }
+            }
+            // Scenes with no candidates keep AI selection
+        }
+    }
+
+    /**
+     * Check if every scene is set to AI-generated image.
+     */
+    public function areAllScenesAI(): bool
+    {
+        if (empty($this->sceneImageCandidates)) {
+            return false;
+        }
+
+        foreach ($this->sceneImageCandidates as $sceneId => $candidates) {
+            if (($this->selectedSceneImages[$sceneId] ?? null) !== 'ai') {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Toggle per-scene AI animation (Seedance) on/off.
      */
     public function toggleSceneAnimation(string $sceneId)

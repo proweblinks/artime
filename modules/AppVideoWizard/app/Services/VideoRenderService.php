@@ -345,15 +345,13 @@ class VideoRenderService
             $settings = $this->qualitySettings[$renderQuality] ?? $this->qualitySettings['balanced'];
             $fps = $output['fps'] ?? $settings['fps'];
 
-            // Calculate extra duration for the last scene to compensate for
-            // xfade transition overlaps + a 2s safety buffer so nothing is cut off.
+            // Per-scene overlap compensation: each non-first scene gets +crossfadeDuration
+            // so the xfade overlap consumes exactly this extra, keeping total video = total audio.
             $transitions = $manifest['transitions'] ?? [];
             $crossfadeDuration = (float) ($transitions['crossfadeDuration'] ?? 0.5);
-            $validClipCount = count(array_filter($clipFiles));
-            $xfadeOverlap = max(0, ($validClipCount - 1)) * $crossfadeDuration;
-            $lastSceneBuffer = $xfadeOverlap + 2.0;
 
             $clipKeys = array_keys(array_filter($clipFiles));
+            $firstClipKey = !empty($clipKeys) ? reset($clipKeys) : -1;
             $lastClipKey = !empty($clipKeys) ? end($clipKeys) : -1;
 
             foreach ($clipFiles as $i => $clip) {
@@ -364,7 +362,9 @@ class VideoRenderService
 
                 if ($clip['type'] === 'multi_clip') {
                     // Multi-clip scene: concatenate sub-clips into one video
-                    $mcDuration = $clip['duration'] + ($isLastClip ? $lastSceneBuffer : 0);
+                    $isFirstClip = ($i === $firstClipKey);
+                    $overlapBuffer = (!$isFirstClip && count($clipKeys) > 1) ? $crossfadeDuration : 0;
+                    $mcDuration = $clip['duration'] + $overlapBuffer;
                     $concatResult = $this->concatenateSceneClips(
                         $jobId, $clip['subClips'], $mcDuration,
                         $width, $height, $fps, $settings, $workDir, $i
@@ -407,8 +407,10 @@ class VideoRenderService
                     $filters[] = "fps={$fps}";
                     $filters[] = "setsar=1";
 
-                    // Compute target duration, accounting for trim
-                    $duration = $clip['duration'] + ($isLastClip ? $lastSceneBuffer : 0);
+                    // Compute target duration, accounting for overlap compensation
+                    $isFirstClip = ($i === $firstClipKey);
+                    $overlapBuffer = (!$isFirstClip && count($clipKeys) > 1) ? $crossfadeDuration : 0;
+                    $duration = $clip['duration'] + $overlapBuffer;
                     $trimStart = 0;
                     if ($videoEdit && ($videoEdit['trimStart'] ?? 0) > 0) {
                         $trimStart = (float) $videoEdit['trimStart'];
@@ -420,7 +422,7 @@ class VideoRenderService
                         if ($trimmedDuration > 0 && $trimmedDuration < $duration && $trimmedDuration >= $sceneDuration) {
                             // Trim is valid: clip is longer than needed and trim still covers the scene
                             $availableDuration = $trimmedDuration;
-                            $duration = $trimmedDuration + ($isLastClip ? $lastSceneBuffer : 0);
+                            $duration = $trimmedDuration + $overlapBuffer;
                         } elseif ($trimmedDuration > 0 && $trimmedDuration < $sceneDuration) {
                             // Stale trim would make clip shorter than scene needs — ignore it
                             Log::warning("[StoryExport:{$jobId}] Clip {$i}: ignoring stale trimEnd={$videoEdit['trimEnd']} (trimmed={$trimmedDuration}s < scene needs {$sceneDuration}s)");
@@ -482,7 +484,9 @@ class VideoRenderService
                     $this->runCommand($cmd, $jobId, "Normalize clip {$i}");
                 } else {
                     // Generate Ken Burns from image
-                    $duration = $clip['duration'] + ($isLastClip ? $lastSceneBuffer : 0);
+                    $isFirstClip = ($i === $firstClipKey);
+                    $overlapBuffer = (!$isFirstClip && count($clipKeys) > 1) ? $crossfadeDuration : 0;
+                    $duration = $clip['duration'] + $overlapBuffer;
                     $kb = $scenes[$i]['kenBurns'] ?? [];
                     $startScale = $kb['startScale'] ?? 1.0;
                     $endScale = $kb['endScale'] ?? 1.2;
@@ -556,6 +560,7 @@ class VideoRenderService
             $this->updateProgress($progressCallback, 75, 'Mixing audio...');
             $outputWithFade = array_merge($output, [
                 'fadeOutDuration' => (float) ($transitions['fadeOutDuration'] ?? 0),
+                'crossfadeDuration' => $crossfadeDuration,
             ]);
             $finalVideoFile = $this->combineVideoWithAudio(
                 $jobId,
@@ -922,7 +927,8 @@ class VideoRenderService
         // First concatenate voiceovers with proper timing
         $voiceoverConcatFile = null;
         if ($hasVoiceovers) {
-            $voiceoverConcatFile = $this->concatenateVoiceovers($jobId, $scenes, $voiceoverFiles, $workDir);
+            $crossfade = (float) ($output['crossfadeDuration'] ?? 0);
+            $voiceoverConcatFile = $this->concatenateVoiceovers($jobId, $scenes, $voiceoverFiles, $workDir, $crossfade);
         }
 
         // Ensure video covers the full voiceover duration (prevent -shortest from truncating audio)
@@ -1028,7 +1034,8 @@ class VideoRenderService
         string $jobId,
         array $scenes,
         array $voiceoverFiles,
-        string $workDir
+        string $workDir,
+        float $crossfadeDuration = 0.0
     ): ?string {
         $outputFile = "{$workDir}/voiceovers_concat.mp3";
         $listFile = "{$workDir}/voice_list.txt";
@@ -1054,6 +1061,12 @@ class VideoRenderService
                 $voiceDuration = $this->getAudioDuration($voiceFile);
                 $remainingTime = $sceneDuration - $voiceoverOffset - $voiceDuration;
 
+                // Reduce trailing silence for non-last scenes to align with xfade overlap
+                $isLastScene = ($i === array_key_last($scenes));
+                if (!$isLastScene && $crossfadeDuration > 0) {
+                    $remainingTime -= $crossfadeDuration;
+                }
+
                 if ($remainingTime < -0.5) {
                     Log::info("[VideoRender:{$jobId}] Scene {$i} voiceover overflow: voice={$voiceDuration}s, scene={$sceneDuration}s, overflow=" . abs($remainingTime) . "s");
                 }
@@ -1065,8 +1078,13 @@ class VideoRenderService
                 }
             } else {
                 // No voiceover - add silence for entire scene
+                $isLastScene = ($i === array_key_last($scenes));
+                $silenceDuration = $sceneDuration;
+                if (!$isLastScene && $crossfadeDuration > 0) {
+                    $silenceDuration -= $crossfadeDuration;
+                }
                 $sceneSilence = "{$workDir}/silence_full_{$i}.mp3";
-                $this->generateSilence($sceneSilence, $sceneDuration, $jobId);
+                $this->generateSilence($sceneSilence, max(0.1, $silenceDuration), $jobId);
                 $listContent[] = "file '{$sceneSilence}'";
             }
         }

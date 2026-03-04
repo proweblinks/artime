@@ -415,6 +415,15 @@ class UrlToVideoOrchestrator
         $fadeOutDuration = (float) get_option('story_mode_fadeout_duration', 1.5);
         $transitionType = get_option('story_mode_transition_type', 'fade');
 
+        // Increase crossfade for AI-heavy videos (smoother transitions between generated images)
+        $aiSceneCount = collect($scenes)->filter(fn($s) =>
+            !empty($s['animate_with_ai']) || (empty($s['video_url']) && empty($s['clips']))
+        )->count();
+        $aiRatio = count($scenes) > 0 ? $aiSceneCount / count($scenes) : 0;
+        if ($aiRatio >= 0.5 && $crossfadeDuration < 1.0) {
+            $crossfadeDuration = 1.0;
+        }
+
         $aspectRatio = $project->aspect_ratio ?? '9:16';
         $resMap = [
             '9:16' => ['width' => 1080, 'height' => 1920],

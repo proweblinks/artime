@@ -182,7 +182,16 @@
                 </h5>
                 <small style="color: var(--at-text-muted, #94a0b8);">{{ __('Choose a clip for each scene from your stock library') }}</small>
             </div>
-            <button wire:click="backToTranscript" type="button" class="btn-close"></button>
+            <div class="d-flex align-items-center gap-2">
+                @php $allAI = $this->areAllScenesAI(); @endphp
+                <button wire:click="toggleAllScenesAI" type="button"
+                        class="utv-pill-btn {{ $allAI ? 'active-ai' : '' }}"
+                        title="{{ $allAI ? __('Revert to stock images') : __('Set all scenes to AI') }}">
+                    <i class="fa-light fa-wand-magic-sparkles"></i>
+                    <span>{{ $allAI ? __('AI Mode ON') : __('AI Mode') }}</span>
+                </button>
+                <button wire:click="backToTranscript" type="button" class="btn-close"></button>
+            </div>
         </div>
 
         {{-- Body (scrollable) --}}
