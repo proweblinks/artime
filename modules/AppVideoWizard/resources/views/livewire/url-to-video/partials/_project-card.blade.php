@@ -5,6 +5,11 @@
             @if($project->thumbnail_url)
                 <img src="{{ $project->thumbnail_url }}" alt="{{ $project->title }}"
                      style="width: 100%; display: block; aspect-ratio: {{ $project->aspect_ratio === '16:9' ? '16/9' : ($project->aspect_ratio === '1:1' ? '1/1' : '9/16') }}; object-fit: cover;">
+            @elseif($project->isReady() && $project->video_url)
+                <video muted preload="metadata"
+                       style="width: 100%; display: block; aspect-ratio: {{ $project->aspect_ratio === '16:9' ? '16/9' : ($project->aspect_ratio === '1:1' ? '1/1' : '9/16') }}; object-fit: cover; pointer-events: none;">
+                    <source src="{{ $project->video_url }}#t=0.5" type="video/mp4">
+                </video>
             @else
                 <div class="d-flex align-items-center justify-content-center"
                      style="aspect-ratio: {{ $project->aspect_ratio === '16:9' ? '16/9' : ($project->aspect_ratio === '1:1' ? '1/1' : '9/16') }};">
