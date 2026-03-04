@@ -6,20 +6,20 @@
 
         {{-- Header --}}
         <div class="text-center mb-4">
-            <h2 class="fw-bold mb-2" style="color: #fff; font-size: 1.6rem; letter-spacing: -0.02em;">
+            <h2 class="fw-bold mb-2" style="color: var(--at-text, #1a1a2e); font-size: 1.6rem; letter-spacing: -0.02em;">
                 {{ __('Turn any link into a video') }}
             </h2>
-            <p class="mb-0" style="color: #888; font-size: 0.92rem;">{{ __('Paste an article, YouTube video, or social post') }}</p>
+            <p class="mb-0" style="color: var(--at-text-secondary, #5a6178); font-size: 0.92rem;">{{ __('Paste an article, YouTube video, or social post') }}</p>
         </div>
 
         {{-- Active Project Progress --}}
         @if($this->activeProject && $this->activeProject->isGenerating())
-            <div wire:poll.10s class="card border-0 mb-4" style="background: #1a1a1a; border-radius: 12px;">
+            <div wire:poll.10s class="card border-0 mb-4" style="background: #ffffff; border: 1px solid #eef1f5; border-radius: 12px; box-shadow: var(--at-glass, 0 4px 24px rgba(0,0,0,0.06));">
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <div>
-                            <h6 class="mb-1 text-white">
-                                <i class="fa-light fa-spinner-third fa-spin me-2" style="color: #f97316;"></i>
+                            <h6 class="mb-1" style="color: var(--at-text, #1a1a2e);">
+                                <i class="fa-light fa-spinner-third fa-spin me-2" style="color: #03fcf4;"></i>
                                 {{ __('Generating Video') }}
                             </h6>
                             <small class="text-muted">{{ $this->activeProject->current_stage ?? 'Processing...' }}</small>
@@ -30,17 +30,17 @@
                                     wire:loading.attr="disabled"
                                     type="button"
                                     class="btn btn-sm px-3"
-                                    style="background: transparent; color: #ef4444; border: 1px solid #333; border-radius: 8px; font-size: 0.78rem;">
+                                    style="background: transparent; color: #ef4444; border: 1px solid #eef1f5; border-radius: 8px; font-size: 0.78rem;">
                                 <i class="fa-light fa-xmark me-1"></i>{{ __('Cancel') }}
                             </button>
-                            <span class="badge" style="background: #f97316; font-size: 0.85rem;">
+                            <span class="badge" style="background: #03fcf4; color: #0a2e2e; font-size: 0.85rem;">
                                 {{ $this->activeProject->progress_percent }}%
                             </span>
                         </div>
                     </div>
-                    <div class="progress" style="height: 6px; background: #333; border-radius: 3px;">
+                    <div class="progress" style="height: 6px; background: #f1f4f8; border-radius: 3px;">
                         <div class="progress-bar" role="progressbar"
-                             style="width: {{ $this->activeProject->progress_percent }}%; background: #f97316; border-radius: 3px; transition: width 0.5s ease;"
+                             style="width: {{ $this->activeProject->progress_percent }}%; background: linear-gradient(90deg, #03fcf4, #00d4cc); border-radius: 3px; transition: width 0.5s ease;"
                              aria-valuenow="{{ $this->activeProject->progress_percent }}" aria-valuemin="0" aria-valuemax="100">
                         </div>
                     </div>
@@ -101,7 +101,7 @@
                 <textarea
                     x-model="promptText"
                     wire:model.live.debounce.800ms="prompt"
-                    class="form-control border-0 text-white"
+                    class="form-control border-0"
                     rows="3"
                     :placeholder="placeholders[placeholderIdx]"
                     style="resize: none; font-size: 0.95rem; line-height: 1.6; box-shadow: none; background: transparent !important; padding: 16px 16px 8px;"
@@ -112,12 +112,12 @@
                 @if(!empty($extractedPreview) || $isExtracting)
                     <div class="d-flex align-items-center gap-2 px-3 pb-2">
                         @if($isExtracting)
-                            <div class="d-flex align-items-center gap-2 px-3 py-2" style="background: rgba(255,255,255,0.04); border-radius: 10px; font-size: 0.82rem; color: #888;">
-                                <i class="fa-light fa-spinner-third fa-spin" style="color: #f97316;"></i>
+                            <div class="d-flex align-items-center gap-2 px-3 py-2" style="background: #f5f7fa; border-radius: 10px; font-size: 0.82rem; color: #5a6178;">
+                                <i class="fa-light fa-spinner-third fa-spin" style="color: #03fcf4;"></i>
                                 <span>{{ __('Detecting content...') }}</span>
                             </div>
                         @else
-                            <div class="d-flex align-items-center gap-2 px-3 py-2" style="background: rgba(255,255,255,0.04); border-radius: 10px; max-width: 100%; overflow: hidden;">
+                            <div class="d-flex align-items-center gap-2 px-3 py-2" style="background: #f5f7fa; border-radius: 10px; max-width: 100%; overflow: hidden;">
                                 {{-- Source type badge --}}
                                 @php
                                     $badgeColors = [
@@ -126,10 +126,10 @@
                                         'twitter' => '#1da1f2',
                                         'news' => '#f59e0b',
                                         'newsletter' => '#10b981',
-                                        'article' => '#f97316',
+                                        'article' => '#0891b2',
                                         'prompt' => '#8b5cf6',
                                     ];
-                                    $badgeColor = $badgeColors[$extractedPreview['source_type'] ?? 'article'] ?? '#f97316';
+                                    $badgeColor = $badgeColors[$extractedPreview['source_type'] ?? 'article'] ?? '#0891b2';
                                     $badgeIcons = [
                                         'youtube_video' => 'fa-brands fa-youtube',
                                         'linkedin' => 'fa-brands fa-linkedin',
@@ -154,7 +154,7 @@
 
                                 {{-- Title --}}
                                 @if(!empty($extractedPreview['title']))
-                                    <span style="font-size: 0.78rem; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 360px;">
+                                    <span style="font-size: 0.78rem; color: var(--at-text-secondary, #5a6178); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 360px;">
                                         {{ $extractedPreview['title'] }}
                                     </span>
                                 @endif
@@ -200,7 +200,7 @@
                 </div>
 
                 {{-- Bottom Toolbar --}}
-                <div class="d-flex align-items-center justify-content-between px-3 pb-3 pt-2" style="border-top: 1px solid rgba(255,255,255,0.06);">
+                <div class="d-flex align-items-center justify-content-between px-3 pb-3 pt-2" style="border-top: 1px solid #eef1f5;">
                     <div class="d-flex align-items-center gap-1">
                         {{-- Settings Popover --}}
                         <div class="position-relative">
@@ -286,7 +286,7 @@
                                             {{ $preset['label'] }}
                                         </span>
                                         @if($videoDuration === $preset['value'])
-                                            <i class="fa-solid fa-check" style="color: #f97316; font-size: 0.75rem;"></i>
+                                            <i class="fa-solid fa-check" style="color: #03fcf4; font-size: 0.75rem;"></i>
                                         @endif
                                     </button>
                                 @endforeach
@@ -328,7 +328,7 @@
 
         {{-- Error Messages --}}
         @if(session('error'))
-            <div class="alert alert-danger border-0 mb-4" style="background: #3d1515; color: #f87171; border-radius: 12px;">
+            <div class="alert alert-danger border-0 mb-4" style="background: rgba(239,68,68,0.08); color: #ef4444; border-radius: 12px;">
                 <i class="fa-light fa-triangle-exclamation me-2"></i>
                 {{ session('error') }}
             </div>
@@ -339,7 +339,7 @@
     <div class="utv-gallery-zone">
         @if($this->userProjects->isNotEmpty())
             <div class="mb-5">
-                <h5 class="fw-bold text-white mb-3" style="font-size: 1.1rem;">{{ __('My Projects') }}</h5>
+                <h5 class="fw-bold mb-3" style="font-size: 1.1rem; color: var(--at-text, #1a1a2e);">{{ __('My Projects') }}</h5>
                 <div class="utv-masonry">
                     @foreach($this->userProjects->take(8) as $project)
                         @include('appvideowizard::livewire.url-to-video.partials._project-card', ['project' => $project])
@@ -352,10 +352,10 @@
     {{-- Image Sourcing Overlay --}}
     @if($isSourcingImages)
         <div class="d-flex align-items-center justify-content-center"
-             style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 10100;">
+             style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 10100;">
             <div class="text-center">
-                <i class="fa-light fa-spinner-third fa-spin mb-3" style="font-size: 2rem; color: #f97316;"></i>
-                <p class="text-white fw-semibold mb-1">{{ __('Finding real images for your scenes...') }}</p>
+                <i class="fa-light fa-spinner-third fa-spin mb-3" style="font-size: 2rem; color: #03fcf4;"></i>
+                <p class="fw-semibold mb-1" style="color: #fff;">{{ __('Finding real images for your scenes...') }}</p>
                 <p class="text-muted" style="font-size: 0.85rem;">{{ __('Searching article photos and Wikimedia Commons') }}</p>
             </div>
         </div>
@@ -369,12 +369,12 @@
     {{-- Voice Modal (reuse same structure) --}}
     @if($showVoiceModal)
     <div class="d-flex align-items-center justify-content-center"
-         style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 10100;"
+         style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 10100;"
          wire:click.self="$set('showVoiceModal', false)">
-        <div class="card border-0" style="background: #1a1a1a; border-radius: 16px; width: 480px; max-height: 80vh; overflow-y: auto;">
+        <div class="card border-0" style="background: #ffffff; border: 1px solid #eef1f5; border-radius: 16px; width: 480px; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.12);">
             <div class="card-header border-0 d-flex align-items-center justify-content-between p-4 pb-2" style="background: transparent;">
-                <h5 class="mb-0 text-white fw-bold">{{ __('Select Voice') }}</h5>
-                <button wire:click="$set('showVoiceModal', false)" type="button" class="btn-close btn-close-white"></button>
+                <h5 class="mb-0 fw-bold" style="color: var(--at-text, #1a1a2e);">{{ __('Select Voice') }}</h5>
+                <button wire:click="$set('showVoiceModal', false)" type="button" class="btn-close"></button>
             </div>
             <div class="card-body p-4 pt-2">
                 <div class="list-group list-group-flush">
@@ -382,15 +382,15 @@
                         <button wire:click="selectVoice('{{ $voice['id'] }}', '{{ $voice['provider'] }}')"
                                 type="button"
                                 class="list-group-item list-group-item-action border-0 d-flex align-items-center gap-3 px-3 py-3"
-                                style="background: {{ $selectedVoice === $voice['id'] ? '#2a2a1a' : 'transparent' }}; border-radius: 10px; color: #fff;">
+                                style="background: {{ $selectedVoice === $voice['id'] ? 'rgba(3,252,244,0.06)' : 'transparent' }}; border-radius: 10px; color: var(--at-text, #1a1a2e);">
                             <div class="d-flex align-items-center justify-content-center flex-shrink-0"
-                                 style="width: 40px; height: 40px; border-radius: 50%; background: {{ $selectedVoice === $voice['id'] ? '#f97316' : '#2a2a2a' }};">
+                                 style="width: 40px; height: 40px; border-radius: 50%; background: {{ $selectedVoice === $voice['id'] ? '#03fcf4' : '#f5f7fa' }};">
                                 @if($voice['gender'] === 'female')
-                                    <i class="fa-light fa-venus" style="color: {{ $selectedVoice === $voice['id'] ? '#fff' : '#f472b6' }};"></i>
+                                    <i class="fa-light fa-venus" style="color: {{ $selectedVoice === $voice['id'] ? '#0a2e2e' : '#f472b6' }};"></i>
                                 @elseif($voice['gender'] === 'male')
-                                    <i class="fa-light fa-mars" style="color: {{ $selectedVoice === $voice['id'] ? '#fff' : '#60a5fa' }};"></i>
+                                    <i class="fa-light fa-mars" style="color: {{ $selectedVoice === $voice['id'] ? '#0a2e2e' : '#60a5fa' }};"></i>
                                 @else
-                                    <i class="fa-light fa-microphone" style="color: {{ $selectedVoice === $voice['id'] ? '#fff' : '#a78bfa' }};"></i>
+                                    <i class="fa-light fa-microphone" style="color: {{ $selectedVoice === $voice['id'] ? '#0a2e2e' : '#a78bfa' }};"></i>
                                 @endif
                             </div>
                             <div class="flex-grow-1">
@@ -398,10 +398,10 @@
                                 <small class="text-muted">{{ $voice['description'] }}</small>
                             </div>
                             @if($voice['provider'])
-                                <span class="badge" style="background: #2a2a2a; color: #888; font-size: 0.65rem;">{{ ucfirst($voice['provider']) }}</span>
+                                <span class="badge" style="background: #f5f7fa; color: #5a6178; font-size: 0.65rem;">{{ ucfirst($voice['provider']) }}</span>
                             @endif
                             @if($selectedVoice === $voice['id'])
-                                <i class="fa-solid fa-check-circle" style="color: #f97316;"></i>
+                                <i class="fa-solid fa-check-circle" style="color: #0891b2;"></i>
                             @endif
                         </button>
                     @endforeach
@@ -420,16 +420,22 @@
     <style>
         .utv-page {
             min-height: 100vh;
-            background: #000 !important;
+            background: #ffffff !important;
         }
         .utv-page .form-control,
         .utv-page .form-control:focus {
             box-shadow: none !important;
             outline: none !important;
             background: transparent !important;
+            color: var(--at-text, #1a1a2e) !important;
+        }
+        .utv-page .form-control::placeholder {
+            color: var(--at-text-muted, #94a0b8) !important;
         }
         .utv-page .card {
-            background: #1a1a1a !important;
+            background: #ffffff !important;
+            border: 1px solid #eef1f5;
+            box-shadow: var(--at-glass, 0 4px 24px rgba(0,0,0,0.06));
         }
         .utv-top-zone {
             max-width: 760px;
@@ -443,11 +449,12 @@
             .utv-gallery-zone { padding: 0 40px 40px; }
         }
         .utv-input-card {
-            background: #141414;
-            border: 1px solid rgba(255,255,255,0.06);
+            background: #ffffff;
+            border: 1px solid #eef1f5;
             border-radius: 14px;
             position: relative;
             overflow: visible;
+            box-shadow: var(--at-glass, 0 4px 24px rgba(0,0,0,0.06));
         }
         .utv-tool-btn {
             display: inline-flex;
@@ -457,37 +464,37 @@
             background: transparent;
             border: none;
             border-radius: 8px;
-            color: #888;
+            color: #5a6178;
             font-size: 0.82rem;
             cursor: pointer;
             transition: background 0.15s, color 0.15s;
             white-space: nowrap;
         }
         .utv-tool-btn:hover {
-            background: rgba(255,255,255,0.08);
-            color: #ccc;
+            background: rgba(3,252,244,0.06);
+            color: #1a1a2e;
         }
         .utv-tool-btn i { font-size: 0.9rem; }
         .utv-tool-btn.active {
-            background: rgba(255,255,255,0.1);
-            color: #f97316;
+            background: rgba(3,252,244,0.1);
+            color: #0891b2;
         }
         .utv-settings-popover {
             position: absolute;
             bottom: calc(100% + 8px);
             left: 0;
             z-index: 50;
-            background: #1a1a1a;
-            border: 1px solid rgba(255,255,255,0.08);
+            background: #ffffff;
+            border: 1px solid #eef1f5;
             border-radius: 12px;
             padding: 10px;
             min-width: 220px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
         }
         .utv-settings-label {
             font-size: 0.6rem;
             font-weight: 600;
-            color: #555;
+            color: #94a0b8;
             text-transform: uppercase;
             letter-spacing: 0.08em;
             padding: 2px 6px 6px;
@@ -501,23 +508,23 @@
             background: transparent;
             border: none;
             border-radius: 6px;
-            color: #ccc;
+            color: #1a1a2e;
             font-size: 0.82rem;
             cursor: pointer;
             transition: background 0.15s;
         }
-        .utv-settings-row:hover { background: rgba(255,255,255,0.06); }
+        .utv-settings-row:hover { background: rgba(3,252,244,0.06); }
         .utv-settings-icon {
             width: 16px;
             text-align: center;
-            color: #666;
+            color: #94a0b8;
             font-size: 0.8rem;
         }
         .utv-settings-value {
             display: flex;
             align-items: center;
             gap: 4px;
-            color: #f97316;
+            color: #0891b2;
             font-size: 0.8rem;
         }
         .utv-submit-btn {
@@ -525,8 +532,8 @@
             height: 36px;
             border-radius: 50%;
             border: none;
-            background: #333;
-            color: #888;
+            background: #eef1f5;
+            color: #94a0b8;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -535,8 +542,8 @@
             font-size: 0.85rem;
         }
         .utv-submit-btn.active {
-            background: #f97316;
-            color: #fff;
+            background: #03fcf4;
+            color: #0a2e2e;
         }
         .utv-submit-btn:disabled {
             cursor: not-allowed;
@@ -552,12 +559,13 @@
             border-radius: 10px;
             overflow: hidden;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
-            background: #111;
+            background: #ffffff;
+            border: 1px solid #eef1f5;
             position: relative;
         }
         .utv-project-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
         }
         .utv-project-card img {
             display: block;
@@ -581,8 +589,8 @@
             padding: 5px 10px;
             border-radius: 20px;
             border: none;
-            background: rgba(255,255,255,0.05);
-            color: #888;
+            background: #f5f7fa;
+            color: #5a6178;
             font-size: 0.72rem;
             font-weight: 500;
             white-space: nowrap;
@@ -591,19 +599,19 @@
             flex-shrink: 0;
         }
         .utv-style-pill:hover {
-            background: rgba(255,255,255,0.1);
-            color: #ccc;
+            background: #eef1f5;
+            color: #1a1a2e;
         }
         .utv-style-pill i { font-size: 0.75rem; }
         .utv-style-pill.active {
-            background: #f97316;
-            color: #fff;
+            background: #03fcf4;
+            color: #0a2e2e;
         }
         /* Mode Toggle */
         .utv-mode-toggle {
             display: inline-flex;
             gap: 2px;
-            background: rgba(255,255,255,0.04);
+            background: #f5f7fa;
             border-radius: 10px;
             padding: 3px;
         }
@@ -615,31 +623,31 @@
             border-radius: 8px;
             border: none;
             background: transparent;
-            color: #888;
+            color: #5a6178;
             font-size: 0.78rem;
             font-weight: 500;
             cursor: pointer;
             transition: background 0.15s, color 0.15s;
         }
-        .utv-mode-btn:hover { color: #ccc; }
+        .utv-mode-btn:hover { color: #1a1a2e; }
         .utv-mode-btn i { font-size: 0.8rem; }
         .utv-mode-btn.active {
-            background: rgba(249,115,22,0.15);
-            color: #f97316;
+            background: rgba(3,252,244,0.12);
+            color: #0891b2;
         }
         .utv-mode-btn.active.creative {
-            background: rgba(139,92,246,0.15);
-            color: #c4b5fd;
+            background: rgba(139,92,246,0.1);
+            color: #7c3aed;
         }
         .utv-creative-banner {
             display: flex;
             align-items: center;
             gap: 8px;
             padding: 8px 14px;
-            background: rgba(139,92,246,0.08);
-            border: 1px solid rgba(139,92,246,0.15);
+            background: rgba(139,92,246,0.06);
+            border: 1px solid rgba(139,92,246,0.12);
             border-radius: 10px;
-            color: #c4b5fd;
+            color: #7c3aed;
             font-size: 0.8rem;
         }
         .utv-creative-banner i { font-size: 0.85rem; }
@@ -649,10 +657,10 @@
             align-items: center;
             gap: 6px;
             padding: 6px 12px;
-            background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(168,85,247,0.15));
-            border: 1px solid rgba(139,92,246,0.25);
+            background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(168,85,247,0.08));
+            border: 1px solid rgba(139,92,246,0.2);
             border-radius: 10px;
-            color: #c4b5fd;
+            color: #7c3aed;
             font-size: 0.82rem;
             font-weight: 600;
         }
@@ -660,15 +668,15 @@
         /* Concept Cards */
         .utv-concept-card {
             padding: 12px 14px;
-            background: #222;
-            border: 1px solid rgba(255,255,255,0.06);
+            background: #ffffff;
+            border: 1px solid #eef1f5;
             border-radius: 10px;
             cursor: pointer;
             transition: border-color 0.15s, background 0.15s;
         }
         .utv-concept-card:hover {
-            border-color: rgba(139,92,246,0.4);
-            background: #2a2a2a;
+            border-color: rgba(139,92,246,0.3);
+            background: #f8fafb;
         }
         .utv-concept-tone-badge {
             display: inline-flex;
@@ -679,11 +687,11 @@
             text-transform: uppercase;
             letter-spacing: 0.04em;
         }
-        .utv-tone-funny { background: rgba(245,158,11,0.15); color: #fbbf24; }
-        .utv-tone-emotional { background: rgba(236,72,153,0.15); color: #f472b6; }
-        .utv-tone-intellectual { background: rgba(96,165,250,0.15); color: #60a5fa; }
-        .utv-tone-provocative { background: rgba(239,68,68,0.15); color: #f87171; }
-        .utv-tone-whimsical { background: rgba(168,85,247,0.15); color: #c084fc; }
-        .utv-tone-dramatic { background: rgba(251,146,60,0.15); color: #fb923c; }
+        .utv-tone-funny { background: rgba(245,158,11,0.1); color: #d97706; }
+        .utv-tone-emotional { background: rgba(236,72,153,0.1); color: #db2777; }
+        .utv-tone-intellectual { background: rgba(96,165,250,0.1); color: #2563eb; }
+        .utv-tone-provocative { background: rgba(239,68,68,0.1); color: #dc2626; }
+        .utv-tone-whimsical { background: rgba(168,85,247,0.1); color: #7c3aed; }
+        .utv-tone-dramatic { background: rgba(251,146,60,0.1); color: #ea580c; }
     </style>
 </div>

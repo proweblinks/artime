@@ -1,6 +1,6 @@
 {{-- Stock Library Browser Modal --}}
 @if($showLibraryBrowser)
-<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.88);z-index:10200;display:flex;align-items:center;justify-content:center;"
+<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);z-index:10200;display:flex;align-items:center;justify-content:center;"
      x-data="{
          libraryQuery: '',
          hoverTimer: null,
@@ -32,18 +32,18 @@
          }
      }">
     <div class="card border-0 d-flex flex-column"
-         style="background:#1a1a1a;border-radius:16px;width:780px;max-height:90vh;">
+         style="background:#ffffff;border:1px solid #eef1f5;border-radius:16px;width:780px;max-height:90vh;box-shadow:0 8px 30px rgba(0,0,0,0.12);">
 
         {{-- Header --}}
         <div class="card-header border-0 d-flex align-items-center justify-content-between p-4 pb-2" style="background:transparent;">
             <div>
-                <h5 class="mb-1 text-white fw-bold">
-                    <i class="fa-light fa-photo-film me-2" style="color:#f97316;"></i>
+                <h5 class="mb-1 fw-bold" style="color:var(--at-text, #1a1a2e);">
+                    <i class="fa-light fa-photo-film me-2" style="color:#0891b2;"></i>
                     {{ __('Stock Library') }}
                 </h5>
-                <small style="color:#999;">{{ __('Browse or search your media library') }}</small>
+                <small style="color:var(--at-text-muted, #94a0b8);">{{ __('Browse or search your media library') }}</small>
             </div>
-            <button wire:click="$set('showLibraryBrowser', false)" type="button" class="btn-close btn-close-white"></button>
+            <button wire:click="$set('showLibraryBrowser', false)" type="button" class="btn-close"></button>
         </div>
 
         {{-- Search bar --}}
@@ -52,11 +52,11 @@
                 <input type="text"
                        x-model="libraryQuery"
                        @keydown.enter="$wire.searchLibrary(libraryQuery)"
-                       class="form-control form-control-sm border-0 text-white"
-                       style="background:#2a2a2a;border-radius:8px;font-size:0.82rem;flex:1;"
+                       class="form-control form-control-sm border-0"
+                       style="background:#f5f7fa;border-radius:8px;font-size:0.82rem;flex:1;color:var(--at-text, #1a1a2e);"
                        placeholder="{{ __('Search clips, images...') }}">
                 <button @click="$wire.searchLibrary(libraryQuery)" type="button"
-                        class="btn btn-sm" style="background:#f97316;color:#fff;border-radius:8px;white-space:nowrap;">
+                        class="btn btn-sm" style="background:#03fcf4;color:#0a2e2e;border-radius:8px;white-space:nowrap;">
                     <i class="fa-light fa-magnifying-glass me-1"></i>{{ __('Search') }}
                 </button>
             </div>
@@ -103,12 +103,12 @@
                     @endforeach
                 </div>
             @elseif(!empty($libraryActiveCategory) || !empty($libraryQuery))
-                <div class="d-flex flex-column align-items-center justify-content-center py-5" style="color:#666;">
+                <div class="d-flex flex-column align-items-center justify-content-center py-5" style="color:#94a0b8;">
                     <i class="fa-light fa-image-slash mb-2" style="font-size:2rem;"></i>
                     <span style="font-size:0.85rem;">{{ __('No results found') }}</span>
                 </div>
             @else
-                <div class="d-flex flex-column align-items-center justify-content-center py-5" style="color:#555;">
+                <div class="d-flex flex-column align-items-center justify-content-center py-5" style="color:#94a0b8;">
                     <i class="fa-light fa-photo-film mb-2" style="font-size:2rem;"></i>
                     <span style="font-size:0.85rem;">{{ __('Select a category or search to browse') }}</span>
                 </div>
@@ -118,7 +118,7 @@
         {{-- Footer --}}
         <div class="card-footer border-0 p-4 pt-2" style="background:transparent;">
             <button wire:click="$set('showLibraryBrowser', false)" type="button"
-                    class="btn w-100" style="background:#2a2a2a;color:#ccc;border-radius:10px;">
+                    class="btn w-100" style="background:#f5f7fa;color:var(--at-text-secondary, #5a6178);border-radius:10px;">
                 <i class="fa-light fa-arrow-left me-1"></i>
                 {{ __('Back to Selection') }}
             </button>
@@ -133,9 +133,9 @@
         gap: 5px;
         padding: 4px 12px;
         border-radius: 20px;
-        border: 1px solid #333;
-        background: #2a2a2a;
-        color: #aaa;
+        border: 1px solid #eef1f5;
+        background: #f5f7fa;
+        color: #5a6178;
         font-size: 0.72rem;
         font-weight: 500;
         cursor: pointer;
@@ -143,22 +143,22 @@
         white-space: nowrap;
     }
     .utv-lib-category-chip:hover {
-        background: #333;
-        color: #ccc;
-        border-color: #444;
+        background: #eef1f5;
+        color: #1a1a2e;
+        border-color: #d0d5dd;
     }
     .utv-lib-category-chip.active {
-        background: rgba(249,115,22,0.15);
-        color: #f97316;
-        border-color: rgba(249,115,22,0.4);
+        background: rgba(3,252,244,0.1);
+        color: #0891b2;
+        border-color: rgba(3,252,244,0.3);
     }
     .utv-lib-category-count {
         font-size: 0.62rem;
-        color: #666;
+        color: #94a0b8;
         font-weight: 600;
     }
     .utv-lib-category-chip.active .utv-lib-category-count {
-        color: rgba(249,115,22,0.7);
+        color: rgba(8,145,178,0.7);
     }
     .utv-lib-grid {
         display: grid;
@@ -171,13 +171,13 @@
         border-radius: 10px;
         overflow: hidden;
         border: 2px solid transparent;
-        background: #222;
+        background: #f5f7fa;
         cursor: pointer;
         padding: 0;
         transition: border-color 0.15s, transform 0.15s;
     }
     .utv-lib-item:hover {
-        border-color: rgba(249,115,22,0.5);
+        border-color: rgba(3,252,244,0.4);
         transform: scale(1.02);
     }
     .utv-lib-item img {
@@ -192,8 +192,8 @@
         left: 0;
         right: 0;
         padding: 4px 8px;
-        background: linear-gradient(transparent, rgba(0,0,0,0.8));
-        color: #ccc;
+        background: linear-gradient(transparent, rgba(0,0,0,0.6));
+        color: #fff;
         font-size: 0.62rem;
         white-space: nowrap;
         overflow: hidden;

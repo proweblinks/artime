@@ -1,7 +1,7 @@
 {{-- Image Selection Modal for Real Images Mode --}}
 @if($showImageSelectionModal)
 <div class="d-flex align-items-center justify-content-center"
-     style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 10100;"
+     style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 10100;"
      x-data="{
          showSearch: {},
          expandedScenes: {},
@@ -161,18 +161,18 @@
          }
      }">
     <div class="card border-0 d-flex flex-column"
-         style="background: #1a1a1a; border-radius: 16px; width: 720px; max-height: 90vh;">
+         style="background: #ffffff; border: 1px solid #eef1f5; border-radius: 16px; width: 720px; max-height: 90vh; box-shadow: 0 8px 30px rgba(0,0,0,0.12);">
 
         {{-- Header --}}
         <div class="card-header border-0 d-flex align-items-center justify-content-between p-4 pb-2" style="background: transparent;">
             <div>
-                <h5 class="mb-1 text-white fw-bold">
-                    <i class="fa-light fa-images me-2" style="color: #f97316;"></i>
+                <h5 class="mb-1 fw-bold" style="color: var(--at-text, #1a1a2e);">
+                    <i class="fa-light fa-images me-2" style="color: #0891b2;"></i>
                     {{ __('Select Images for Your Video') }}
                 </h5>
-                <small style="color: #999;">{{ __('Choose a clip for each scene from your stock library') }}</small>
+                <small style="color: var(--at-text-muted, #94a0b8);">{{ __('Choose a clip for each scene from your stock library') }}</small>
             </div>
-            <button wire:click="backToTranscript" type="button" class="btn-close btn-close-white"></button>
+            <button wire:click="backToTranscript" type="button" class="btn-close"></button>
         </div>
 
         {{-- Body (scrollable) --}}
@@ -213,7 +213,7 @@
                     {{-- Scene header --}}
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <div class="d-flex align-items-center gap-2 flex-grow-1" style="min-width: 0;">
-                            <span class="badge" style="background: #2a2a2a; color: #f97316; font-size: 0.7rem; font-weight: 600;">
+                            <span class="badge" style="background: rgba(3,252,244,0.1); color: #0891b2; font-size: 0.7rem; font-weight: 600;">
                                 {{ __('Scene') }} {{ $sceneIndex + 1 }}
                             </span>
                             @if($isAI)
@@ -221,7 +221,7 @@
                                     <i class="fa-light fa-wand-magic-sparkles me-1"></i>{{ __('AI Image') }}
                                 </span>
                             @elseif(!empty($sceneSelections))
-                                <span class="badge" style="background: #f9731620; color: #f97316; font-size: 0.65rem;">
+                                <span class="badge" style="background: rgba(3,252,244,0.1); color: #0891b2; font-size: 0.65rem;">
                                     <i class="fa-light fa-check me-1"></i>{{ count($sceneSelections) }} {{ __('selected') }}
                                 </span>
                             @elseif(empty($candidates))
@@ -280,7 +280,7 @@
                     {{-- Scene narration text + duration (always visible) --}}
                     @if(!empty($sceneText))
                         <div class="mb-2 d-flex align-items-start gap-2">
-                            <p class="mb-0 flex-grow-1" style="font-size: 0.78rem; color: #999; line-height: 1.5;">
+                            <p class="mb-0 flex-grow-1" style="font-size: 0.78rem; color: var(--at-text-secondary, #5a6178); line-height: 1.5;">
                                 {{ Str::limit($sceneText, 120) }}
                             </p>
                             <span class="badge flex-shrink-0" style="background: #1e3a5f; color: #38bdf8; font-size: 0.72rem; white-space: nowrap;">
@@ -306,12 +306,12 @@
                     @endphp
 
                     @if(!empty($selectedClipDetails))
-                        <div class="mb-2 p-2 d-flex align-items-center gap-2" style="background: #0a0a0a; border-radius: 8px; border: 1px solid {{ $hasEnoughClips ? '#15803d' : '#92400e' }}40;">
+                        <div class="mb-2 p-2 d-flex align-items-center gap-2" style="background: #f8fafb; border-radius: 8px; border: 1px solid {{ $hasEnoughClips ? '#15803d' : '#92400e' }}30;">
                             {{-- Mini thumbnails of selected clips --}}
                             @foreach($selectedClipDetails as $detail)
                                 <div class="position-relative" style="width: 48px; height: 48px; flex-shrink: 0;">
                                     <img src="{{ $detail['candidate']['thumbnail'] ?? $detail['candidate']['url'] }}"
-                                         style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px; border: 1px solid #333;">
+                                         style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px; border: 1px solid #eef1f5;">
                                     @if($detail['duration'] > 0)
                                         <span style="position: absolute; bottom: 1px; right: 1px; background: rgba(0,0,0,0.8); color: #fff; font-size: 0.55rem; padding: 1px 3px; border-radius: 3px;">
                                             {{ gmdate('i:s', (int) $detail['duration']) }}
@@ -346,15 +346,15 @@
                             <input type="text"
                                    x-model="sceneQuery"
                                    @keydown.enter="$wire.executeSceneSearch('{{ $sceneId }}', sceneQuery)"
-                                   class="form-control form-control-sm border-0 text-white"
-                                   style="background: #2a2a2a; border-radius: 8px; font-size: 0.82rem; flex: 1;"
+                                   class="form-control form-control-sm border-0"
+                                   style="background: #f5f7fa; border-radius: 8px; font-size: 0.82rem; flex: 1; color: var(--at-text, #1a1a2e);"
                                    placeholder="{{ __('Search stock library...') }}">
                             <button @click="$wire.executeSceneSearch('{{ $sceneId }}', sceneQuery)" type="button"
-                                    class="btn btn-sm" style="background: #f97316; color: #fff; border-radius: 8px; white-space: nowrap;">
+                                    class="btn btn-sm" style="background: #03fcf4; color: #0a2e2e; border-radius: 8px; white-space: nowrap;">
                                 <i class="fa-light fa-magnifying-glass me-1"></i>{{ __('Search') }}
                             </button>
                             <button @click="$wire.searchExternalStock('{{ $sceneId }}', sceneQuery)" type="button"
-                                    class="btn btn-sm" style="background: #2a2a2a; color: #888; border: 1px solid #444; border-radius: 8px; white-space: nowrap; font-size: 0.75rem;"
+                                    class="btn btn-sm" style="background: #f5f7fa; color: #5a6178; border: 1px solid #eef1f5; border-radius: 8px; white-space: nowrap; font-size: 0.75rem;"
                                     title="{{ __('Search Pexels, Pixabay & Wikimedia') }}">
                                 <i class="fa-light fa-globe me-1"></i>{{ __('External') }}
                             </button>
@@ -472,7 +472,7 @@
                                                 </button>
                                             @endif
                                         @endif
-                                        <span class="utv-source-badge" @if(($candidate['source'] ?? '') === 'previous_selection') style="background: rgba(249,115,22,0.8); color: #fff;" @endif>
+                                        <span class="utv-source-badge" @if(($candidate['source'] ?? '') === 'previous_selection') style="background: rgba(3,252,244,0.85); color: #0a2e2e;" @endif>
                                             @if(($candidate['source'] ?? '') === 'previous_selection')
                                                 {{ __('Previous') }}
                                             @elseif($candidate['source'] === 'artime_stock')
@@ -496,9 +496,9 @@
                                         wire:loading.attr="disabled"
                                         type="button"
                                         class="utv-load-more-btn"
-                                        style="flex: 0 0 80px; min-width: 80px; height: 100%; min-height: 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.15); border-radius: 8px; color: #888; font-size: 0.7rem; cursor: pointer; transition: all 0.2s;"
-                                        onmouseover="this.style.background='rgba(255,255,255,0.1)';this.style.color='#fff';this.style.borderColor='rgba(255,255,255,0.3)'"
-                                        onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.color='#888';this.style.borderColor='rgba(255,255,255,0.15)'">
+                                        style="flex: 0 0 80px; min-width: 80px; height: 100%; min-height: 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: #f5f7fa; border: 1px dashed #d0d5dd; border-radius: 8px; color: #94a0b8; font-size: 0.7rem; cursor: pointer; transition: all 0.2s;"
+                                        onmouseover="this.style.background='#eef1f5';this.style.color='#1a1a2e';this.style.borderColor='#0891b2'"
+                                        onmouseout="this.style.background='#f5f7fa';this.style.color='#94a0b8';this.style.borderColor='#d0d5dd'">
                                     <i class="fa-light fa-arrow-right" wire:loading.class="fa-spinner-third fa-spin" wire:target="loadMoreCandidates('{{ $sceneId }}')"></i>
                                     <span wire:loading.remove wire:target="loadMoreCandidates('{{ $sceneId }}')">{{ __('More') }}</span>
                                     <span wire:loading wire:target="loadMoreCandidates('{{ $sceneId }}')">...</span>
@@ -506,16 +506,16 @@
                             </div>
                         </div>
                     @else
-                        <div class="d-flex align-items-center gap-2 p-3" style="background: #1a1a1a; border-radius: 10px;">
-                            <i class="fa-light fa-image-slash" style="color: #666;"></i>
-                            <span style="color: #999; font-size: 0.82rem;">{{ __('No matching images found. Use Search, Upload, or AI.') }}</span>
+                        <div class="d-flex align-items-center gap-2 p-3" style="background: #f5f7fa; border-radius: 10px;">
+                            <i class="fa-light fa-image-slash" style="color: #94a0b8;"></i>
+                            <span style="color: var(--at-text-secondary, #5a6178); font-size: 0.82rem;">{{ __('No matching images found. Use Search, Upload, or AI.') }}</span>
                         </div>
                     @endif
 
                     {{-- Search suggestion chips (search stock library) --}}
                     @if(!empty($sceneSearchSuggestions[$sceneId] ?? []))
                         <div class="d-flex flex-wrap align-items-center gap-1 mt-2">
-                            <span style="color: #666; font-size: 0.72rem;">{{ __('Try:') }}</span>
+                            <span style="color: #94a0b8; font-size: 0.72rem;">{{ __('Try:') }}</span>
                             @foreach($sceneSearchSuggestions[$sceneId] as $suggestion)
                                 <button wire:click="executeSceneSearch('{{ $sceneId }}', '{{ addslashes($suggestion) }}')"
                                         type="button" class="utv-suggestion-chip">
@@ -552,27 +552,27 @@
                     }
                 }
             @endphp
-            <div class="d-flex align-items-center gap-3 p-3 mt-2" style="background: #111; border-radius: 10px; font-size: 0.82rem;">
+            <div class="d-flex align-items-center gap-3 p-3 mt-2" style="background: #f5f7fa; border-radius: 10px; font-size: 0.82rem;">
                 @if($realCount > 0)
-                    <span style="color: #ccc;">
+                    <span style="color: var(--at-text, #1a1a2e);">
                         <i class="fa-light fa-camera me-1" style="color: #22c55e;"></i>
                         {{ $realCount }} {{ __('real image') }}{{ $realCount > 1 ? 's' : '' }}
                     </span>
                 @endif
                 @if($videoCount > 0)
-                    <span style="color: #ccc;">
+                    <span style="color: var(--at-text, #1a1a2e);">
                         <i class="fa-light fa-clapperboard-play me-1" style="color: #38bdf8;"></i>
                         {{ $videoCount }} {{ __('free clip') }}{{ $videoCount > 1 ? 's' : '' }}
                     </span>
                 @endif
                 @if($animatedCount > 0)
-                    <span style="color: #ccc;">
+                    <span style="color: var(--at-text, #1a1a2e);">
                         <i class="fa-light fa-sparkles me-1" style="color: #fbbf24;"></i>
                         {{ $animatedCount }} {{ __('animated') }}
                     </span>
                 @endif
                 @if($aiCount > 0)
-                    <span style="color: #ccc;">
+                    <span style="color: var(--at-text, #1a1a2e);">
                         <i class="fa-light fa-wand-magic-sparkles me-1" style="color: #a78bfa;"></i>
                         {{ $aiCount }} {{ __('AI') }}
                     </span>
@@ -590,14 +590,14 @@
         <div x-show="videoEdit.show" x-cloak
              @click.self="videoEdit.show = false"
              @keydown.escape.window="videoEdit.show = false"
-             style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.88);z-index:10300;display:flex;align-items:center;justify-content:center;">
+             style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);z-index:10300;display:flex;align-items:center;justify-content:center;">
             <div class="utv-crop-dialog" style="width:480px;">
                 <div class="d-flex align-items-center justify-content-between mb-3">
-                    <h6 class="mb-0 text-white fw-bold">
-                        <i class="fa-light fa-scissors me-2" style="color:#f97316;"></i>
+                    <h6 class="mb-0 fw-bold" style="color: var(--at-text, #1a1a2e);">
+                        <i class="fa-light fa-scissors me-2" style="color:#0891b2;"></i>
                         {{ __('Edit Video Clip') }}
                     </h6>
-                    <button @click="videoEdit.show = false" type="button" class="btn-close btn-close-white btn-close-sm"></button>
+                    <button @click="videoEdit.show = false" type="button" class="btn-close btn-close-sm"></button>
                 </div>
                 {{-- Video preview --}}
                 <div style="background:#000;border-radius:10px;overflow:hidden;margin-bottom:16px;max-height:200px;display:flex;align-items:center;justify-content:center;">
@@ -605,33 +605,33 @@
                            :style="(videoEdit.flipH ? 'transform:scaleX(-1);' : '') + (videoEdit.flipV ? 'transform:scaleY(-1);' : '')"></video>
                 </div>
                 {{-- Scene duration info --}}
-                <div class="d-flex align-items-center gap-2 mb-3 p-2" style="background:#111;border-radius:8px;">
+                <div class="d-flex align-items-center gap-2 mb-3 p-2" style="background:#f5f7fa;border-radius:8px;">
                     <i class="fa-light fa-clock" style="color:#38bdf8;font-size:0.78rem;"></i>
-                    <span style="color:#999;font-size:0.75rem;">
+                    <span style="color:var(--at-text-secondary, #5a6178);font-size:0.75rem;">
                         {{ __('Scene needs') }} <span x-text="parseFloat(videoEdit.sceneDuration).toFixed(1) + 's'" style="color:#38bdf8;font-weight:600;"></span>
-                        {{ __('— clip is') }} <span x-text="parseFloat(videoEdit.duration).toFixed(1) + 's'" style="color:#ccc;font-weight:600;"></span>
+                        {{ __('— clip is') }} <span x-text="parseFloat(videoEdit.duration).toFixed(1) + 's'" style="color:var(--at-text, #1a1a2e);font-weight:600;"></span>
                     </span>
                 </div>
                 {{-- Trim controls --}}
                 <div class="mb-3">
                     <label class="d-flex align-items-center justify-content-between mb-1">
-                        <span style="color:#ccc;font-size:0.78rem;font-weight:600;">{{ __('Trim Start') }}</span>
-                        <span style="color:#f97316;font-size:0.75rem;font-weight:600;" x-text="parseFloat(videoEdit.trimStart).toFixed(1) + 's'"></span>
+                        <span style="color:var(--at-text, #1a1a2e);font-size:0.78rem;font-weight:600;">{{ __('Trim Start') }}</span>
+                        <span style="color:#0891b2;font-size:0.75rem;font-weight:600;" x-text="parseFloat(videoEdit.trimStart).toFixed(1) + 's'"></span>
                     </label>
                     <input type="range" x-model="videoEdit.trimStart" min="0" :max="videoEdit.duration" step="0.1"
                            class="utv-range-slider" style="width:100%;">
                 </div>
                 <div class="mb-3">
                     <label class="d-flex align-items-center justify-content-between mb-1">
-                        <span style="color:#ccc;font-size:0.78rem;font-weight:600;">{{ __('Trim End') }}</span>
-                        <span style="color:#f97316;font-size:0.75rem;font-weight:600;" x-text="parseFloat(videoEdit.trimEnd).toFixed(1) + 's'"></span>
+                        <span style="color:var(--at-text, #1a1a2e);font-size:0.78rem;font-weight:600;">{{ __('Trim End') }}</span>
+                        <span style="color:#0891b2;font-size:0.75rem;font-weight:600;" x-text="parseFloat(videoEdit.trimEnd).toFixed(1) + 's'"></span>
                     </label>
                     <input type="range" x-model="videoEdit.trimEnd" min="0" :max="videoEdit.duration" step="0.1"
                            class="utv-range-slider" style="width:100%;">
                 </div>
                 <div class="d-flex align-items-center justify-content-between mb-1">
-                    <span style="color:#999;font-size:0.75rem;">
-                        {{ __('Selected:') }} <span x-text="Math.max(0, (parseFloat(videoEdit.trimEnd) - parseFloat(videoEdit.trimStart))).toFixed(1) + 's'" style="color:#f97316;font-weight:600;"></span>
+                    <span style="color:var(--at-text-secondary, #5a6178);font-size:0.75rem;">
+                        {{ __('Selected:') }} <span x-text="Math.max(0, (parseFloat(videoEdit.trimEnd) - parseFloat(videoEdit.trimStart))).toFixed(1) + 's'" style="color:#0891b2;font-weight:600;"></span>
                         <template x-if="Math.abs(parseFloat(videoEdit.trimEnd) - parseFloat(videoEdit.trimStart) - videoEdit.sceneDuration) > 1">
                             <span style="color:#f59e0b;font-size:0.7rem;margin-left:6px;">
                                 <i class="fa-light fa-triangle-exclamation" style="font-size:0.65rem;"></i>
@@ -657,10 +657,10 @@
                 </div>
                 {{-- Save / Cancel --}}
                 <div class="d-flex gap-2 justify-content-end">
-                    <button @click="videoEdit.show = false" class="btn btn-sm" style="background:#2a2a2a;color:#ccc;border-radius:8px;">
+                    <button @click="videoEdit.show = false" class="btn btn-sm" style="background:#f5f7fa;color:var(--at-text-secondary, #5a6178);border-radius:8px;">
                         {{ __('Cancel') }}
                     </button>
-                    <button @click="saveVideoEdit()" class="btn btn-sm fw-semibold" style="background:#f97316;color:#fff;border-radius:8px;">
+                    <button @click="saveVideoEdit()" class="btn btn-sm fw-semibold" style="background:#03fcf4;color:#0a2e2e;border-radius:8px;">
                         <i class="fa-light fa-check me-1"></i>
                         {{ __('Apply') }}
                     </button>
@@ -697,17 +697,17 @@
 
         {{-- Crop Position Modal --}}
         <div x-show="showCropModal" x-cloak
-             style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 10200; display: flex; align-items: center; justify-content: center;"
+             style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 10200; display: flex; align-items: center; justify-content: center;"
              @click.self="showCropModal = false">
             <div class="utv-crop-dialog">
                 <div class="d-flex align-items-center justify-content-between mb-3">
-                    <h6 class="mb-0 text-white fw-bold">
-                        <i class="fa-light fa-crop me-2" style="color: #f97316;"></i>
+                    <h6 class="mb-0 fw-bold" style="color: var(--at-text, #1a1a2e);">
+                        <i class="fa-light fa-crop me-2" style="color: #0891b2;"></i>
                         {{ __('Adjust Image Position') }}
                     </h6>
-                    <button @click="showCropModal = false" type="button" class="btn-close btn-close-white btn-close-sm"></button>
+                    <button @click="showCropModal = false" type="button" class="btn-close btn-close-sm"></button>
                 </div>
-                <p class="mb-3" style="color: #999; font-size: 0.78rem;">{{ __('Drag the frame to select which part of the image appears in the vertical video.') }}</p>
+                <p class="mb-3" style="color: var(--at-text-secondary, #5a6178); font-size: 0.78rem;">{{ __('Drag the frame to select which part of the image appears in the vertical video.') }}</p>
                 <div class="utv-crop-container" x-ref="cropContainer">
                     <img :src="cropImageUrl" x-ref="cropImage" draggable="false" style="width: 100%; height: 100%; object-fit: contain;">
                     <div class="utv-crop-frame"
@@ -718,10 +718,10 @@
                     </div>
                 </div>
                 <div class="d-flex gap-2 mt-3 justify-content-end">
-                    <button @click="showCropModal = false" class="btn btn-sm" style="background:#2a2a2a;color:#ccc;border-radius:8px;">
+                    <button @click="showCropModal = false" class="btn btn-sm" style="background:#f5f7fa;color:var(--at-text-secondary, #5a6178);border-radius:8px;">
                         {{ __('Cancel') }}
                     </button>
-                    <button @click="saveCrop()" class="btn btn-sm fw-semibold" style="background:#f97316;color:#fff;border-radius:8px;">
+                    <button @click="saveCrop()" class="btn btn-sm fw-semibold" style="background:#03fcf4;color:#0a2e2e;border-radius:8px;">
                         <i class="fa-light fa-check me-1"></i>
                         {{ __('Save Position') }}
                     </button>
@@ -732,12 +732,12 @@
         {{-- Footer --}}
         <div class="card-footer border-0 p-4 pt-2 d-flex gap-3" style="background: transparent;">
             <button wire:click="backToTranscript" type="button"
-                    class="btn flex-grow-1" style="background: #2a2a2a; color: #ccc; border-radius: 10px;">
+                    class="btn flex-grow-1" style="background: #f5f7fa; color: var(--at-text-secondary, #5a6178); border-radius: 10px;">
                 <i class="fa-light fa-arrow-left me-1"></i>
                 {{ __('Back') }}
             </button>
             <button wire:click="confirmImageSelection" type="button"
-                    class="btn flex-grow-1 fw-semibold" style="background: #f97316; color: #fff; border-radius: 10px;">
+                    class="btn flex-grow-1 fw-semibold" style="background: #03fcf4; color: #0a2e2e; border-radius: 10px;">
                 <i class="fa-light fa-video me-1"></i>
                 {{ __('Generate Video') }}
             </button>
@@ -748,9 +748,9 @@
 <style>
     .utv-scene-row {
         padding: 14px;
-        background: #111;
+        background: #ffffff;
         border-radius: 12px;
-        border: 1px solid rgba(255,255,255,0.04);
+        border: 1px solid #eef1f5;
     }
     .utv-thumb-row-wrap {
         position: relative;
@@ -767,11 +767,11 @@
     }
     .utv-thumb-row-wrap::before {
         left: 0;
-        background: linear-gradient(to right, #111, transparent);
+        background: linear-gradient(to right, #ffffff, transparent);
     }
     .utv-thumb-row-wrap::after {
         right: 0;
-        background: linear-gradient(to left, #111, transparent);
+        background: linear-gradient(to left, #ffffff, transparent);
     }
     .utv-thumb-row {
         display: flex;
@@ -791,16 +791,16 @@
         border-radius: 8px;
         overflow: hidden;
         border: 2px solid transparent;
-        background: #222;
+        background: #f5f7fa;
         cursor: pointer;
         padding: 0;
         transition: border-color 0.15s;
     }
     .utv-image-thumb:hover {
-        border-color: rgba(249, 115, 22, 0.4);
+        border-color: rgba(3, 252, 244, 0.4);
     }
     .utv-image-thumb.selected {
-        border-color: #f97316;
+        border-color: #03fcf4;
     }
     .utv-image-thumb img {
         width: 100%;
@@ -833,8 +833,8 @@
         width: 22px;
         height: 22px;
         border-radius: 50%;
-        background: #f97316;
-        color: #fff;
+        background: #03fcf4;
+        color: #0a2e2e;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -847,8 +847,8 @@
         transform: translateX(-50%);
         font-size: 0.6rem;
         font-weight: 600;
-        color: #ccc;
-        background: rgba(0,0,0,0.7);
+        color: #fff;
+        background: rgba(0,0,0,0.6);
         padding: 2px 6px;
         border-radius: 4px;
         white-space: nowrap;
@@ -862,15 +862,15 @@
         height: 30px;
         border-radius: 6px;
         border: none;
-        background: #2a2a2a;
-        color: #888;
+        background: #f5f7fa;
+        color: #5a6178;
         font-size: 0.78rem;
         cursor: pointer;
         transition: background 0.15s, color 0.15s;
     }
     .utv-img-action-btn:hover {
-        background: #333;
-        color: #ccc;
+        background: #eef1f5;
+        color: #1a1a2e;
     }
     /* Pill button style for AI Image + Animate */
     .utv-pill-btn {
@@ -880,9 +880,9 @@
         padding: 0 10px;
         height: 30px;
         border-radius: 15px;
-        border: 1px solid #333;
-        background: #2a2a2a;
-        color: #888;
+        border: 1px solid #eef1f5;
+        background: #f5f7fa;
+        color: #5a6178;
         font-size: 0.72rem;
         font-weight: 500;
         cursor: pointer;
@@ -893,21 +893,21 @@
         font-size: 0.72rem;
     }
     .utv-pill-btn:hover {
-        background: #333;
-        color: #ccc;
-        border-color: #444;
+        background: #eef1f5;
+        color: #1a1a2e;
+        border-color: #d0d5dd;
     }
     .utv-pill-btn.active-ai {
-        background: rgba(124, 58, 237, 0.15);
-        color: #a78bfa;
-        border-color: rgba(124, 58, 237, 0.4);
-        box-shadow: 0 0 8px rgba(124, 58, 237, 0.2);
+        background: rgba(124, 58, 237, 0.08);
+        color: #7c3aed;
+        border-color: rgba(124, 58, 237, 0.3);
+        box-shadow: 0 0 8px rgba(124, 58, 237, 0.1);
     }
     .utv-pill-btn.active-animate {
-        background: rgba(245, 158, 11, 0.15);
-        color: #fbbf24;
-        border-color: rgba(245, 158, 11, 0.4);
-        box-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
+        background: rgba(245, 158, 11, 0.08);
+        color: #d97706;
+        border-color: rgba(245, 158, 11, 0.3);
+        box-shadow: 0 0 8px rgba(245, 158, 11, 0.1);
     }
     /* AI overlay on thumbnails */
     .utv-ai-overlay {
@@ -919,26 +919,26 @@
         align-items: center;
         justify-content: center;
         gap: 6px;
-        background: rgba(124, 58, 237, 0.15);
+        background: rgba(124, 58, 237, 0.1);
         backdrop-filter: blur(4px);
         border-radius: 8px;
         cursor: pointer;
         transition: background 0.2s;
     }
     .utv-ai-overlay:hover {
-        background: rgba(124, 58, 237, 0.22);
+        background: rgba(124, 58, 237, 0.18);
     }
     .utv-ai-overlay > i {
         font-size: 1.5rem;
-        color: #a78bfa;
+        color: #7c3aed;
     }
     .utv-ai-overlay > span {
-        color: #c4b5fd;
+        color: #7c3aed;
         font-size: 0.82rem;
         font-weight: 600;
     }
     .utv-ai-overlay > small {
-        color: rgba(196, 181, 253, 0.6);
+        color: rgba(124, 58, 237, 0.6);
         font-size: 0.68rem;
     }
     /* Text toggle button */
@@ -951,34 +951,34 @@
         border-radius: 5px;
         border: none;
         background: transparent;
-        color: #555;
+        color: #94a0b8;
         font-size: 0.7rem;
         cursor: pointer;
         transition: color 0.15s, background 0.15s;
     }
     .utv-text-toggle-btn:hover {
-        color: #999;
-        background: #2a2a2a;
+        color: #5a6178;
+        background: #f5f7fa;
     }
     .utv-text-toggle-btn.active {
-        color: #f97316;
-        background: rgba(249, 115, 22, 0.1);
+        color: #0891b2;
+        background: rgba(3, 252, 244, 0.08);
     }
     /* Expanded scene text */
     .utv-scene-text-full {
-        color: rgba(255,255,255,0.55);
+        color: var(--at-text-secondary, #5a6178);
         font-size: 0.78rem;
         line-height: 1.5;
         padding: 8px 10px;
-        background: rgba(255,255,255,0.03);
+        background: #f5f7fa;
         border-radius: 8px;
-        border-left: 2px solid rgba(249, 115, 22, 0.3);
+        border-left: 2px solid rgba(3, 252, 244, 0.4);
     }
     /* Search filter pills */
     .utv-search-filter {
         display: flex;
         gap: 2px;
-        background: #1a1a1a;
+        background: #f5f7fa;
         border-radius: 6px;
         padding: 2px;
         flex-shrink: 0;
@@ -988,35 +988,35 @@
         border-radius: 4px;
         border: none;
         background: transparent;
-        color: #666;
+        color: #94a0b8;
         font-size: 0.7rem;
         cursor: pointer;
         transition: all 0.15s;
         white-space: nowrap;
     }
     .utv-filter-pill:hover {
-        color: #999;
+        color: #5a6178;
     }
     .utv-filter-pill.active {
-        background: #333;
-        color: #fff;
+        background: rgba(3, 252, 244, 0.12);
+        color: #0891b2;
     }
     .utv-suggestion-chip {
         display: inline-flex;
         align-items: center;
         padding: 2px 10px;
         border-radius: 20px;
-        border: 1px solid rgba(249, 115, 22, 0.3);
+        border: 1px solid rgba(3, 252, 244, 0.3);
         background: transparent;
-        color: #f97316;
+        color: #0891b2;
         font-size: 0.72rem;
         cursor: pointer;
         transition: background 0.15s, border-color 0.15s;
         white-space: nowrap;
     }
     .utv-suggestion-chip:hover {
-        background: rgba(249, 115, 22, 0.1);
-        border-color: #f97316;
+        background: rgba(3, 252, 244, 0.06);
+        border-color: #03fcf4;
     }
     .utv-crop-btn {
         position: absolute;
@@ -1026,8 +1026,8 @@
         height: 22px;
         border-radius: 4px;
         border: none;
-        background: rgba(249, 115, 22, 0.9);
-        color: #fff;
+        background: rgba(3, 252, 244, 0.9);
+        color: #0a2e2e;
         font-size: 0.55rem;
         cursor: pointer;
         display: flex;
@@ -1037,29 +1037,31 @@
         transition: background 0.15s;
     }
     .utv-crop-btn:hover {
-        background: #f97316;
+        background: #03fcf4;
     }
     .utv-crop-dialog {
-        background: #1a1a1a;
+        background: #ffffff;
+        border: 1px solid #eef1f5;
         border-radius: 16px;
         padding: 24px;
         width: 520px;
         max-width: 90vw;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.12);
     }
     .utv-crop-container {
         position: relative;
         width: 100%;
         height: 320px;
-        background: #000;
+        background: #f5f7fa;
         border-radius: 10px;
         overflow: hidden;
     }
     .utv-crop-frame {
         position: absolute;
-        border: 2px solid #f97316;
+        border: 2px solid #03fcf4;
         border-radius: 4px;
         cursor: move;
-        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
         z-index: 2;
         transition: none;
     }
@@ -1072,7 +1074,7 @@
         -webkit-appearance: none;
         appearance: none;
         height: 6px;
-        background: #333;
+        background: #eef1f5;
         border-radius: 3px;
         outline: none;
     }
@@ -1081,17 +1083,17 @@
         width: 16px;
         height: 16px;
         border-radius: 50%;
-        background: #f97316;
+        background: #03fcf4;
         cursor: pointer;
-        border: 2px solid #1a1a1a;
+        border: 2px solid #ffffff;
     }
     .utv-range-slider::-moz-range-thumb {
         width: 16px;
         height: 16px;
         border-radius: 50%;
-        background: #f97316;
+        background: #03fcf4;
         cursor: pointer;
-        border: 2px solid #1a1a1a;
+        border: 2px solid #ffffff;
     }
     .utv-crop-frame-label {
         position: absolute;
@@ -1100,8 +1102,8 @@
         transform: translateX(-50%);
         font-size: 0.6rem;
         font-weight: 600;
-        color: #f97316;
-        background: rgba(0,0,0,0.7);
+        color: #0891b2;
+        background: rgba(255,255,255,0.9);
         padding: 1px 6px;
         border-radius: 3px;
     }
