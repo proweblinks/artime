@@ -168,22 +168,43 @@
          saveCrop() {
              $wire.updateSceneCrop(this.cropSceneId, this.cropFocalX, this.cropFocalY);
              this.showCropModal = false;
-         }
+         },
+         // AI Studio state
+         studioActiveScene: @js($activeStudioScene ?: ''),
+         editingImagePrompt: {},
+         editingVideoPrompt: {},
+         studioPreviewType: 'image',
+         setStudioScene(sceneId) {
+             this.studioActiveScene = sceneId;
+             this.studioPreviewType = 'image';
+             $wire.setActiveStudioScene(sceneId);
+         },
      }">
+    @php
+        $allAI = $this->areAllScenesAI();
+        $isAIStudioMode = $allAI && !empty($sceneVisualScript);
+    @endphp
     <div class="card border-0 d-flex flex-column"
-         style="background: #ffffff; border: 1px solid #eef1f5; border-radius: 16px; width: 720px; max-height: 90vh; box-shadow: 0 8px 30px rgba(0,0,0,0.12);">
+         style="background: #ffffff; border: 1px solid #eef1f5; border-radius: 16px; width: {{ $isAIStudioMode ? '1200px' : '720px' }}; max-width: 95vw; max-height: 90vh; box-shadow: 0 8px 30px rgba(0,0,0,0.12); transition: width 0.3s ease;">
 
         {{-- Header --}}
         <div class="card-header border-0 d-flex align-items-center justify-content-between p-4 pb-2" style="background: transparent;">
             <div>
-                <h5 class="mb-1 fw-bold" style="color: var(--at-text, #1a1a2e);">
-                    <i class="fa-light fa-images me-2" style="color: #0891b2;"></i>
-                    {{ __('Select Images for Your Video') }}
-                </h5>
-                <small style="color: var(--at-text-muted, #94a0b8);">{{ __('Choose a clip for each scene from your stock library') }}</small>
+                @if($isAIStudioMode)
+                    <h5 class="mb-1 fw-bold" style="color: var(--at-text, #1a1a2e);">
+                        <i class="fa-light fa-wand-magic-sparkles me-2" style="color: #7c3aed;"></i>
+                        {{ __('Interactive AI Studio') }}
+                    </h5>
+                    <small style="color: var(--at-text-muted, #94a0b8);">{{ __('Edit prompts, generate images & video clips per scene') }}</small>
+                @else
+                    <h5 class="mb-1 fw-bold" style="color: var(--at-text, #1a1a2e);">
+                        <i class="fa-light fa-images me-2" style="color: #0891b2;"></i>
+                        {{ __('Select Images for Your Video') }}
+                    </h5>
+                    <small style="color: var(--at-text-muted, #94a0b8);">{{ __('Choose a clip for each scene from your stock library') }}</small>
+                @endif
             </div>
             <div class="d-flex align-items-center gap-2">
-                @php $allAI = $this->areAllScenesAI(); @endphp
                 <button wire:click="toggleAllScenesAI" type="button"
                         class="utv-pill-btn {{ $allAI ? 'active-ai' : '' }}"
                         title="{{ $allAI ? __('Revert to stock images') : __('Set all scenes to AI') }}">
@@ -194,6 +215,342 @@
             </div>
         </div>
 
+        {{-- Visual Script Loading State --}}
+        @if($isGeneratingVisualScript)
+            <div class="card-body p-4 pt-2" style="overflow-y: auto;">
+                <div class="d-flex flex-column align-items-center justify-content-center py-5">
+                    <div class="mb-3" style="width: 40px; height: 40px; border: 3px solid #7c3aed20; border-top-color: #7c3aed; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <p class="mb-1 fw-semibold" style="color: var(--at-text, #1a1a2e); font-size: 0.9rem;">{{ __('Generating Visual Script...') }}</p>
+                    <small style="color: var(--at-text-muted, #94a0b8);">{{ __('AI is creating image and video prompts for each scene') }}</small>
+                </div>
+            </div>
+        @elseif($isAIStudioMode)
+        {{-- ═══════════════════════════════════════════════════════════════ --}}
+        {{-- AI STUDIO: Two-column layout                                   --}}
+        {{-- ═══════════════════════════════════════════════════════════════ --}}
+        <div class="card-body p-0 d-flex" style="overflow: hidden; flex: 1; min-height: 0;"
+             @if($this->hasProcessingVideos()) wire:poll.5s="pollAllVideoStatuses" @endif>
+
+            {{-- LEFT COLUMN: Scene List (scrollable) --}}
+            <div class="utv-studio-left" style="width: 520px; flex-shrink: 0; overflow-y: auto; border-right: 1px solid #eef1f5; padding: 16px;">
+                @foreach($sceneImageCandidates as $sceneId => $candidates)
+                    @php
+                        $sceneIndex = (int) str_replace('scene_', '', $sceneId);
+                        $segment = $generatedSegments[$sceneIndex] ?? [];
+                        $sceneText = $segment['text'] ?? '';
+                        $sceneDuration = $segment['estimated_duration'] ?? 6;
+                        $visual = $sceneVisualScript[$sceneId] ?? [];
+                        $isGeneratingImage = $sceneImageGenerating[$sceneId] ?? false;
+                        $videoStatus = $sceneVideoStatus[$sceneId] ?? 'idle';
+                        $hasGeneratedImage = !empty($sceneGeneratedImages[$sceneId]);
+                        $hasGeneratedVideo = !empty($sceneGeneratedVideos[$sceneId]);
+                        $isSplitScene = !empty($segment['split_from']);
+                        $splitPart = $segment['split_part'] ?? null;
+
+                        // Check if this scene has a selected image
+                        $selection = $selectedSceneImages[$sceneId] ?? [];
+                        $sceneSelections = is_array($selection) ? $selection : [];
+                        $hasImageSelected = !empty($sceneSelections);
+                        $selectedImageUrl = null;
+                        $selectedVideoUrl = null;
+                        if ($hasImageSelected) {
+                            $lastIdx = end($sceneSelections);
+                            $c = $candidates[(int) $lastIdx] ?? null;
+                            if ($c) {
+                                if (($c['type'] ?? 'image') === 'video') {
+                                    $selectedVideoUrl = $c['url'] ?? null;
+                                    $selectedImageUrl = $c['thumbnail'] ?? $c['url'] ?? null;
+                                } else {
+                                    $selectedImageUrl = $c['url'] ?? null;
+                                }
+                            }
+                        }
+                    @endphp
+
+                    <div class="utv-studio-scene mb-3 p-3 {{ $activeStudioScene === $sceneId ? 'active' : '' }}"
+                         @click="setStudioScene('{{ $sceneId }}')"
+                         style="background: {{ $activeStudioScene === $sceneId ? '#f8f5ff' : '#ffffff' }}; border: 1px solid {{ $activeStudioScene === $sceneId ? '#7c3aed40' : '#eef1f5' }}; border-radius: 12px; cursor: pointer; transition: all 0.2s;">
+
+                        {{-- Scene header --}}
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge" style="background: rgba(124,58,237,0.1); color: #7c3aed; font-size: 0.7rem; font-weight: 600;">
+                                {{ __('Scene') }} {{ $sceneIndex + 1 }}
+                            </span>
+                            <span class="badge" style="background: #1e3a5f30; color: #38bdf8; font-size: 0.65rem;">
+                                <i class="fa-light fa-clock me-1"></i>{{ number_format($sceneDuration, 1) }}s
+                            </span>
+                            @if($isSplitScene)
+                                <span class="badge" style="background: #f59e0b20; color: #d97706; font-size: 0.6rem;">
+                                    {{ __('Part') }} {{ $splitPart }}/2
+                                </span>
+                            @endif
+                            @if($hasGeneratedImage)
+                                <span class="badge" style="background: #22c55e20; color: #22c55e; font-size: 0.6rem;">
+                                    <i class="fa-light fa-image me-1"></i>{{ __('Image') }}
+                                </span>
+                            @endif
+                            @if($hasGeneratedVideo || $videoStatus === 'completed')
+                                <span class="badge" style="background: #22c55e20; color: #22c55e; font-size: 0.6rem;">
+                                    <i class="fa-light fa-video me-1"></i>{{ __('Video') }}
+                                </span>
+                            @elseif($videoStatus === 'processing')
+                                <span class="badge" style="background: #7c3aed20; color: #7c3aed; font-size: 0.6rem;">
+                                    <i class="fa-light fa-spinner-third fa-spin me-1"></i>{{ __('Rendering') }}
+                                </span>
+                            @endif
+                        </div>
+
+                        {{-- Narration text (truncated) --}}
+                        @if(!empty($sceneText))
+                            <p class="mb-2" style="font-size: 0.75rem; color: var(--at-text-secondary, #5a6178); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                {{ $sceneText }}
+                            </p>
+                        @endif
+
+                        {{-- Image Prompt (editable) --}}
+                        @if(!empty($visual['image_prompt']))
+                            <div class="mb-2" @click.stop>
+                                <label class="d-flex align-items-center gap-1 mb-1" style="font-size: 0.68rem; color: #7c3aed; font-weight: 600;">
+                                    <i class="fa-light fa-image"></i> {{ __('Image Prompt') }}
+                                </label>
+                                <div x-show="!editingImagePrompt['{{ $sceneId }}']"
+                                     @click="editingImagePrompt['{{ $sceneId }}'] = true; $nextTick(() => $refs.imgPrompt_{{ $sceneIndex }}?.focus())"
+                                     class="utv-studio-prompt" style="font-size: 0.75rem; color: var(--at-text, #1a1a2e); line-height: 1.4; padding: 6px 8px; background: #f5f7fa; border-radius: 6px; border: 1px solid transparent; cursor: text; min-height: 32px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"
+                                     title="{{ __('Click to edit') }}">
+                                    {{ $visual['image_prompt'] }}
+                                </div>
+                                <textarea x-show="editingImagePrompt['{{ $sceneId }}']" x-cloak
+                                          x-ref="imgPrompt_{{ $sceneIndex }}"
+                                          wire:blur="updateSceneImagePrompt('{{ $sceneId }}', $event.target.value)"
+                                          @blur="editingImagePrompt['{{ $sceneId }}'] = false"
+                                          @keydown.escape="editingImagePrompt['{{ $sceneId }}'] = false"
+                                          class="form-control form-control-sm border-0"
+                                          style="background: #f5f7fa; border-radius: 6px; font-size: 0.75rem; resize: vertical; min-height: 60px; color: var(--at-text, #1a1a2e);"
+                                          rows="3">{{ $visual['image_prompt'] }}</textarea>
+                            </div>
+                        @endif
+
+                        {{-- Video Prompt (editable) --}}
+                        @if(!empty($visual['video_action']))
+                            <div class="mb-2" @click.stop>
+                                <label class="d-flex align-items-center gap-1 mb-1" style="font-size: 0.68rem; color: #d97706; font-weight: 600;">
+                                    <i class="fa-light fa-video"></i> {{ __('Video Prompt') }}
+                                </label>
+                                <div x-show="!editingVideoPrompt['{{ $sceneId }}']"
+                                     @click="editingVideoPrompt['{{ $sceneId }}'] = true; $nextTick(() => $refs.vidPrompt_{{ $sceneIndex }}?.focus())"
+                                     class="utv-studio-prompt" style="font-size: 0.75rem; color: var(--at-text, #1a1a2e); line-height: 1.4; padding: 6px 8px; background: #f5f7fa; border-radius: 6px; border: 1px solid transparent; cursor: text; min-height: 28px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                                     title="{{ __('Click to edit') }}">
+                                    {{ $visual['video_action'] }}
+                                </div>
+                                <textarea x-show="editingVideoPrompt['{{ $sceneId }}']" x-cloak
+                                          x-ref="vidPrompt_{{ $sceneIndex }}"
+                                          wire:blur="updateSceneVideoPrompt('{{ $sceneId }}', $event.target.value)"
+                                          @blur="editingVideoPrompt['{{ $sceneId }}'] = false"
+                                          @keydown.escape="editingVideoPrompt['{{ $sceneId }}'] = false"
+                                          class="form-control form-control-sm border-0"
+                                          style="background: #f5f7fa; border-radius: 6px; font-size: 0.75rem; resize: vertical; min-height: 44px; color: var(--at-text, #1a1a2e);"
+                                          rows="2">{{ $visual['video_action'] }}</textarea>
+                            </div>
+                        @endif
+
+                        {{-- Generation Buttons --}}
+                        <div class="d-flex gap-2 mt-2" @click.stop>
+                            {{-- Generate Image --}}
+                            <button wire:click="generateSceneAIImage('{{ $sceneId }}')"
+                                    type="button"
+                                    class="utv-studio-gen-btn"
+                                    @if($isGeneratingImage) disabled @endif
+                                    style="flex: 1;">
+                                @if($isGeneratingImage)
+                                    <i class="fa-light fa-spinner-third fa-spin"></i>
+                                    <span>{{ __('Generating...') }}</span>
+                                @elseif($hasGeneratedImage)
+                                    <i class="fa-light fa-arrows-rotate"></i>
+                                    <span>{{ __('Regenerate Image') }}</span>
+                                @else
+                                    <i class="fa-light fa-image"></i>
+                                    <span>{{ __('Generate Image') }}</span>
+                                @endif
+                            </button>
+
+                            {{-- Generate Video (requires image) --}}
+                            <button wire:click="generateSceneAIVideo('{{ $sceneId }}')"
+                                    type="button"
+                                    class="utv-studio-gen-btn utv-studio-gen-btn--video"
+                                    @if(!$hasImageSelected || $videoStatus === 'submitting' || $videoStatus === 'processing') disabled @endif
+                                    style="flex: 1;">
+                                @if($videoStatus === 'submitting')
+                                    <i class="fa-light fa-spinner-third fa-spin"></i>
+                                    <span>{{ __('Submitting...') }}</span>
+                                @elseif($videoStatus === 'processing')
+                                    <i class="fa-light fa-spinner-third fa-spin"></i>
+                                    <span>{{ __('Rendering...') }}</span>
+                                @elseif($videoStatus === 'completed' || $hasGeneratedVideo)
+                                    <i class="fa-light fa-arrows-rotate"></i>
+                                    <span>{{ __('Regenerate Video') }}</span>
+                                @elseif($videoStatus === 'failed')
+                                    <i class="fa-light fa-triangle-exclamation"></i>
+                                    <span>{{ __('Retry Video') }}</span>
+                                @else
+                                    <i class="fa-light fa-video"></i>
+                                    <span>{{ __('Generate Video') }}</span>
+                                @endif
+                            </button>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            {{-- RIGHT COLUMN: Preview Panel --}}
+            <div class="utv-studio-right d-flex flex-column align-items-center" style="flex: 1; overflow-y: auto; padding: 16px; background: #fafbfc;">
+
+                @php
+                    // Get active scene data for preview
+                    $activeId = $activeStudioScene ?: array_key_first($sceneVisualScript ?? []) ?: '';
+                    $activeIndex = (int) str_replace('scene_', '', $activeId);
+                    $activeVisual = $sceneVisualScript[$activeId] ?? [];
+                    $activeSelection = $selectedSceneImages[$activeId] ?? [];
+                    $activeCandidates = $sceneImageCandidates[$activeId] ?? [];
+                    $activeImageUrl = null;
+                    $activeVideoUrl = null;
+                    $activeIsGeneratingImg = $sceneImageGenerating[$activeId] ?? false;
+                    $activeVideoStatus = $sceneVideoStatus[$activeId] ?? 'idle';
+
+                    if (is_array($activeSelection) && !empty($activeSelection)) {
+                        $lastIdx = end($activeSelection);
+                        $c = $activeCandidates[(int) $lastIdx] ?? null;
+                        if ($c) {
+                            if (($c['type'] ?? 'image') === 'video') {
+                                $activeVideoUrl = $c['url'] ?? null;
+                                $activeImageUrl = $c['thumbnail'] ?? $c['url'] ?? null;
+                            } else {
+                                $activeImageUrl = $c['url'] ?? null;
+                            }
+                        }
+                    }
+                @endphp
+
+                {{-- Phone frame preview --}}
+                <div class="mb-3" style="width: 100%; max-width: 280px;">
+                    <div class="utv-phone-frame" style="position: relative; width: 100%; padding-top: 177.78%; background: #0a0a0a; border-radius: 24px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+                        @if($activeIsGeneratingImg)
+                            {{-- Image generating skeleton --}}
+                            <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+                                <div style="width: 36px; height: 36px; border: 3px solid #7c3aed40; border-top-color: #7c3aed; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                <span style="color: #a78bfa; font-size: 0.78rem;">{{ __('Generating image...') }}</span>
+                            </div>
+                        @elseif($activeVideoUrl && ($activeVideoStatus === 'completed' || !empty($sceneGeneratedVideos[$activeId])))
+                            {{-- Video preview --}}
+                            <video src="{{ $activeVideoUrl }}" muted loop autoplay playsinline
+                                   style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;"></video>
+                            <div style="position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.7); color: #22c55e; font-size: 0.65rem; padding: 2px 8px; border-radius: 10px; font-weight: 600;">
+                                <i class="fa-light fa-video me-1"></i>{{ __('AI Video') }}
+                            </div>
+                        @elseif($activeVideoStatus === 'processing')
+                            {{-- Video rendering --}}
+                            @if($activeImageUrl)
+                                <img src="{{ $activeImageUrl }}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.4;">
+                            @endif
+                            <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+                                <div style="width: 36px; height: 36px; border: 3px solid #d9770640; border-top-color: #d97706; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                <span style="color: #fbbf24; font-size: 0.78rem;">{{ __('Rendering video...') }}</span>
+                            </div>
+                        @elseif($activeImageUrl)
+                            {{-- Image preview --}}
+                            <img src="{{ $activeImageUrl }}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;">
+                            <div style="position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.7); color: #a78bfa; font-size: 0.65rem; padding: 2px 8px; border-radius: 10px; font-weight: 600;">
+                                <i class="fa-light fa-image me-1"></i>{{ __('AI Image') }}
+                            </div>
+                        @else
+                            {{-- Empty state --}}
+                            <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+                                <i class="fa-light fa-image" style="font-size: 2rem; color: #333;"></i>
+                                <span style="color: #666; font-size: 0.78rem;">{{ __('Generate an image to preview') }}</span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Scene info below phone --}}
+                @if(!empty($activeVisual))
+                    <div class="text-center mb-3" style="max-width: 280px;">
+                        <span class="badge" style="background: rgba(124,58,237,0.1); color: #7c3aed; font-size: 0.72rem;">
+                            {{ __('Scene') }} {{ $activeIndex + 1 }}
+                        </span>
+                        <span class="badge" style="background: #1e3a5f30; color: #38bdf8; font-size: 0.68rem;">
+                            {{ $activeVisual['mood'] ?? 'professional' }}
+                        </span>
+                        <span class="badge" style="background: #f59e0b20; color: #d97706; font-size: 0.68rem;">
+                            {{ $activeVisual['camera_motion'] ?? '' }}
+                        </span>
+                    </div>
+                @endif
+
+                {{-- Generation History (thumbnails of all versions) --}}
+                @php $activeImages = $sceneGeneratedImages[$activeId] ?? []; @endphp
+                @if(!empty($activeImages))
+                    <div style="max-width: 280px; width: 100%;">
+                        <label style="font-size: 0.7rem; color: var(--at-text-muted, #94a0b8); font-weight: 600; display: block; margin-bottom: 6px;">
+                            {{ __('Generation History') }}
+                        </label>
+                        <div class="d-flex gap-2 flex-wrap">
+                            @foreach($activeImages as $gi => $genImg)
+                                <div class="position-relative" style="width: 48px; height: 48px; border-radius: 6px; overflow: hidden; border: 1px solid #eef1f5;">
+                                    <img src="{{ $genImg['url'] }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                    <span style="position: absolute; bottom: 1px; right: 1px; background: rgba(0,0,0,0.7); color: #fff; font-size: 0.5rem; padding: 1px 3px; border-radius: 2px;">v{{ $gi + 1 }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Video History --}}
+                @php $activeVids = $sceneGeneratedVideos[$activeId] ?? []; @endphp
+                @if(!empty($activeVids))
+                    <div style="max-width: 280px; width: 100%; margin-top: 12px;">
+                        <label style="font-size: 0.7rem; color: var(--at-text-muted, #94a0b8); font-weight: 600; display: block; margin-bottom: 6px;">
+                            {{ __('Video Clips') }}
+                        </label>
+                        <div class="d-flex gap-2 flex-wrap">
+                            @foreach($activeVids as $vi => $genVid)
+                                <div class="position-relative" style="width: 48px; height: 48px; border-radius: 6px; overflow: hidden; border: 1px solid #eef1f5; background: #0a0a0a;">
+                                    <video src="{{ $genVid['url'] }}" muted style="width: 100%; height: 100%; object-fit: cover;"
+                                           @mouseenter="$el.play()" @mouseleave="$el.pause(); $el.currentTime = 0;"></video>
+                                    <span style="position: absolute; bottom: 1px; right: 1px; background: rgba(0,0,0,0.7); color: #22c55e; font-size: 0.5rem; padding: 1px 3px; border-radius: 2px;">
+                                        <i class="fa-solid fa-play" style="font-size: 0.35rem;"></i> v{{ $vi + 1 }}
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Summary stats --}}
+                @php
+                    $studioImageCount = 0;
+                    $studioVideoCount = 0;
+                    $studioPendingCount = 0;
+                    foreach ($sceneImageCandidates as $sid => $cands) {
+                        if (!empty($sceneGeneratedImages[$sid])) $studioImageCount++;
+                        if (!empty($sceneGeneratedVideos[$sid]) || ($sceneVideoStatus[$sid] ?? '') === 'completed') $studioVideoCount++;
+                        else $studioPendingCount++;
+                    }
+                @endphp
+                <div class="mt-auto pt-3 text-center" style="max-width: 280px; width: 100%; font-size: 0.75rem; color: var(--at-text-muted, #94a0b8);">
+                    <span style="color: #22c55e;"><i class="fa-light fa-image me-1"></i>{{ $studioImageCount }}</span> {{ __('images') }}
+                    <span class="mx-1">&middot;</span>
+                    <span style="color: #22c55e;"><i class="fa-light fa-video me-1"></i>{{ $studioVideoCount }}</span> {{ __('videos') }}
+                    @if($studioPendingCount > 0)
+                        <span class="mx-1">&middot;</span>
+                        <span style="color: #94a0b8;">{{ $studioPendingCount }} {{ __('pending') }}</span>
+                    @endif
+                </div>
+            </div>
+        </div>
+        @else
+        {{-- ═══════════════════════════════════════════════════════════════ --}}
+        {{-- STOCK MODE: Original single-column layout                      --}}
+        {{-- ═══════════════════════════════════════════════════════════════ --}}
         {{-- Body (scrollable) --}}
         <div class="card-body p-4 pt-2" style="overflow-y: auto;">
             @foreach($sceneImageCandidates as $sceneId => $candidates)
@@ -631,6 +988,7 @@
                 @endif
             </div>
         </div>
+        @endif {{-- End AI Studio vs Stock mode --}}
 
         {{-- Video Edit Modal (trim + flip) --}}
         <div x-show="videoEdit.show" x-cloak
@@ -836,8 +1194,13 @@
                 </button>
                 <button wire:click="confirmImageSelection" type="button"
                         class="btn flex-grow-1 fw-semibold" style="background: #03fcf4; color: #0a2e2e; border-radius: 10px;">
-                    <i class="fa-light fa-video me-1"></i>
-                    {{ __('Generate Video') }}
+                    @if($isAIStudioMode)
+                        <i class="fa-light fa-rocket me-1"></i>
+                        {{ __('Generate Final Video') }}
+                    @else
+                        <i class="fa-light fa-video me-1"></i>
+                        {{ __('Generate Video') }}
+                    @endif
                 </button>
             </div>
         </div>
@@ -1256,6 +1619,81 @@
     }
     .utv-trim-badge i {
         font-size: 0.48rem;
+    }
+
+    /* ═══════════════════════════════════════════════════════════ */
+    /* AI Studio styles                                           */
+    /* ═══════════════════════════════════════════════════════════ */
+    .utv-studio-scene {
+        transition: all 0.2s;
+    }
+    .utv-studio-scene:hover {
+        border-color: #7c3aed40 !important;
+        background: #faf8ff !important;
+    }
+    .utv-studio-scene.active {
+        border-color: #7c3aed60 !important;
+        background: #f8f5ff !important;
+    }
+    .utv-studio-prompt:hover {
+        border-color: #d0d5dd !important;
+        background: #eef1f5 !important;
+    }
+    .utv-studio-gen-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        border: 1px solid #7c3aed30;
+        background: rgba(124, 58, 237, 0.05);
+        color: #7c3aed;
+        font-size: 0.72rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+    .utv-studio-gen-btn:hover:not(:disabled) {
+        background: rgba(124, 58, 237, 0.12);
+        border-color: #7c3aed50;
+    }
+    .utv-studio-gen-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .utv-studio-gen-btn--video {
+        border-color: #d9770630;
+        background: rgba(217, 119, 6, 0.05);
+        color: #d97706;
+    }
+    .utv-studio-gen-btn--video:hover:not(:disabled) {
+        background: rgba(217, 119, 6, 0.12);
+        border-color: #d9770650;
+    }
+    .utv-studio-gen-btn i {
+        font-size: 0.72rem;
+    }
+    .utv-studio-left::-webkit-scrollbar {
+        width: 4px;
+    }
+    .utv-studio-left::-webkit-scrollbar-thumb {
+        background: #d0d5dd;
+        border-radius: 2px;
+    }
+    .utv-studio-left::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .utv-studio-right::-webkit-scrollbar {
+        width: 4px;
+    }
+    .utv-studio-right::-webkit-scrollbar-thumb {
+        background: #d0d5dd;
+        border-radius: 2px;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
     }
 </style>
 @endif

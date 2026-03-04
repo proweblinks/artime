@@ -96,6 +96,35 @@ class UrlToVideoOrchestrator
         $project->updateProgress('generating_visual_script', 15, 'Creating visual script');
 
         $scenes = $project->scenes ?? [];
+
+        // Smart-skip: If all scenes already have image_prompt from interactive AI Studio, skip generation
+        $allHavePrompts = !empty($scenes) && collect($scenes)->every(fn($s) => !empty($s['image_prompt']));
+        if ($allHavePrompts) {
+            Log::info('UrlToVideoOrchestrator: Visual script already populated (interactive mode), skipping', [
+                'project_id' => $project->id,
+                'scenes' => count($scenes),
+            ]);
+
+            // Still store visual_script if not already set
+            if (empty($project->visual_script)) {
+                $visualScript = array_map(fn($s) => [
+                    'image_prompt' => $s['image_prompt'] ?? '',
+                    'video_action' => $s['video_action'] ?? '',
+                    'camera_motion' => $s['camera_motion'] ?? 'slow zoom in',
+                    'mood' => $s['mood'] ?? 'professional',
+                    'voice_emotion' => $s['voice_emotion'] ?? 'neutral',
+                    'characters_in_scene' => $s['characters_in_scene'] ?? [],
+                    'transition_type' => $s['transition_type'] ?? 'fade',
+                    'transition_duration' => (float) ($s['transition_duration'] ?? 0.5),
+                ], $scenes);
+
+                $project->update([
+                    'visual_script' => $visualScript,
+                ]);
+            }
+            return;
+        }
+
         $aspectRatio = $project->aspect_ratio ?? '9:16';
 
         // Derive a style instruction from content brief
@@ -115,14 +144,15 @@ class UrlToVideoOrchestrator
         $updatedScenes = [];
         foreach ($scenes as $i => $scene) {
             $visual = $visualScript[$i] ?? [];
-            $scene['image_prompt'] = $visual['image_prompt'] ?? "A cinematic scene: {$scene['text']}";
-            $scene['video_action'] = $visual['video_action'] ?? '';
-            $scene['characters_in_scene'] = $visual['characters_in_scene'] ?? [];
-            $scene['camera_motion'] = $visual['camera_motion'] ?? 'slow zoom in';
-            $scene['mood'] = $visual['mood'] ?? 'professional';
-            $scene['voice_emotion'] = $visual['voice_emotion'] ?? 'neutral';
-            $scene['transition_type'] = $visual['transition_type'] ?? 'fade';
-            $scene['transition_duration'] = (float) ($visual['transition_duration'] ?? 0.5);
+            // Only overwrite if not already set (preserve interactive mode edits)
+            $scene['image_prompt'] = $scene['image_prompt'] ?? $visual['image_prompt'] ?? "A cinematic scene: {$scene['text']}";
+            $scene['video_action'] = $scene['video_action'] ?? $visual['video_action'] ?? '';
+            $scene['characters_in_scene'] = $scene['characters_in_scene'] ?? $visual['characters_in_scene'] ?? [];
+            $scene['camera_motion'] = $scene['camera_motion'] ?? $visual['camera_motion'] ?? 'slow zoom in';
+            $scene['mood'] = $scene['mood'] ?? $visual['mood'] ?? 'professional';
+            $scene['voice_emotion'] = $scene['voice_emotion'] ?? $visual['voice_emotion'] ?? 'neutral';
+            $scene['transition_type'] = $scene['transition_type'] ?? $visual['transition_type'] ?? 'fade';
+            $scene['transition_duration'] = (float) ($scene['transition_duration'] ?? $visual['transition_duration'] ?? 0.5);
             $updatedScenes[] = $scene;
         }
 

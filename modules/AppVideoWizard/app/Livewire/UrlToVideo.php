@@ -444,10 +444,16 @@ class UrlToVideo extends Component
      */
     protected function dispatchGenerationPipeline(): void
     {
-        $scriptService = new StoryModeScriptService();
-        $targetDuration = $this->videoDuration;
-        $segments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
         $wordCount = str_word_count($this->editableTranscript);
+
+        // Use pre-split segments from AI Studio if available, otherwise segment fresh
+        if (!empty($this->sceneVisualScript) && !empty($this->generatedSegments)) {
+            $segments = $this->generatedSegments;
+        } else {
+            $scriptService = new StoryModeScriptService();
+            $targetDuration = $this->videoDuration;
+            $segments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
+        }
 
         $scenes = [];
         foreach ($segments as $i => $segment) {
@@ -558,6 +564,25 @@ class UrlToVideo extends Component
             ]);
         }
 
+        // Attach visual script data from AI Studio (enables smart-skip in orchestrator)
+        if (!empty($this->sceneVisualScript)) {
+            foreach ($scenes as &$scene) {
+                $sceneId = $scene['id'] ?? '';
+                $visual = $this->sceneVisualScript[$sceneId] ?? [];
+                if (!empty($visual)) {
+                    $scene['image_prompt'] = $visual['image_prompt'] ?? '';
+                    $scene['video_action'] = $visual['video_action'] ?? '';
+                    $scene['camera_motion'] = $visual['camera_motion'] ?? 'slow zoom in';
+                    $scene['mood'] = $visual['mood'] ?? 'professional';
+                    $scene['voice_emotion'] = $visual['voice_emotion'] ?? 'neutral';
+                    $scene['characters_in_scene'] = $visual['characters_in_scene'] ?? [];
+                    $scene['transition_type'] = $visual['transition_type'] ?? 'fade';
+                    $scene['transition_duration'] = (float) ($visual['transition_duration'] ?? 0.5);
+                }
+            }
+            unset($scene);
+        }
+
         $project = UrlToVideoProject::create([
             'user_id' => auth()->id(),
             'team_id' => session('current_team_id'),
@@ -576,6 +601,7 @@ class UrlToVideo extends Component
             'status' => 'generating_voiceover',
             'progress_percent' => 15,
             'current_stage' => 'Starting pipeline',
+            'visual_script' => !empty($this->sceneVisualScript) ? array_values($this->sceneVisualScript) : null,
             'metadata' => [
                 'started_at' => now()->toIso8601String(),
                 'ai_engine' => get_option('story_mode_ai_engine', 'gemini'),
@@ -587,6 +613,8 @@ class UrlToVideo extends Component
                 'creative_mode' => $this->creativeMode,
                 'creative_concept_title' => $this->creativeConceptTitle,
                 'creative_concept_pitch' => $this->creativeConceptPitch,
+                'character_bible' => $this->characterBible,
+                'interactive_studio' => !empty($this->sceneVisualScript),
             ],
         ]);
 

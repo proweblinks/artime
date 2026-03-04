@@ -3,8 +3,13 @@
 namespace Modules\AppVideoWizard\Traits;
 
 use Illuminate\Support\Facades\Log;
+use Modules\AppVideoWizard\Models\WizardProject;
+use Modules\AppVideoWizard\Services\AnimationService;
+use Modules\AppVideoWizard\Services\ImageGenerationService;
 use Modules\AppVideoWizard\Services\ImageSourceService;
+use Modules\AppVideoWizard\Services\SeedancePromptService;
 use Modules\AppVideoWizard\Services\StoryModeScriptService;
+use Modules\Authentication\Facades\Credit;
 
 /**
  * Shared image selection properties and methods for URL-to-Video and Story Mode.
@@ -48,6 +53,23 @@ trait HasImageSelection
     public string $librarySort = 'title';
     public string $libraryTypeFilter = '';
 
+    // AI Studio: Visual Script state
+    public array $sceneVisualScript = [];        // sceneId => {image_prompt, video_action, camera_motion, mood, ...}
+    public bool $isGeneratingVisualScript = false;
+    public ?array $characterBible = null;
+
+    // AI Studio: Per-scene image generation
+    public array $sceneGeneratedImages = [];     // sceneId => [{url, timestamp}]
+    public array $sceneImageGenerating = [];     // sceneId => bool
+
+    // AI Studio: Per-scene video generation
+    public array $sceneVideoTaskIds = [];        // sceneId => taskId
+    public array $sceneVideoStatus = [];         // sceneId => 'idle'|'submitting'|'processing'|'completed'|'failed'
+    public array $sceneGeneratedVideos = [];     // sceneId => [{url, duration, timestamp}]
+
+    // AI Studio: Active scene for preview panel
+    public string $activeStudioScene = '';
+
     /**
      * Reset all image selection state. Useful when script changes invalidate cached data.
      */
@@ -66,6 +88,17 @@ trait HasImageSelection
         $this->librarySearchQuery = '';
         $this->librarySort = 'title';
         $this->libraryTypeFilter = '';
+
+        // AI Studio cleanup
+        $this->sceneVisualScript = [];
+        $this->isGeneratingVisualScript = false;
+        $this->characterBible = null;
+        $this->sceneGeneratedImages = [];
+        $this->sceneImageGenerating = [];
+        $this->sceneVideoTaskIds = [];
+        $this->sceneVideoStatus = [];
+        $this->sceneGeneratedVideos = [];
+        $this->activeStudioScene = '';
     }
 
     /**
@@ -244,6 +277,11 @@ trait HasImageSelection
             $this->selectedSceneImages[$sceneId] = 'ai';
             $this->sceneAnimateWithAI[$sceneId] = true;
         }
+
+        // Auto-trigger visual script generation if not already done
+        if (empty($this->sceneVisualScript)) {
+            $this->generateVisualScript();
+        }
     }
 
     /**
@@ -354,6 +392,538 @@ trait HasImageSelection
     {
         $sceneIndex = (int) str_replace('scene_', '', $sceneId);
         return (float) ($this->generatedSegments[$sceneIndex]['estimated_duration'] ?? 6.0);
+    }
+
+    // ────────────────────────────────────────────────────────────────────
+    // AI Studio: Visual Script Generation
+    // ────────────────────────────────────────────────────────────────────
+
+    /**
+     * Generate visual script (image_prompt + video_action) for all scenes.
+     * Called automatically when AI Mode is toggled ON.
+     */
+    public function generateVisualScript(): void
+    {
+        if ($this->isGeneratingVisualScript) return;
+        $this->isGeneratingVisualScript = true;
+
+        try {
+            // Phase 4: Split long scenes first
+            $this->splitLongScenes();
+
+            $segments = $this->generatedSegments ?? [];
+            if (empty($segments)) {
+                $this->isGeneratingVisualScript = false;
+                return;
+            }
+
+            $aspectRatio = $this->aspectRatio ?? '9:16';
+            $teamId = session('current_team_id');
+
+            // Build style instruction from content brief
+            $brief = property_exists($this, 'storedContentBrief') ? ($this->storedContentBrief ?? []) : [];
+            $tone = $brief['tone'] ?? 'professional';
+            $category = $brief['content_category'] ?? 'general';
+            $styleInstruction = "Cinematic, photorealistic, {$tone} tone, {$category} content";
+
+            $scriptService = new StoryModeScriptService();
+            $visualScript = $scriptService->buildVisualScript($segments, $styleInstruction, $aspectRatio, $teamId);
+            $this->characterBible = $scriptService->lastCharacterBible;
+
+            // Map results to sceneId keys
+            $this->sceneVisualScript = [];
+            foreach ($segments as $i => $segment) {
+                $sceneId = 'scene_' . $i;
+                $visual = $visualScript[$i] ?? [];
+                $this->sceneVisualScript[$sceneId] = [
+                    'image_prompt' => $visual['image_prompt'] ?? "A cinematic scene: {$segment['text']}",
+                    'video_action' => $visual['video_action'] ?? '',
+                    'camera_motion' => $visual['camera_motion'] ?? 'slow zoom in',
+                    'mood' => $visual['mood'] ?? 'professional',
+                    'voice_emotion' => $visual['voice_emotion'] ?? 'neutral',
+                    'characters_in_scene' => $visual['characters_in_scene'] ?? [],
+                    'transition_type' => $visual['transition_type'] ?? 'fade',
+                    'transition_duration' => (float) ($visual['transition_duration'] ?? 0.5),
+                ];
+            }
+
+            // Set first scene as active in studio
+            if (!empty($this->sceneVisualScript) && empty($this->activeStudioScene)) {
+                $this->activeStudioScene = array_key_first($this->sceneVisualScript);
+            }
+
+            Log::info('HasImageSelection: Visual script generated for AI Studio', [
+                'scenes' => count($this->sceneVisualScript),
+                'characters' => count($this->characterBible ?? []),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('HasImageSelection: Visual script generation failed', ['error' => $e->getMessage()]);
+            session()->flash('error', 'Failed to generate visual script: ' . $e->getMessage());
+        } finally {
+            $this->isGeneratingVisualScript = false;
+        }
+    }
+
+    /**
+     * Update a scene's image prompt from the editable textarea.
+     */
+    public function updateSceneImagePrompt(string $sceneId, string $prompt): void
+    {
+        if (isset($this->sceneVisualScript[$sceneId])) {
+            $this->sceneVisualScript[$sceneId]['image_prompt'] = trim($prompt);
+        }
+    }
+
+    /**
+     * Update a scene's video action prompt from the editable textarea.
+     */
+    public function updateSceneVideoPrompt(string $sceneId, string $prompt): void
+    {
+        if (isset($this->sceneVisualScript[$sceneId])) {
+            $this->sceneVisualScript[$sceneId]['video_action'] = trim($prompt);
+        }
+    }
+
+    /**
+     * Set the active scene for the AI Studio preview panel.
+     */
+    public function setActiveStudioScene(string $sceneId): void
+    {
+        $this->activeStudioScene = $sceneId;
+    }
+
+    // ────────────────────────────────────────────────────────────────────
+    // AI Studio: Per-Scene Image Generation
+    // ────────────────────────────────────────────────────────────────────
+
+    /**
+     * Generate an AI image for a specific scene using its image_prompt.
+     */
+    public function generateSceneAIImage(string $sceneId): void
+    {
+        $visual = $this->sceneVisualScript[$sceneId] ?? null;
+        if (!$visual || empty($visual['image_prompt'])) {
+            session()->flash('error', 'No image prompt available for this scene.');
+            return;
+        }
+
+        $this->sceneImageGenerating[$sceneId] = true;
+        $this->activeStudioScene = $sceneId;
+
+        try {
+            $teamId = session('current_team_id');
+            Credit::checkQuota($teamId);
+
+            // Create temp WizardProject for service compatibility
+            $wizardProject = WizardProject::create([
+                'user_id' => auth()->id(),
+                'team_id' => $teamId,
+                'name' => '[AI Studio] Image Generation',
+                'status' => 'processing',
+                'aspect_ratio' => $this->aspectRatio ?? '9:16',
+                'platform' => 'multi-platform',
+            ]);
+
+            $sceneIndex = (int) str_replace('scene_', '', $sceneId);
+            $imageModel = get_option('story_mode_image_model', 'nanobanana2');
+
+            $sceneData = [
+                'id' => $sceneId,
+                'visualDescription' => $visual['image_prompt'],
+                'narration' => $this->generatedSegments[$sceneIndex]['text'] ?? '',
+            ];
+
+            $imageService = app(ImageGenerationService::class);
+            $result = $imageService->generateSceneImage($wizardProject, $sceneData, [
+                'model' => $imageModel,
+                'sceneIndex' => $sceneIndex,
+                'teamId' => $teamId,
+            ]);
+
+            $imageUrl = $result['imageUrl'] ?? $result['image_url'] ?? null;
+
+            if ($imageUrl) {
+                // Track generated images
+                if (!isset($this->sceneGeneratedImages[$sceneId])) {
+                    $this->sceneGeneratedImages[$sceneId] = [];
+                }
+                $this->sceneGeneratedImages[$sceneId][] = [
+                    'url' => $imageUrl,
+                    'timestamp' => now()->toIso8601String(),
+                ];
+
+                // Add as candidate and auto-select
+                $newCandidate = [
+                    'url' => $imageUrl,
+                    'thumbnail' => $imageUrl,
+                    'source' => 'ai_generated',
+                    'title' => 'AI Generated',
+                    'type' => 'image',
+                    'width' => 0,
+                    'height' => 0,
+                ];
+                $this->sceneImageCandidates[$sceneId][] = $newCandidate;
+                $newIndex = count($this->sceneImageCandidates[$sceneId]) - 1;
+                $this->selectedSceneImages[$sceneId] = [$newIndex];
+
+                Log::info('HasImageSelection: AI image generated for scene', [
+                    'scene' => $sceneId, 'url' => substr($imageUrl, 0, 80),
+                ]);
+            }
+
+            $wizardProject->delete();
+        } catch (\Exception $e) {
+            Log::error('HasImageSelection: AI image generation failed', [
+                'scene' => $sceneId, 'error' => $e->getMessage(),
+            ]);
+            session()->flash('error', 'Image generation failed: ' . $e->getMessage());
+        } finally {
+            $this->sceneImageGenerating[$sceneId] = false;
+        }
+    }
+
+    // ────────────────────────────────────────────────────────────────────
+    // AI Studio: Per-Scene Video Generation
+    // ────────────────────────────────────────────────────────────────────
+
+    /**
+     * Generate a video clip for a specific scene (requires image to exist).
+     */
+    public function generateSceneAIVideo(string $sceneId): void
+    {
+        // Require an image first
+        $selection = $this->selectedSceneImages[$sceneId] ?? [];
+        $candidates = $this->sceneImageCandidates[$sceneId] ?? [];
+        $imageUrl = null;
+
+        if (is_array($selection) && !empty($selection)) {
+            $lastIdx = end($selection);
+            $candidate = $candidates[(int) $lastIdx] ?? null;
+            if ($candidate) {
+                $imageUrl = $candidate['url'] ?? null;
+            }
+        }
+
+        if (!$imageUrl) {
+            session()->flash('error', 'Generate an image first before creating a video clip.');
+            return;
+        }
+
+        $this->sceneVideoStatus[$sceneId] = 'submitting';
+        $this->activeStudioScene = $sceneId;
+
+        try {
+            $teamId = session('current_team_id');
+            Credit::checkQuota($teamId);
+
+            $wizardProject = WizardProject::create([
+                'user_id' => auth()->id(),
+                'team_id' => $teamId,
+                'name' => '[AI Studio] Video Generation',
+                'status' => 'processing',
+                'aspect_ratio' => $this->aspectRatio ?? '9:16',
+                'platform' => 'multi-platform',
+            ]);
+
+            $sceneIndex = (int) str_replace('scene_', '', $sceneId);
+            $visual = $this->sceneVisualScript[$sceneId] ?? [];
+            $sceneDuration = $this->generatedSegments[$sceneIndex]['estimated_duration'] ?? 6;
+            $clipDuration = $this->calculateAIClipDuration($sceneDuration);
+
+            $prompt = $this->buildInteractiveVideoPrompt($visual, $sceneIndex);
+
+            $animationService = app(AnimationService::class);
+            $result = $animationService->generateAnimation($wizardProject, [
+                'imageUrl' => $imageUrl,
+                'prompt' => $prompt,
+                'duration' => $clipDuration,
+                'sceneIndex' => $sceneIndex,
+                'resolution' => property_exists($this, 'videoResolution') ? $this->videoResolution : '480p',
+                'variant' => property_exists($this, 'videoQuality') ? $this->videoQuality : 'pro',
+                'generate_audio' => false,
+            ]);
+
+            if (!empty($result['success']) && !empty($result['taskId'])) {
+                $this->sceneVideoTaskIds[$sceneId] = $result['taskId'];
+                $this->sceneVideoStatus[$sceneId] = 'processing';
+            } else {
+                $this->sceneVideoStatus[$sceneId] = 'failed';
+            }
+
+            $wizardProject->delete();
+        } catch (\Exception $e) {
+            Log::error('HasImageSelection: AI video generation failed', [
+                'scene' => $sceneId, 'error' => $e->getMessage(),
+            ]);
+            $this->sceneVideoStatus[$sceneId] = 'failed';
+            session()->flash('error', 'Video generation failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Poll all scenes that have video generation in progress.
+     * Called via wire:poll from the frontend when any scene is processing.
+     */
+    public function pollAllVideoStatuses(): void
+    {
+        $animationService = app(AnimationService::class);
+        $hasProcessing = false;
+
+        foreach ($this->sceneVideoTaskIds as $sceneId => $taskId) {
+            if (($this->sceneVideoStatus[$sceneId] ?? '') !== 'processing') continue;
+
+            try {
+                $status = $animationService->getTaskStatus($taskId);
+                $state = $status['status'] ?? 'unknown';
+
+                if ($state === 'completed' && !empty($status['videoUrl'])) {
+                    $videoUrl = $status['videoUrl'];
+                    $this->sceneVideoStatus[$sceneId] = 'completed';
+
+                    // Track generated video
+                    if (!isset($this->sceneGeneratedVideos[$sceneId])) {
+                        $this->sceneGeneratedVideos[$sceneId] = [];
+                    }
+                    $this->sceneGeneratedVideos[$sceneId][] = [
+                        'url' => $videoUrl,
+                        'timestamp' => now()->toIso8601String(),
+                    ];
+
+                    // Add video as selectable candidate
+                    $sceneIndex = (int) str_replace('scene_', '', $sceneId);
+                    $sceneDuration = $this->generatedSegments[$sceneIndex]['estimated_duration'] ?? 6;
+
+                    $videoCandidate = [
+                        'url' => $videoUrl,
+                        'thumbnail' => $videoUrl,
+                        'source' => 'ai_video',
+                        'title' => 'AI Video',
+                        'type' => 'video',
+                        'duration' => $this->calculateAIClipDuration($sceneDuration),
+                        'width' => 0,
+                        'height' => 0,
+                    ];
+                    $this->sceneImageCandidates[$sceneId][] = $videoCandidate;
+                    $newIndex = count($this->sceneImageCandidates[$sceneId]) - 1;
+                    $this->selectedSceneImages[$sceneId] = [$newIndex];
+                    $this->sceneAnimateWithAI[$sceneId] = false; // We have a real clip now
+
+                    Log::info('HasImageSelection: AI video completed for scene', [
+                        'scene' => $sceneId, 'url' => substr($videoUrl, 0, 80),
+                    ]);
+                } elseif ($state === 'failed') {
+                    $this->sceneVideoStatus[$sceneId] = 'failed';
+                    Log::warning('HasImageSelection: AI video failed for scene', ['scene' => $sceneId]);
+                } else {
+                    $hasProcessing = true;
+                }
+            } catch (\Exception $e) {
+                Log::warning('HasImageSelection: Video poll error', [
+                    'scene' => $sceneId, 'error' => $e->getMessage(),
+                ]);
+                $hasProcessing = true;
+            }
+        }
+    }
+
+    /**
+     * Check if any scene has video generation in progress (for polling trigger).
+     */
+    public function hasProcessingVideos(): bool
+    {
+        foreach ($this->sceneVideoStatus as $status) {
+            if ($status === 'processing' || $status === 'submitting') return true;
+        }
+        return false;
+    }
+
+    /**
+     * Build a Seedance video prompt for interactive mode.
+     */
+    protected function buildInteractiveVideoPrompt(array $visual, int $sceneIndex): string
+    {
+        $parts = [];
+
+        $videoAction = trim($visual['video_action'] ?? '');
+        if (!empty($videoAction)) {
+            $parts[] = $videoAction;
+        }
+
+        if (empty($parts)) {
+            return $visual['camera_motion'] ?? 'slow zoom in';
+        }
+
+        $cameraMotion = $visual['camera_motion'] ?? 'slow zoom in';
+        $cameraMap = [
+            'slow zoom in'      => 'Slow push-in camera',
+            'slow zoom out'     => 'Slow pull-back camera',
+            'dramatic zoom in'  => 'Fast push-in camera',
+            'pan left'          => 'Slow pan left',
+            'pan right'         => 'Slow pan right',
+            'tilt up'           => 'Slow tilt up',
+            'tilt down'         => 'Slow tilt down',
+            'push to subject'   => 'Slow push-in to subject',
+            'rise and reveal'   => 'Crane shot rising upward',
+            'settle in'         => 'Subtle settle, nearly locked-off',
+            'breathe'           => 'Very subtle breathing movement',
+        ];
+        $parts[] = $cameraMap[strtolower(trim($cameraMotion))] ?? 'Slow push-in camera';
+
+        $mood = strtolower(trim($visual['mood'] ?? ''));
+        $moodMap = [
+            'calm' => 'Soft natural lighting', 'dramatic' => 'High-contrast dramatic lighting',
+            'energetic' => 'Bright dynamic lighting', 'tense' => 'Harsh directional lighting',
+            'mysterious' => 'Low-key lighting with atmospheric haze', 'epic' => 'Golden hour cinematic lighting',
+            'professional' => 'Clean balanced lighting', 'hopeful' => 'Bright natural light',
+        ];
+        $parts[] = ($moodMap[$mood] ?? 'Clean balanced lighting') . '.';
+        $parts[] = 'Ambient sound only.';
+
+        $prompt = implode(' ', $parts);
+
+        if (class_exists(SeedancePromptService::class)) {
+            $prompt = SeedancePromptService::sanitize($prompt);
+        }
+
+        return $prompt;
+    }
+
+    /**
+     * Calculate clip duration snapped to Seedance-supported values.
+     */
+    protected function calculateAIClipDuration(float $audioDuration): int
+    {
+        $withPadding = $audioDuration + 2.0;
+        $clamped = min(10, max(5, (int) ceil($withPadding)));
+        $supported = [5, 6, 8, 10];
+        foreach ($supported as $dur) {
+            if ($dur >= $clamped) return $dur;
+        }
+        return 10;
+    }
+
+    // ────────────────────────────────────────────────────────────────────
+    // AI Studio: Long Scene Auto-Splitting (Phase 4)
+    // ────────────────────────────────────────────────────────────────────
+
+    /**
+     * Auto-split scenes exceeding 10s into sub-scenes at sentence boundaries.
+     * Called at the start of generateVisualScript().
+     */
+    protected function splitLongScenes(): void
+    {
+        $segments = $this->generatedSegments ?? [];
+        if (empty($segments)) return;
+
+        $newSegments = [];
+        $didSplit = false;
+
+        foreach ($segments as $i => $segment) {
+            $duration = (float) ($segment['estimated_duration'] ?? 6);
+
+            if ($duration <= 10.0) {
+                $newSegments[] = $segment;
+                continue;
+            }
+
+            // Split at nearest sentence boundary to midpoint
+            $text = $segment['text'] ?? '';
+            $midpoint = mb_strlen($text) / 2;
+
+            // Find sentence breaks (. ! ?)
+            preg_match_all('/[.!?]\s+/', $text, $matches, PREG_OFFSET_CAPTURE);
+            $breaks = $matches[0] ?? [];
+
+            $bestBreak = null;
+            $bestDistance = PHP_INT_MAX;
+            foreach ($breaks as $match) {
+                $pos = $match[1] + mb_strlen($match[0]);
+                $distance = abs($pos - $midpoint);
+                if ($distance < $bestDistance && $pos > 10 && $pos < mb_strlen($text) - 10) {
+                    $bestBreak = $pos;
+                    $bestDistance = $distance;
+                }
+            }
+
+            if ($bestBreak === null) {
+                // No good sentence boundary, keep as-is
+                $newSegments[] = $segment;
+                continue;
+            }
+
+            $part1Text = trim(mb_substr($text, 0, $bestBreak));
+            $part2Text = trim(mb_substr($text, $bestBreak));
+
+            if (empty($part1Text) || empty($part2Text)) {
+                $newSegments[] = $segment;
+                continue;
+            }
+
+            // Proportional durations
+            $ratio = mb_strlen($part1Text) / mb_strlen($text);
+            $dur1 = round($duration * $ratio, 1);
+            $dur2 = round($duration * (1 - $ratio), 1);
+
+            $newSegments[] = array_merge($segment, [
+                'text' => $part1Text,
+                'estimated_duration' => $dur1,
+                'split_from' => $i,
+                'split_part' => 1,
+            ]);
+            $newSegments[] = array_merge($segment, [
+                'text' => $part2Text,
+                'estimated_duration' => $dur2,
+                'split_from' => $i,
+                'split_part' => 2,
+            ]);
+            $didSplit = true;
+
+            Log::info('HasImageSelection: Split long scene', [
+                'original_index' => $i,
+                'original_duration' => $duration,
+                'part1_duration' => $dur1,
+                'part2_duration' => $dur2,
+            ]);
+        }
+
+        if ($didSplit) {
+            $this->generatedSegments = $newSegments;
+
+            // Re-source stock candidates for the new scene count
+            $imageService = new ImageSourceService();
+            $scenes = [];
+            foreach ($newSegments as $i => $seg) {
+                $scenes[] = [
+                    'id' => 'scene_' . $i,
+                    'index' => $i,
+                    'text' => $seg['text'],
+                    'estimated_duration' => $seg['estimated_duration'],
+                ];
+            }
+
+            $brief = property_exists($this, 'storedContentBrief') ? ($this->storedContentBrief ?? []) : [];
+            if (empty($brief['subject'])) {
+                $brief['subject'] = $this->prompt ?? '';
+            }
+            $extracted = property_exists($this, 'storedExtractedContent') ? ($this->storedExtractedContent ?? []) : [];
+
+            $result = $imageService->sourceForScenes($scenes, $extracted, $brief);
+
+            // Rebuild candidates
+            $this->sceneImageCandidates = [];
+            $this->sceneSearchSuggestions = [];
+            foreach ($result as $sceneId => $data) {
+                $this->sceneImageCandidates[$sceneId] = $data['candidates'] ?? [];
+                $this->sceneSearchSuggestions[$sceneId] = $data['suggestions'] ?? [];
+            }
+
+            // Set all new scenes to AI
+            $this->selectedSceneImages = [];
+            foreach ($this->sceneImageCandidates as $sceneId => $candidates) {
+                $this->selectedSceneImages[$sceneId] = 'ai';
+                $this->sceneAnimateWithAI[$sceneId] = true;
+            }
+        }
     }
 
     /**
