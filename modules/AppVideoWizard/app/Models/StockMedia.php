@@ -195,8 +195,8 @@ class StockMedia extends Model
     /**
      * Build a MySQL FULLTEXT boolean mode query string.
      * Words are optional (OR logic), ranked by how many match.
-     * Only uses wildcard (*) for words >= 5 chars to prevent false positives
-     * (e.g., "fun*" matching "funny-cat" when searching for travel content).
+     * Uses wildcard (*) for words >= 3 chars to enable prefix matching
+     * (e.g., "lux*" matches "luxury", "travel*" matches "travelling").
      */
     protected function buildFulltextQuery(string $keyword): string
     {
@@ -205,8 +205,7 @@ class StockMedia extends Model
         foreach ($words as $word) {
             $word = trim($word);
             if (strlen($word) < 2) continue;
-            // Only wildcard longer words — short words cause false prefix matches
-            $parts[] = strlen($word) >= 5 ? $word . '*' : $word;
+            $parts[] = strlen($word) >= 3 ? $word . '*' : $word;
         }
         return implode(' ', $parts);
     }
