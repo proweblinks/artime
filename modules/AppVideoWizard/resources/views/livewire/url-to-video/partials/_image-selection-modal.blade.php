@@ -528,16 +528,17 @@
                                     </button>
                                 @endforeach
                                 {{-- Load More button at end of row --}}
-                                <button wire:click="loadMoreCandidates('{{ $sceneId }}')"
-                                        wire:loading.attr="disabled"
+                                <button x-data="{ loading: false }"
+                                        @click="if (loading) return; loading = true; $wire.loadMoreCandidates('{{ $sceneId }}').then(() => { loading = false; }).catch(() => { loading = false; })"
+                                        :disabled="loading"
                                         type="button"
                                         class="utv-load-more-btn"
                                         style="flex: 0 0 80px; min-width: 80px; height: 100%; min-height: 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: #f5f7fa; border: 1px dashed #d0d5dd; border-radius: 8px; color: #94a0b8; font-size: 0.7rem; cursor: pointer; transition: all 0.2s;"
                                         onmouseover="this.style.background='#eef1f5';this.style.color='#1a1a2e';this.style.borderColor='#0891b2'"
                                         onmouseout="this.style.background='#f5f7fa';this.style.color='#94a0b8';this.style.borderColor='#d0d5dd'">
-                                    <i class="fa-light fa-arrow-right" wire:loading.class="fa-spinner-third fa-spin" wire:target="loadMoreCandidates('{{ $sceneId }}')"></i>
-                                    <span wire:loading.remove wire:target="loadMoreCandidates('{{ $sceneId }}')">{{ __('More') }}</span>
-                                    <span wire:loading wire:target="loadMoreCandidates('{{ $sceneId }}')">...</span>
+                                    <i class="fa-light" :class="loading ? 'fa-spinner-third fa-spin' : 'fa-arrow-right'"></i>
+                                    <span x-show="!loading">{{ __('More') }}</span>
+                                    <span x-show="loading" x-cloak>...</span>
                                 </button>
                             </div>
                         </div>
