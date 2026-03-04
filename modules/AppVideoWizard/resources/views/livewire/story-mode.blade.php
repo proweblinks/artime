@@ -6,37 +6,37 @@
 
         {{-- Header --}}
         <div class="text-center mb-4">
-            <h2 class="fw-bold mb-2" style="color: #fff; font-size: 1.6rem; letter-spacing: -0.02em;">
+            <h2 class="fw-bold mb-2" style="color: var(--at-text, #1a1a2e); font-size: 1.6rem; letter-spacing: -0.02em;">
                 {{ __('Create a short video in your own style') }}
             </h2>
-            <p class="mb-0" style="color: #888; font-size: 0.92rem;">{{ __('Visualize your prompt, script, or audio in one click.') }}</p>
+            <p class="mb-0" style="color: var(--at-text-secondary, #5a6178); font-size: 0.92rem;">{{ __('Visualize your prompt, script, or audio in one click.') }}</p>
         </div>
 
         {{-- Active Project Progress — poll only when actually generating --}}
         @if($this->activeProject && $this->activeProject->isGenerating())
-            <div wire:poll.10s class="card border-0 mb-4" style="background: #1a1a1a; border-radius: 12px;">
+            <div wire:poll.10s class="card border-0 mb-4" style="background: #ffffff; border: 1px solid #eef1f5; border-radius: 12px; box-shadow: var(--at-glass, 0 4px 24px rgba(0,0,0,0.06));">
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <div>
-                            <h6 class="mb-1 text-white">
-                                <i class="fa-light fa-spinner-third fa-spin me-2" style="color: #f97316;"></i>
+                            <h6 class="mb-1" style="color: var(--at-text, #1a1a2e);">
+                                <i class="fa-light fa-spinner-third fa-spin me-2" style="color: #03fcf4;"></i>
                                 {{ __('Generating Video') }}
                             </h6>
-                            <small class="text-muted">{{ $this->activeProject->current_stage ?? 'Processing...' }}</small>
+                            <small style="color: var(--at-text-muted, #94a0b8);">{{ $this->activeProject->current_stage ?? 'Processing...' }}</small>
                         </div>
-                        <span class="badge" style="background: #f97316; font-size: 0.85rem;">
+                        <span class="badge" style="background: #03fcf4; color: #0a2e2e; font-size: 0.85rem;">
                             {{ $this->activeProject->progress_percent }}%
                         </span>
                     </div>
-                    <div class="progress" style="height: 6px; background: #333; border-radius: 3px;">
+                    <div class="progress" style="height: 6px; background: #f1f4f8; border-radius: 3px;">
                         <div class="progress-bar" role="progressbar"
-                             style="width: {{ $this->activeProject->progress_percent }}%; background: #f97316; border-radius: 3px; transition: width 0.5s ease;"
+                             style="width: {{ $this->activeProject->progress_percent }}%; background: linear-gradient(90deg, #03fcf4, #00d4cc); border-radius: 3px; transition: width 0.5s ease;"
                              aria-valuenow="{{ $this->activeProject->progress_percent }}" aria-valuemin="0" aria-valuemax="100">
                         </div>
                     </div>
                     <div class="d-flex justify-content-between mt-2">
-                        <small class="text-muted">{{ $this->activeProject->title }}</small>
-                        <small class="text-muted">{{ $this->activeProject->progress_percent }}% complete</small>
+                        <small style="color: var(--at-text-muted, #94a0b8);">{{ $this->activeProject->title }}</small>
+                        <small style="color: var(--at-text-muted, #94a0b8);">{{ $this->activeProject->progress_percent }}% complete</small>
                     </div>
                 </div>
             </div>
@@ -94,35 +94,35 @@
                 <textarea
                     x-model="promptText"
                     wire:model.live.debounce.500ms="prompt"
-                    class="form-control border-0 text-white"
+                    class="form-control border-0"
                     rows="3"
                     :placeholder="placeholders[placeholderIdx]"
-                    style="resize: none; font-size: 0.95rem; line-height: 1.6; box-shadow: none; background: transparent !important; padding: 16px 16px 8px;"
+                    style="resize: none; font-size: 0.95rem; line-height: 1.6; box-shadow: none; background: transparent !important; padding: 16px 16px 8px; color: var(--at-text, #1a1a2e);"
                     {{ $isGeneratingScript ? 'disabled' : '' }}
                 ></textarea>
 
                 {{-- Attached File Preview --}}
                 @if($attachedFile)
                     <div class="d-flex align-items-center gap-2 px-3 pb-2">
-                        <div class="d-flex align-items-center gap-2 px-3 py-1" style="background: rgba(255,255,255,0.06); border-radius: 20px; font-size: 0.78rem; color: #aaa;">
-                            <i class="fa-light fa-file" style="color: #f97316;"></i>
+                        <div class="d-flex align-items-center gap-2 px-3 py-1" style="background: rgba(3,252,244,0.06); border-radius: 20px; font-size: 0.78rem; color: var(--at-text-secondary, #5a6178);">
+                            <i class="fa-light fa-file" style="color: #0891b2;"></i>
                             <span style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                 {{ $attachedFile->getClientOriginalName() }}
                             </span>
-                            <span style="color: #666;">({{ number_format($attachedFile->getSize() / 1024, 0) }}KB)</span>
+                            <span style="color: var(--at-text-muted, #94a0b8);">({{ number_format($attachedFile->getSize() / 1024, 0) }}KB)</span>
                             <button wire:click="removeAttachedFile" type="button"
-                                    class="btn btn-sm p-0 border-0" style="color: #666; line-height: 1;">
+                                    class="btn btn-sm p-0 border-0" style="color: var(--at-text-muted, #94a0b8); line-height: 1;">
                                 <i class="fa-light fa-xmark"></i>
                             </button>
                         </div>
                         <div wire:loading wire:target="attachedFile">
-                            <i class="fa-light fa-spinner-third fa-spin" style="color: #f97316; font-size: 0.8rem;"></i>
+                            <i class="fa-light fa-spinner-third fa-spin" style="color: #03fcf4; font-size: 0.8rem;"></i>
                         </div>
                     </div>
                 @endif
 
                 {{-- Bottom Toolbar --}}
-                <div class="d-flex align-items-center justify-content-between px-3 pb-3 pt-2" style="border-top: 1px solid rgba(255,255,255,0.06);">
+                <div class="d-flex align-items-center justify-content-between px-3 pb-3 pt-2" style="border-top: 1px solid #eef1f5;">
                     <div class="d-flex align-items-center gap-1">
                         {{-- Attach Button --}}
                         <input type="file" x-ref="fileInput" wire:model="attachedFile" class="d-none"
@@ -211,7 +211,7 @@
 
         {{-- Error Messages --}}
         @if(session('error'))
-            <div class="alert alert-danger border-0 mb-4" style="background: #3d1515; color: #f87171; border-radius: 12px;">
+            <div class="alert alert-danger border-0 mb-4" style="background: rgba(239,68,68,0.06); color: #ef4444; border-radius: 12px;">
                 <i class="fa-light fa-triangle-exclamation me-2"></i>
                 {{ session('error') }}
             </div>
@@ -224,7 +224,7 @@
         {{-- User's Recent Projects --}}
         @if($this->userProjects->isNotEmpty())
             <div class="mb-5">
-                <h5 class="fw-bold text-white mb-3" style="font-size: 1.1rem;">{{ __('My Projects') }}</h5>
+                <h5 class="fw-bold mb-3" style="font-size: 1.1rem; color: var(--at-text, #1a1a2e);">{{ __('My Projects') }}</h5>
                 <div class="story-masonry">
                     @foreach($this->userProjects->take(8) as $project)
                         @include('appvideowizard::livewire.story-mode.partials._project-card', ['project' => $project])
@@ -236,7 +236,7 @@
         {{-- Gallery --}}
         @if(isset($galleryProjects) && $galleryProjects->isNotEmpty())
             <div class="mb-4">
-                <h5 class="fw-bold text-white mb-3" style="font-size: 1.1rem;">{{ __('Top story mode') }}</h5>
+                <h5 class="fw-bold mb-3" style="font-size: 1.1rem; color: var(--at-text, #1a1a2e);">{{ __('Top story mode') }}</h5>
                 <div class="story-masonry">
                     @foreach($galleryProjects as $project)
                         @include('appvideowizard::livewire.story-mode.partials._project-card', ['project' => $project])
@@ -260,7 +260,7 @@
     <style>
         .story-mode-page {
             min-height: 100vh;
-            background: #000 !important;
+            background: #ffffff !important;
         }
         .story-mode-page .form-control,
         .story-mode-page .form-control:focus {
@@ -269,7 +269,9 @@
             background: transparent !important;
         }
         .story-mode-page .card {
-            background: #1a1a1a !important;
+            background: #ffffff !important;
+            border: 1px solid #eef1f5;
+            box-shadow: var(--at-glass, 0 4px 24px rgba(0,0,0,0.06));
         }
 
         /* Top zone — centered, comfortable max-width */
@@ -289,11 +291,12 @@
 
         /* Input card */
         .story-input-card {
-            background: #141414;
-            border: 1px solid rgba(255,255,255,0.06);
+            background: #ffffff;
+            border: 1px solid #eef1f5;
             border-radius: 14px;
             position: relative;
             overflow: visible;
+            box-shadow: var(--at-glass, 0 4px 24px rgba(0,0,0,0.06));
         }
 
         /* Toolbar buttons — transparent, minimal */
@@ -305,22 +308,22 @@
             background: transparent;
             border: none;
             border-radius: 8px;
-            color: #888;
+            color: #5a6178;
             font-size: 0.82rem;
             cursor: pointer;
             transition: background 0.15s, color 0.15s;
             white-space: nowrap;
         }
         .story-tool-btn:hover {
-            background: rgba(255,255,255,0.08);
-            color: #ccc;
+            background: rgba(3,252,244,0.06);
+            color: #1a1a2e;
         }
         .story-tool-btn i {
             font-size: 0.9rem;
         }
         .story-tool-btn.active {
-            background: rgba(255,255,255,0.1);
-            color: #f97316;
+            background: rgba(3,252,244,0.08);
+            color: #0891b2;
         }
 
         /* Settings popover */
@@ -329,17 +332,17 @@
             bottom: calc(100% + 8px);
             left: 0;
             z-index: 50;
-            background: #1a1a1a;
-            border: 1px solid rgba(255,255,255,0.08);
+            background: #ffffff;
+            border: 1px solid #eef1f5;
             border-radius: 12px;
             padding: 10px;
             min-width: 220px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
         }
         .story-settings-label {
             font-size: 0.6rem;
             font-weight: 600;
-            color: #555;
+            color: #94a0b8;
             text-transform: uppercase;
             letter-spacing: 0.08em;
             padding: 2px 6px 6px;
@@ -353,25 +356,25 @@
             background: transparent;
             border: none;
             border-radius: 6px;
-            color: #ccc;
+            color: #1a1a2e;
             font-size: 0.82rem;
             cursor: pointer;
             transition: background 0.15s;
         }
         .story-settings-row:hover {
-            background: rgba(255,255,255,0.06);
+            background: rgba(3,252,244,0.06);
         }
         .story-settings-icon {
             width: 16px;
             text-align: center;
-            color: #666;
+            color: #94a0b8;
             font-size: 0.8rem;
         }
         .story-settings-value {
             display: flex;
             align-items: center;
             gap: 4px;
-            color: #f97316;
+            color: #0891b2;
             font-size: 0.8rem;
         }
 
@@ -381,8 +384,8 @@
             height: 36px;
             border-radius: 50%;
             border: none;
-            background: #333;
-            color: #888;
+            background: #eef1f5;
+            color: #94a0b8;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -391,8 +394,8 @@
             font-size: 0.85rem;
         }
         .story-submit-btn.active {
-            background: #f97316;
-            color: #fff;
+            background: #03fcf4;
+            color: #0a2e2e;
         }
         .story-submit-btn:disabled {
             cursor: not-allowed;
@@ -408,12 +411,12 @@
             overflow: hidden;
         }
         .style-thumb:hover {
-            border-color: #444;
+            border-color: #d0d5dd;
             transform: translateY(-2px);
         }
         .style-thumb.selected {
-            border-color: #f97316;
-            box-shadow: 0 0 0 1px #f97316;
+            border-color: #03fcf4;
+            box-shadow: 0 0 0 1px #03fcf4;
         }
 
         /* Gallery grid — auto-fill centered */
@@ -431,12 +434,13 @@
             border-radius: 10px;
             overflow: hidden;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
-            background: #111;
+            background: #ffffff;
+            border: 1px solid #eef1f5;
             position: relative;
         }
         .project-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
         }
         .project-card img {
             display: block;

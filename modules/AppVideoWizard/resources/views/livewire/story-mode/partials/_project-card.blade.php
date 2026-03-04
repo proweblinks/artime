@@ -2,7 +2,7 @@
 <div class="project-card-wrap" wire:key="project-{{ $project->id }}">
     <div class="project-card" wire:click="openProject({{ $project->id }})">
         {{-- Thumbnail with overlays --}}
-        <div class="position-relative" style="background: #111;">
+        <div class="position-relative" style="background: #f5f7fa;">
             @if($project->thumbnail_url)
                 <img src="{{ $project->thumbnail_url }}" alt="{{ $project->title }}"
                      style="width: 100%; display: block; aspect-ratio: {{ $project->aspect_ratio === '16:9' ? '16/9' : ($project->aspect_ratio === '1:1' ? '1/1' : '9/16') }}; object-fit: cover;">
@@ -11,20 +11,20 @@
                      style="aspect-ratio: {{ $project->aspect_ratio === '16:9' ? '16/9' : ($project->aspect_ratio === '1:1' ? '1/1' : '9/16') }};">
                     @if($project->isGenerating())
                         <div class="text-center">
-                            <i class="fa-light fa-spinner-third fa-spin mb-2" style="font-size: 1.2rem; color: #f97316;"></i>
-                            <div style="font-size: 0.65rem; color: #666;">{{ $project->progress_percent }}%</div>
+                            <i class="fa-light fa-spinner-third fa-spin mb-2" style="font-size: 1.2rem; color: #03fcf4;"></i>
+                            <div style="font-size: 0.65rem; color: var(--at-text-muted, #94a0b8);">{{ $project->progress_percent }}%</div>
                         </div>
                     @elseif($project->isFailed())
                         <i class="fa-light fa-triangle-exclamation" style="font-size: 1.2rem; color: #ef4444;"></i>
                     @else
-                        <i class="fa-light fa-film" style="font-size: 1.2rem; color: #333;"></i>
+                        <i class="fa-light fa-film" style="font-size: 1.2rem; color: #94a0b8;"></i>
                     @endif
                 </div>
             @endif
 
             {{-- Story Mode Badge --}}
             <div class="position-absolute top-0 start-0 m-2">
-                <span style="background: rgba(0,0,0,0.55); color: #f97316; font-size: 0.58rem; padding: 3px 7px; border-radius: 4px; backdrop-filter: blur(4px); font-weight: 500;">
+                <span style="background: rgba(0,0,0,0.55); color: #03fcf4; font-size: 0.58rem; padding: 3px 7px; border-radius: 4px; backdrop-filter: blur(4px); font-weight: 500;">
                     {{ __('Story Mode') }}
                 </span>
             </div>
@@ -40,8 +40,8 @@
 
             {{-- Style name overlay --}}
             @if($project->style)
-                <div class="position-absolute bottom-0 start-0 w-100" style="background: linear-gradient(transparent, rgba(0,0,0,0.7)); padding: 20px 8px 6px;">
-                    <span style="font-size: 0.7rem; color: #ddd;">{{ $project->style->name }}</span>
+                <div class="position-absolute bottom-0 start-0 w-100" style="background: linear-gradient(transparent, rgba(0,0,0,0.6)); padding: 20px 8px 6px;">
+                    <span style="font-size: 0.7rem; color: #fff;">{{ $project->style->name }}</span>
                 </div>
             @endif
         </div>
