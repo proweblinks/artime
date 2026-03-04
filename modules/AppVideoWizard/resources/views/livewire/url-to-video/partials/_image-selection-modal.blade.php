@@ -313,18 +313,34 @@
                         }
                         $durationDiff = $totalClipDuration - $sceneDuration;
                         $hasEnoughClips = $totalClipDuration >= $sceneDuration - 1.0;
+
+                        // Calculate per-clip usage: how much of each clip will actually play in final export
+                        $clipUsage = [];
+                        $remaining = $sceneDuration;
+                        foreach ($selectedClipDetails as $di => $detail) {
+                            $used = min($detail['duration'], max(0, $remaining));
+                            $isTrimmed = $detail['duration'] > 0 && $used < $detail['duration'] - 0.5;
+                            $clipUsage[$di] = ['used' => $used, 'trimmed' => $isTrimmed];
+                            $remaining -= $used;
+                        }
                     @endphp
 
                     @if(!empty($selectedClipDetails))
                         <div class="mb-2 p-2 d-flex align-items-center gap-2" style="background: #f8fafb; border-radius: 8px; border: 1px solid {{ $hasEnoughClips ? '#15803d' : '#92400e' }}30;">
-                            {{-- Mini thumbnails of selected clips --}}
-                            @foreach($selectedClipDetails as $detail)
+                            {{-- Mini thumbnails of selected clips with usage indicators --}}
+                            @foreach($selectedClipDetails as $di => $detail)
+                                @php $usage = $clipUsage[$di] ?? ['used' => $detail['duration'], 'trimmed' => false]; @endphp
                                 <div class="position-relative" style="width: 48px; height: 48px; flex-shrink: 0;">
                                     <img src="{{ $detail['candidate']['thumbnail'] ?? $detail['candidate']['url'] }}"
-                                         style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px; border: 1px solid #eef1f5;">
+                                         style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px; border: 1px solid {{ $usage['trimmed'] ? '#f59e0b' : '#eef1f5' }};">
                                     @if($detail['duration'] > 0)
                                         <span style="position: absolute; bottom: 1px; right: 1px; background: rgba(0,0,0,0.8); color: #fff; font-size: 0.55rem; padding: 1px 3px; border-radius: 3px;">
                                             {{ gmdate('i:s', (int) $detail['duration']) }}
+                                        </span>
+                                    @endif
+                                    @if($usage['trimmed'])
+                                        <span style="position: absolute; top: 1px; left: 1px; background: rgba(245,158,11,0.9); color: #fff; font-size: 0.5rem; padding: 1px 3px; border-radius: 3px;" title="{{ __('Will use') }} {{ number_format($usage['used'], 1) }}s {{ __('of') }} {{ number_format($detail['duration'], 1) }}s">
+                                            <i class="fa-solid fa-scissors" style="font-size: 0.4rem;"></i> {{ number_format($usage['used'], 1) }}s
                                         </span>
                                     @endif
                                     <button wire:click="removeSceneClip('{{ $sceneId }}', {{ $detail['pos'] }})"
