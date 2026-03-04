@@ -41,17 +41,27 @@
              }
          },
          // Lightbox state
-         lightbox: { show: false, url: '', type: 'image', title: '' },
+         lightbox: { show: false, url: '', type: 'image', title: '', stockId: null, reported: false },
          openLightbox(candidate) {
              this.lightbox = {
                  show: true,
                  url: candidate.url || '',
                  type: (candidate.type === 'video') ? 'video' : 'image',
                  title: candidate.title || '',
+                 stockId: candidate.stock_id || null,
+                 reported: false,
              };
          },
          closeLightbox() {
              this.lightbox.show = false;
+         },
+         reportLightbox() {
+             if (!this.lightbox.stockId || this.lightbox.reported) return;
+             if (!confirm('Report this media as inappropriate or broken?')) return;
+             fetch('/api/stock-media/' + this.lightbox.stockId + '/report', {
+                 method: 'POST',
+                 headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}
+             }).then(() => { this.lightbox.reported = true; }).catch(() => {});
          },
          // Video edit modal state
          videoEdit: { show: false, sceneId: '', url: '', duration: 0, sceneDuration: 0, trimStart: 0, trimEnd: 0, flipH: false, flipV: false },
@@ -702,6 +712,17 @@
                 </template>
             </div>
             <p x-text="lightbox.title" style="color:#999;font-size:0.82rem;margin-top:12px;text-align:center;max-width:600px;"></p>
+            <template x-if="lightbox.stockId">
+                <button @click.stop="reportLightbox()" type="button"
+                        :class="lightbox.reported ? 'opacity-50' : ''"
+                        :disabled="lightbox.reported"
+                        style="margin-top:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:6px 16px;border-radius:8px;font-size:0.78rem;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all 0.2s;"
+                        onmouseover="this.style.background='rgba(239,68,68,0.3)';this.style.borderColor='rgba(239,68,68,0.5)'"
+                        onmouseout="this.style.background='rgba(255,255,255,0.1)';this.style.borderColor='rgba(255,255,255,0.2)'">
+                    <i class="fa-solid fa-flag" :style="lightbox.reported ? 'color:#ef4444' : ''"></i>
+                    <span x-text="lightbox.reported ? '{{ __('Reported') }}' : '{{ __('Report Media') }}'"></span>
+                </button>
+            </template>
         </div>
 
         {{-- Crop Position Modal --}}

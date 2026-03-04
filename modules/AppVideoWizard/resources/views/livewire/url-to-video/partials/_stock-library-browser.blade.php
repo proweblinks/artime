@@ -83,23 +83,33 @@
                 <div class="utv-lib-grid">
                     @foreach($libraryCategoryResults as $idx => $item)
                         @php $isVideo = ($item['type'] ?? 'image') === 'video'; @endphp
-                        <button wire:click="selectFromLibrary({{ $idx }})" type="button"
-                                class="utv-lib-item"
+                        <div class="utv-lib-item-wrap" x-data="{ reported: false }">
+                            <button wire:click="selectFromLibrary({{ $idx }})" type="button"
+                                    class="utv-lib-item"
+                                    @if($isVideo)
+                                        @mouseenter="previewLibraryVideo('{{ $item['url'] ?? '' }}', $event)"
+                                        @mouseleave="stopLibraryPreview()"
+                                    @endif>
+                                <img src="{{ $item['thumbnail'] ?? $item['url'] }}"
+                                     alt="{{ $item['title'] ?? '' }}"
+                                     loading="lazy" draggable="false">
                                 @if($isVideo)
-                                    @mouseenter="previewLibraryVideo('{{ $item['url'] ?? '' }}', $event)"
-                                    @mouseleave="stopLibraryPreview()"
-                                @endif>
-                            <img src="{{ $item['thumbnail'] ?? $item['url'] }}"
-                                 alt="{{ $item['title'] ?? '' }}"
-                                 loading="lazy" draggable="false">
-                            @if($isVideo)
-                                <div class="utv-video-badge">
-                                    <i class="fa-solid fa-play"></i>
-                                    {{ !empty($item['duration']) ? gmdate('i:s', $item['duration']) : '' }}
-                                </div>
+                                    <div class="utv-video-badge">
+                                        <i class="fa-solid fa-play"></i>
+                                        {{ !empty($item['duration']) ? gmdate('i:s', $item['duration']) : '' }}
+                                    </div>
+                                @endif
+                                <span class="utv-lib-item-title">{{ Str::limit($item['title'] ?? '', 24) }}</span>
+                            </button>
+                            @if(!empty($item['stock_id']))
+                                <span class="utv-lib-report-btn"
+                                      @click.stop="if (reported) return; if (!confirm('Report this media as inappropriate or broken?')) return; fetch('/api/stock-media/{{ $item['stock_id'] }}/report', { method: 'POST', headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'} }).then(r => { reported = true; }).catch(() => {})"
+                                      :class="{ 'utv-lib-report-btn--reported': reported }"
+                                      :title="reported ? '{{ __('Reported') }}' : '{{ __('Report this media') }}'">
+                                    <i class="fa-solid fa-flag" style="font-size:9px;"></i>
+                                </span>
                             @endif
-                            <span class="utv-lib-item-title">{{ Str::limit($item['title'] ?? '', 24) }}</span>
-                        </button>
+                        </div>
                     @endforeach
                 </div>
                 @if($libraryHasMore)
@@ -211,6 +221,38 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+    .utv-lib-item-wrap {
+        position: relative;
+    }
+    .utv-lib-report-btn {
+        position: absolute;
+        bottom: 6px;
+        right: 6px;
+        z-index: 4;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: rgba(0,0,0,0.5);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.15s, background 0.15s;
+    }
+    .utv-lib-item-wrap:hover .utv-lib-report-btn {
+        opacity: 1;
+    }
+    .utv-lib-report-btn:hover {
+        background: rgba(239,68,68,0.8);
+    }
+    .utv-lib-report-btn--reported {
+        opacity: 1 !important;
+        background: rgba(239,68,68,0.8);
+        pointer-events: none;
     }
 </style>
 @endif
