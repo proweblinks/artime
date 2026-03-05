@@ -105,12 +105,13 @@ class FilmTemplateService
 You are a screenplay writer. Write a CINEMATIC SHORT FILM SCREENPLAY.
 
 FORMAT (CRITICAL — follow exactly):
-- Character dialogue: CHARACTER_NAME: "Spoken dialogue here"
+- Character dialogue: CHARACTER_NAME: Spoken dialogue here
 - Scene directions: [Scene: Description of what we see, setting, action, atmosphere]
 - NO narrator. ALL spoken content = character dialogue only.
 - Scene directions describe visuals only — they are NOT spoken by anyone.
 - Each [Scene: ...] block starts a new visual scene.
 - Keep dialogue punchy and cinematic — short lines, not monologues.
+- NEVER use double quotes around dialogue text. Write: REN: I can hear it — NOT: REN: "I can hear it"
 
 CHARACTERS (use these EXACTLY — do not invent new characters):
 {$characterBlock}
@@ -138,7 +139,7 @@ IMPORTANT RULES:
 Respond with ONLY a JSON object:
 {{
   "title": "Film title",
-  "transcript": "The complete screenplay text with [Scene: ...] markers and CHARACTER: dialogue",
+  "transcript": "The complete screenplay text with [Scene: ...] markers and CHARACTER: dialogue lines (no quotes around dialogue)",
   "concept_title": "One-line concept hook",
   "concept_pitch": "2-3 sentence pitch"
 }}

@@ -139,7 +139,7 @@ class StoryModeScriptService
 
                 // If output is too short for the target, retry with plain text
                 // Also retry if transcript ends mid-sentence (no ending punctuation)
-                $endsAbruptly = !preg_match('/[.!?…][\s"\']*$/', trim($parsed['transcript']));
+                $endsAbruptly = !preg_match('/[.!?…\]][\s"\']*$/', trim($parsed['transcript']));
                 if ($attempt < $maxAttempts && ($wordCount < $targetWords * 0.85 || $endsAbruptly)) {
                     Log::warning('StoryModeScriptService: Script too short or truncated, retrying', [
                         'attempt' => $attempt,
@@ -915,12 +915,33 @@ PROMPT;
                 continue;
             }
 
-            // Check if this quote is the closing one (followed by , or } or ] or whitespace+one of those)
+            // Check if this quote is the closing one
+            // Must distinguish dialogue quotes (mid-value) from JSON structural quotes
             if ($char === '"') {
-                $ahead = ltrim(substr($content, $pos + 1, 5));
-                if ($ahead === '' || $ahead[0] === ',' || $ahead[0] === '}' || $ahead[0] === ']') {
-                    break; // found the real closing quote
+                $ahead = ltrim(substr($content, $pos + 1, 40));
+
+                // End of content
+                if ($ahead === '') {
+                    break;
                 }
+
+                // Closing quote followed by } or ]
+                if ($ahead[0] === '}' || $ahead[0] === ']') {
+                    break;
+                }
+
+                // Closing quote followed by , — only break if what follows the comma
+                // looks like a JSON key (e.g., , "concept_title": ) not regular text
+                if ($ahead[0] === ',') {
+                    if (preg_match('/^,\s*"[a-z_]+"/', $ahead)) {
+                        break; // real JSON field boundary
+                    }
+                    // Otherwise it's dialogue like "hello", she said — keep going
+                    $value .= $char;
+                    $pos++;
+                    continue;
+                }
+
                 // Unescaped quote mid-value — include it and keep going
                 $value .= $char;
                 $pos++;
@@ -946,8 +967,8 @@ PROMPT;
         // Replace literal \r\n and \r with \n first
         $json = str_replace(["\r\n", "\r"], "\n", $json);
 
-        // Replace control characters inside string values:
-        // Walk through the string, tracking whether we're inside a JSON string
+        // Walk through JSON, tracking string boundaries.
+        // Handles: literal control chars → proper escapes, unescaped quotes → \"
         $result = '';
         $inString = false;
         $escaped = false;
@@ -970,8 +991,25 @@ PROMPT;
             }
 
             if ($char === '"') {
-                $inString = !$inString;
-                $result .= $char;
+                if ($inString) {
+                    // Check if this is the REAL closing quote (JSON boundary)
+                    // or an unescaped dialogue quote mid-value
+                    $ahead = ltrim(substr($json, $i + 1, 40));
+                    if ($ahead === '' || $ahead[0] === '}' || $ahead[0] === ']'
+                        || ($ahead[0] === ',' && preg_match('/^,\s*"[a-z_]+"\s*:/', $ahead))
+                        || ($ahead[0] === ':') // this quote opens a key
+                    ) {
+                        // Real JSON structural quote — close the string
+                        $inString = false;
+                        $result .= $char;
+                    } else {
+                        // Unescaped quote inside string value — escape it
+                        $result .= '\\"';
+                    }
+                } else {
+                    $inString = true;
+                    $result .= $char;
+                }
                 continue;
             }
 
