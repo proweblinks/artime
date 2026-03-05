@@ -391,7 +391,14 @@ trait HasImageSelection
     public function toggleAllScenesAI(): void
     {
         if ($this->areAllScenesAI()) {
-            $this->clearAllScenesAI();
+            // If all scenes are already AI but visual script hasn't been generated yet,
+            // generate it now (Film mode sets all scenes to AI automatically, so the
+            // "set all to AI" path in setAllScenesAI() is never reached).
+            if (empty($this->sceneVisualScript)) {
+                $this->generateVisualScript();
+            } else {
+                $this->clearAllScenesAI();
+            }
         } else {
             $this->setAllScenesAI();
         }
