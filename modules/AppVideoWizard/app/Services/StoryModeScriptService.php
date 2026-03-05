@@ -222,40 +222,12 @@ Read ALL narration segments and identify every recurring character or subject (p
 For each, provide a detailed visual identity sheet so the character looks IDENTICAL across all generated images.
 
 ## PHASE 2 — PER-SCENE DIRECTION
-For each narration segment, output detailed creative direction:
+For each narration segment, output detailed creative direction. EVERY field is MANDATORY — do NOT skip any field:
 
 1. **image_prompt**: Detailed image generation prompt (1-3 sentences) with subject, setting, lighting, mood, composition, camera perspective. CRITICAL: All images will be generated in {$aspectRatioLabel} format — compose every scene accordingly. For portrait (9:16): use vertical compositions, tall framing, subjects centered vertically, close-up or medium shots, avoid wide panoramas. For landscape (16:9): use wide horizontal compositions, cinematic widescreen framing. For square (1:1): use centered balanced compositions.{$styleContext}
-2. **characters_in_scene**: Array of character IDs (from the bible) that appear in this scene
-3. **camera_motion**: Select from this list based on scene content:
-   - "slow zoom in" — builds intimacy/focus (emotional moments, portraits, detail)
-   - "slow zoom out" — reveals context/scale (establishing shots, conclusions, landscapes)
-   - "dramatic zoom in" — intense focus (climax, shock, tension)
-   - "pan left" / "pan right" — scanning/progression (landscapes, journeys, timelines)
-   - "pan left slow" / "pan right slow" — gentle drift (calm, contemplative scenes)
-   - "tilt up" — aspiration, height (tall subjects, sky, looking up)
-   - "tilt down" — grounding, detail (settling, water, close inspection)
-   - "zoom in pan right" — dynamic tracking (following subject, discovery)
-   - "zoom out pan left" — revealing context (pulling away, showing bigger picture)
-   - "diagonal drift" — floating feeling (ambient, dreamy, contemplative)
-   - "push to subject" — emotional closeup (character focus, portraits)
-   - "rise and reveal" — epic opening (establishing shots, landscapes, reveals)
-   - "settle in" — subtle settling (minimal motion, text-friendly)
-   - "breathe" — very subtle zoom keeping image alive (default/safe choice)
-4. **mood**: The emotional tone of this scene. Pick ONE from: calm, dramatic, energetic, tense, mysterious, epic, playful, nostalgic, professional, horror, intimate, hopeful
-5. **voice_emotion**: How the narrator should deliver this scene. Pick ONE from: neutral, dramatic, funny, excited, calm, mysterious, sad, confident, urgent, contemplative, storytelling, whisper
-6. **transition_type**: FFmpeg xfade transition TO THE NEXT scene. Pick based on mood:
-   - Calm/nostalgic: "fade", "dissolve", "smoothleft", "smoothright", "fadewhite"
-   - Dramatic/epic: "fadeblack", "radial", "zoomin", "circleclose"
-   - Energetic/playful: "wipeleft", "wiperight", "coverleft", "pixelize", "squeezeh"
-   - Tense/horror: "fadeblack", "hblur", "distance", "circleclose"
-   - Mysterious: "dissolve", "distance", "fadegrays", "hblur"
-   - Professional: "fade", "wipeleft", "dissolve", "smoothleft"
-   - For the LAST scene: use "fade" (will be the fade-to-black)
-7. **transition_duration**: Duration in seconds (0.3 for energetic, 0.5 for normal, 0.8 for calm, 1.0 for mysterious/dramatic)
-8. **video_action**: A RICH scene description for AI video generation (2-4 sentences of flowing prose).
-   This text is sent to Seedance video AI — quality directly determines video quality.
+2. **video_action** (MANDATORY — DO NOT SKIP): A RICH scene description for Seedance 2.0 AI video generation (2-4 sentences of flowing prose). This is the MOST IMPORTANT field — video quality depends entirely on this text.
 
-   Structure as natural flowing narrative:
+   Structure as natural flowing narrative following Seedance 2.0 format (Subject → Action → Camera → Style):
    - SENTENCE 1: Open with the SETTING — where is this? What does the environment look like?
      Include atmospheric details: particles, light behavior, reflections, textures.
    - SENTENCE 2-3: Describe the PRIMARY ACTION with explicit physical motion.
@@ -274,15 +246,36 @@ For each narration segment, output detailed creative direction:
    - Do NOT include camera directions (camera_motion field handles this separately)
    - Do NOT include style/aesthetic directions (applied separately during prompt assembly)
 
-   GOOD examples:
-   - "Inside a vast server room bathed in cool blue-purple neon, intricate data streams flow as visible threads of light, converging from multiple terminals onto a central glowing AI core. The core pulses steadily brighter as each data thread arrives, casting shifting geometric shadows across the glass floor panels."
-   - "In a dimly lit digital studio, the artist leans forward toward the glowing monitor, extending their right hand to trace along the rapidly forming landscape. Colors bloom outward from the fingertip as forests and mountains render in real-time, each new element casting soft light across the workspace."
-   - "A grand concert hall interior drenched in warm amber spotlight. Holographic musical notes materialize from the vintage piano keys, spiraling upward through dusty golden air before coalescing into floating orchestral score sheets that drift across the polished black piano lid."
+   GOOD: "Inside a vast server room bathed in cool blue-purple neon, intricate data streams flow as visible threads of light, converging from multiple terminals onto a central glowing AI core. The core pulses steadily brighter as each data thread arrives, casting shifting geometric shadows across the glass floor panels."
+   BAD: "The data flows to the AI core" — too vague, no setting, no atmosphere
 
-   BAD examples (too vague — these produce mediocre video):
-   - "The data flows to the AI core" — no setting, no atmosphere, no physical detail
-   - "The artist uses AI to create art" — no specific motion, no environment
-   - "Musical notes appear around the piano" — no atmosphere, no physical behavior
+3. **characters_in_scene**: Array of character IDs (from the bible) that appear in this scene
+4. **camera_motion**: Select from this list based on scene content:
+   - "slow zoom in" — builds intimacy/focus (emotional moments, portraits, detail)
+   - "slow zoom out" — reveals context/scale (establishing shots, conclusions, landscapes)
+   - "dramatic zoom in" — intense focus (climax, shock, tension)
+   - "pan left" / "pan right" — scanning/progression (landscapes, journeys, timelines)
+   - "pan left slow" / "pan right slow" — gentle drift (calm, contemplative scenes)
+   - "tilt up" — aspiration, height (tall subjects, sky, looking up)
+   - "tilt down" — grounding, detail (settling, water, close inspection)
+   - "zoom in pan right" — dynamic tracking (following subject, discovery)
+   - "zoom out pan left" — revealing context (pulling away, showing bigger picture)
+   - "diagonal drift" — floating feeling (ambient, dreamy, contemplative)
+   - "push to subject" — emotional closeup (character focus, portraits)
+   - "rise and reveal" — epic opening (establishing shots, landscapes, reveals)
+   - "settle in" — subtle settling (minimal motion, text-friendly)
+   - "breathe" — very subtle zoom keeping image alive (default/safe choice)
+5. **mood**: Pick ONE from: calm, dramatic, energetic, tense, mysterious, epic, playful, nostalgic, professional, horror, intimate, hopeful
+6. **voice_emotion**: Pick ONE from: neutral, dramatic, funny, excited, calm, mysterious, sad, confident, urgent, contemplative, storytelling, whisper
+7. **transition_type**: FFmpeg xfade transition TO THE NEXT scene. Pick based on mood:
+   - Calm/nostalgic: "fade", "dissolve", "smoothleft", "smoothright", "fadewhite"
+   - Dramatic/epic: "fadeblack", "radial", "zoomin", "circleclose"
+   - Energetic/playful: "wipeleft", "wiperight", "coverleft", "pixelize", "squeezeh"
+   - Tense/horror: "fadeblack", "hblur", "distance", "circleclose"
+   - Mysterious: "dissolve", "distance", "fadegrays", "hblur"
+   - Professional: "fade", "wipeleft", "dissolve", "smoothleft"
+   - For the LAST scene: use "fade" (will be the fade-to-black)
+8. **transition_duration**: Duration in seconds (0.3 for energetic, 0.5 for normal, 0.8 for calm, 1.0 for mysterious/dramatic)
 
 IMPORTANT RULES:
 - Never use the same transition_type for more than 2 consecutive scenes — variety is key
@@ -295,7 +288,7 @@ IMPORTANT RULES:
 NARRATION SEGMENTS:
 {$allSegments}
 
-Respond ONLY with a JSON object in this exact format:
+Respond ONLY with a JSON object in this exact format (EVERY field is required — do NOT omit video_action):
 {
   "character_bible": [
     {
@@ -308,13 +301,13 @@ Respond ONLY with a JSON object in this exact format:
   "scenes": [
     {
       "segment_index": 1,
-      "image_prompt": "...",
-      "video_action": "walks slowly through the dark library corridor, trailing fingers along dusty spines",
+      "image_prompt": "Detailed image generation prompt with subject, setting, lighting...",
+      "video_action": "Inside a dimly lit library corridor, dust motes drift through amber shafts of light filtering through tall stained-glass windows. A solitary figure trails fingertips along rows of leather-bound spines, each touch releasing tiny spirals of golden dust that swirl upward. The ancient shelves creak softly as the figure pauses, pulling one weathered tome halfway out, its pages catching the warm light.",
       "characters_in_scene": ["short_snake_case_id"],
-      "camera_motion": "...",
-      "mood": "...",
-      "voice_emotion": "...",
-      "transition_type": "...",
+      "camera_motion": "slow zoom in",
+      "mood": "mysterious",
+      "voice_emotion": "contemplative",
+      "transition_type": "dissolve",
       "transition_duration": 0.5
     }
   ]
@@ -335,7 +328,7 @@ PROMPT;
                 'text',
                 [
                     'temperature' => 0.6,
-                    'max_tokens' => 6000,
+                    'max_tokens' => 8000,
                 ],
                 $effectiveTeamId
             );
@@ -382,6 +375,20 @@ PROMPT;
             // Aspect ratio framing instruction
             $aspectFraming = $this->buildAspectRatioFraming($aspectRatio, $aspectRatioLabel);
 
+            // Log field presence for debugging
+            $fieldsPresent = [];
+            foreach ($visualScript as $idx => $vs) {
+                $fieldsPresent[$idx] = [
+                    'has_image_prompt' => !empty($vs['image_prompt']),
+                    'has_video_action' => !empty($vs['video_action']),
+                    'video_action_length' => strlen($vs['video_action'] ?? ''),
+                ];
+            }
+            Log::info('StoryModeScriptService: AI response field analysis', [
+                'total_scenes' => count($visualScript),
+                'fields' => $fieldsPresent,
+            ]);
+
             // Merge visual script data back into segments
             $result = [];
             foreach ($segments as $i => $segment) {
@@ -395,9 +402,16 @@ PROMPT;
                 // Append aspect ratio framing
                 $imagePrompt .= "\n\n" . $aspectFraming;
 
+                // Fallback: generate video_action from narration if AI omitted it
+                $videoAction = $visual['video_action'] ?? '';
+                if (empty(trim($videoAction))) {
+                    $videoAction = $this->generateFallbackVideoAction($segment['text'], $visual['image_prompt'] ?? '', $visual['mood'] ?? 'professional');
+                    Log::info("StoryModeScriptService: Generated fallback video_action for scene {$i}");
+                }
+
                 $result[] = array_merge($segment, [
                     'image_prompt' => $imagePrompt,
-                    'video_action' => $visual['video_action'] ?? '',
+                    'video_action' => $videoAction,
                     'characters_in_scene' => $charsInScene,
                     'camera_motion' => $visual['camera_motion'] ?? 'slow zoom in',
                     'mood' => $visual['mood'] ?? 'professional',
@@ -419,9 +433,10 @@ PROMPT;
             // Fallback: create basic image prompts from narration with default creative metadata
             return array_map(function ($segment) use ($styleInstruction, $aspectFraming) {
                 $stylePrefix = $styleInstruction ? "{$styleInstruction}. " : '';
+                $imagePrompt = "{$stylePrefix}A cinematic scene depicting: {$segment['text']}";
                 return array_merge($segment, [
-                    'image_prompt' => "{$stylePrefix}A cinematic scene depicting: {$segment['text']}\n\n{$aspectFraming}",
-                    'video_action' => '',
+                    'image_prompt' => "{$imagePrompt}\n\n{$aspectFraming}",
+                    'video_action' => $this->generateFallbackVideoAction($segment['text'], $imagePrompt, 'professional'),
                     'characters_in_scene' => [],
                     'camera_motion' => 'slow zoom in',
                     'mood' => 'professional',
@@ -431,6 +446,46 @@ PROMPT;
                 ]);
             }, $segments);
         }
+    }
+
+    /**
+     * Generate a fallback Seedance-compliant video_action from narration and image_prompt.
+     * Used when the AI omits video_action from its response.
+     */
+    protected function generateFallbackVideoAction(string $narration, string $imagePrompt, string $mood): string
+    {
+        // Extract setting cues from image_prompt (first sentence usually describes the setting)
+        $settingSentence = '';
+        if (!empty($imagePrompt)) {
+            $sentences = preg_split('/(?<=[.!?])\s+/', trim($imagePrompt), 3);
+            $settingSentence = $sentences[0] ?? '';
+        }
+
+        // Build atmospheric details based on mood
+        $atmosphere = match($mood) {
+            'calm', 'nostalgic' => 'Soft golden light filters through the scene, dust motes drifting lazily in the warm ambient glow.',
+            'dramatic', 'epic' => 'Dramatic shafts of light cut through the scene, shadows shifting with each movement as the atmosphere pulses with energy.',
+            'mysterious' => 'Dim ethereal light bathes the scene in blue-silver tones, faint particles swirling in the still air.',
+            'tense', 'horror' => 'Harsh contrasting light carves deep shadows across the scene, the air thick with suspended particles.',
+            'energetic', 'playful' => 'Vibrant light dances across the scene, colors shifting dynamically as energy ripples through the environment.',
+            'intimate' => 'Warm intimate lighting wraps the scene in a soft glow, every detail rendered with delicate clarity.',
+            'hopeful' => 'Bright ascending light fills the scene from below, particles rising gently upward through the luminous air.',
+            default => 'Cinematic light sweeps across the scene, atmospheric particles drifting gently through the ambient glow.',
+        };
+
+        // Transform narration into active Seedance-style action
+        $narrationClean = trim($narration);
+        // Truncate very long narration
+        if (strlen($narrationClean) > 200) {
+            $narrationClean = substr($narrationClean, 0, 197) . '...';
+        }
+
+        // Combine setting + atmosphere + narration-derived action
+        if (!empty($settingSentence)) {
+            return "{$settingSentence} {$atmosphere} {$narrationClean}";
+        }
+
+        return "{$atmosphere} {$narrationClean}";
     }
 
     /**

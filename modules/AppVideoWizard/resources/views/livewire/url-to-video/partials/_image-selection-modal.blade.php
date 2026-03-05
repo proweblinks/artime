@@ -363,28 +363,36 @@
                             </div>
                         @endif
 
-                        {{-- Video Prompt (editable) --}}
-                        @if(!empty($visual['video_action']))
-                            <div class="mb-2" @click.stop>
-                                <label class="d-flex align-items-center gap-1 mb-1" style="font-size: 0.68rem; color: #d97706; font-weight: 600;">
-                                    <i class="fa-light fa-video"></i> {{ __('Video Prompt') }}
-                                </label>
+                        {{-- Video Prompt (editable, always visible) --}}
+                        <div class="mb-2" @click.stop>
+                            <label class="d-flex align-items-center gap-1 mb-1" style="font-size: 0.68rem; color: #d97706; font-weight: 600;">
+                                <i class="fa-light fa-video"></i> {{ __('Video Prompt') }}
+                                <span style="font-size: 0.6rem; color: #94a0b8; font-weight: 400; margin-left: 2px;">Seedance 2.0</span>
+                            </label>
+                            @if(!empty($visual['video_action']))
                                 <div x-show="!editingVideoPrompt['{{ $sceneId }}']"
                                      @click="editingVideoPrompt['{{ $sceneId }}'] = true; $nextTick(() => $refs.vidPrompt_{{ $sceneIndex }}?.focus())"
-                                     class="utv-studio-prompt" style="font-size: 0.75rem; color: var(--at-text, #1a1a2e); line-height: 1.4; padding: 6px 8px; background: #f5f7fa; border-radius: 6px; border: 1px solid transparent; cursor: text; min-height: 28px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                                     class="utv-studio-prompt" style="font-size: 0.75rem; color: var(--at-text, #1a1a2e); line-height: 1.4; padding: 6px 8px; background: #f5f7fa; border-radius: 6px; border: 1px solid transparent; cursor: text; min-height: 28px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"
                                      title="{{ __('Click to edit') }}">
                                     {{ $visual['video_action'] }}
                                 </div>
-                                <textarea x-show="editingVideoPrompt['{{ $sceneId }}']" x-cloak
-                                          x-ref="vidPrompt_{{ $sceneIndex }}"
-                                          wire:blur="updateSceneVideoPrompt('{{ $sceneId }}', $event.target.value)"
-                                          @blur="editingVideoPrompt['{{ $sceneId }}'] = false"
-                                          @keydown.escape="editingVideoPrompt['{{ $sceneId }}'] = false"
-                                          class="form-control form-control-sm border-0"
-                                          style="background: #f5f7fa; border-radius: 6px; font-size: 0.75rem; resize: vertical; min-height: 44px; color: var(--at-text, #1a1a2e);"
-                                          rows="2">{{ $visual['video_action'] }}</textarea>
-                            </div>
-                        @endif
+                            @else
+                                <div x-show="!editingVideoPrompt['{{ $sceneId }}']"
+                                     @click="editingVideoPrompt['{{ $sceneId }}'] = true; $nextTick(() => $refs.vidPrompt_{{ $sceneIndex }}?.focus())"
+                                     class="utv-studio-prompt" style="font-size: 0.75rem; color: #94a0b8; line-height: 1.4; padding: 6px 8px; background: #f5f7fa; border-radius: 6px; border: 1px dashed #d1d5db; cursor: text; min-height: 28px; font-style: italic;"
+                                     title="{{ __('Click to write video prompt') }}">
+                                    {{ __('Click to write Seedance video prompt...') }}
+                                </div>
+                            @endif
+                            <textarea x-show="editingVideoPrompt['{{ $sceneId }}']" x-cloak
+                                      x-ref="vidPrompt_{{ $sceneIndex }}"
+                                      wire:blur="updateSceneVideoPrompt('{{ $sceneId }}', $event.target.value)"
+                                      @blur="editingVideoPrompt['{{ $sceneId }}'] = false"
+                                      @keydown.escape="editingVideoPrompt['{{ $sceneId }}'] = false"
+                                      class="form-control form-control-sm border-0"
+                                      style="background: #f5f7fa; border-radius: 6px; font-size: 0.75rem; resize: vertical; min-height: 44px; color: var(--at-text, #1a1a2e);"
+                                      rows="2">{{ $visual['video_action'] ?? '' }}</textarea>
+                        </div>
 
                         {{-- Generation Buttons --}}
                         <div class="d-flex gap-2 mt-2" @click.stop>
