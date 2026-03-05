@@ -724,6 +724,7 @@ trait HasImageSelection
                 $storyboard['scenes'][$i] = [
                     'id' => $sid,
                     'imageUrl' => $imgUrl,
+                    'status' => $imgUrl ? 'ready' : 'pending',
                 ];
             }
 
