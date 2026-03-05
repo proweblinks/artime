@@ -686,11 +686,57 @@ trait HasImageSelection
                 'narration' => $this->generatedSegments[$sceneIndex]['text'] ?? '',
             ];
 
+            // ── Reference Cascade: Build sceneMemory from characterBible ──
+            $sceneMemory = null;
+            if (!empty($this->characterBible)) {
+                $sceneMemory = [
+                    'characterBible' => [
+                        'enabled' => true,
+                        'characters' => array_map(function ($char) {
+                            return [
+                                'name' => $char['name'] ?? '',
+                                'description' => $char['description'] ?? '',
+                                'scenes' => $char['appears_in'] ?? [],
+                                'referenceImageStatus' => 'none',
+                            ];
+                        }, $this->characterBible),
+                    ],
+                ];
+            }
+
+            // ── Reference Cascade: Build mini storyboard with previous imageUrls ──
+            $storyboard = ['scenes' => []];
+            $segments = $this->generatedSegments ?? [];
+            foreach ($segments as $i => $seg) {
+                $sid = 'scene_' . $i;
+                $genImages = $this->sceneGeneratedImages[$sid] ?? [];
+                $selectedIdx = $this->selectedSceneImages[$sid] ?? [];
+                $candidates = $this->sceneImageCandidates[$sid] ?? [];
+
+                $imgUrl = null;
+                if (!empty($genImages)) {
+                    $imgUrl = end($genImages)['url'] ?? null;
+                } elseif (!empty($selectedIdx) && !empty($candidates)) {
+                    $lastIdx = end($selectedIdx);
+                    $imgUrl = $candidates[(int) $lastIdx]['url'] ?? null;
+                }
+
+                $storyboard['scenes'][$i] = [
+                    'id' => $sid,
+                    'imageUrl' => $imgUrl,
+                ];
+            }
+
+            // ── Reference Cascade: Set storyboard on project + pass sceneMemory ──
+            $wizardProject->storyboard = $storyboard;
+
             $imageService = app(ImageGenerationService::class);
             $result = $imageService->generateSceneImage($wizardProject, $sceneData, [
                 'model' => $imageModel,
                 'sceneIndex' => $sceneIndex,
                 'teamId' => $teamId,
+                'sceneMemory' => $sceneMemory,
+                'useCascade' => true,
             ]);
 
             $imageUrl = $result['imageUrl'] ?? $result['image_url'] ?? null;
