@@ -511,8 +511,9 @@ class VoiceoverService
             $speechOptions['instructions'] = $options['instructions'];
         }
 
-        // Generate audio using OpenAI TTS
-        $result = AI::process($narration, 'speech', $speechOptions, $teamId);
+        // Generate audio using OpenAI TTS — force 'openai' provider to bypass global ai_platform setting
+        // (ai_platform may be set to 'grok' which doesn't support TTS)
+        $result = AI::processWithOverride($narration, 'openai', null, 'speech', $speechOptions, $teamId);
 
         if (!empty($result['error'])) {
             throw new \Exception($result['error']);
