@@ -923,6 +923,12 @@ class UrlToVideoOrchestrator
         // 1. CORE: Rich video action (2-4 sentences from AI)
         $videoAction = trim($scene['video_action'] ?? '');
         if (!empty($videoAction)) {
+            // Seedance sweet spot: video_action ≤80 words
+            // (buildVideoPrompt adds ~40 more for camera/style/lighting/audio)
+            $words = explode(' ', $videoAction);
+            if (count($words) > 80) {
+                $videoAction = implode(' ', array_slice($words, 0, 80));
+            }
             $parts[] = rtrim($videoAction, '.');
         } elseif (!empty($direction)) {
             // Film mode: scene direction serves as the visual description
@@ -937,9 +943,13 @@ class UrlToVideoOrchestrator
             }
         }
 
-        // Film mode: inject template atmosphere
+        // Film mode: inject template atmosphere only if prompt isn't already long
         if ($filmTemplateConfig && !empty($filmTemplateConfig['atmosphere'])) {
-            $parts[] = $filmTemplateConfig['atmosphere'];
+            $currentWordCount = str_word_count(implode(' ', $parts));
+            // Only add atmosphere if total won't exceed ~90 words (leaving room for layers)
+            if ($currentWordCount < 50) {
+                $parts[] = $filmTemplateConfig['atmosphere'];
+            }
         }
 
         if (empty($parts)) {

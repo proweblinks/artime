@@ -106,27 +106,16 @@ class CreditService
         if (is_null($teamId)) return;
 
         $today = Carbon::now()->startOfDay()->timestamp;
+        $now = time();
 
-        // Thử update trước
-        $updated = \DB::table('credit_usages')
-            ->where('team_id', $teamId)
-            ->where('feature', $feature)
-            ->where('model', $model)
-            ->where('date', $today)
-            ->increment('credits_used', $credits, ['changed' => time()]);
-
-        // Nếu chưa có row nào thì insert
-        if (!$updated) {
-            \DB::table('credit_usages')->insert([
-                'team_id'      => $teamId,
-                'feature'      => $feature,
-                'model'        => $model,
-                'date'         => $today,
-                'credits_used' => $credits,
-                'changed'      => time(),
-                'created'      => time(),
-            ]);
-        }
+        // Atomic upsert — fixes race condition when multiple TTS/image calls
+        // fire concurrently for the same team/model/date (duplicate key crash)
+        \DB::statement(
+            'INSERT INTO credit_usages (team_id, feature, model, date, credits_used, changed, created)
+             VALUES (?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE credits_used = credits_used + VALUES(credits_used), changed = VALUES(changed)',
+            [$teamId, $feature, $model, $today, $credits, $now, $now]
+        );
     }
 
     public function getCreditUsageByModel($teamId = 0, $startDate = null, $endDate = null, $feature = 'ai_%')

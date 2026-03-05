@@ -179,6 +179,9 @@ PROMPT;
     /**
      * Build visual script deterministically from screenplay directions + template config.
      * Skips AI entirely — the [Scene: ...] directions are already rich visual descriptions.
+     *
+     * V2: Separate image vs video prompts, shot framing, smart prefix, concise character traits,
+     * location-aware styling, and properly scoped video_action for Seedance (30-100 words).
      */
     public function buildFilmVisualScript(array $scenes, array $template): array
     {
@@ -191,8 +194,14 @@ PROMPT;
         $characters = $template['characters'] ?? [];
         $total = count($scenes);
 
+        // Split prefix into outdoor and indoor elements
+        $outdoorPrefix = $imagePrefix; // Full prefix: rain-slicked streets, lens flares, etc.
+        $indoorPrefix = $this->extractIndoorPrefix($imagePrefix); // Lighting/color only
+
         // Track camera picks per scene type to cycle through options
         $cameraCounters = [];
+        // Track dialogue scene counter for alternating OTS/medium shots
+        $dialogueCounter = 0;
 
         $visualScript = [];
         foreach ($scenes as $i => $scene) {
@@ -201,42 +210,56 @@ PROMPT;
             $isVisualOnly = !empty($scene['is_visual_only']);
 
             $sceneType = $this->detectSceneType($i, $total, $direction, $isVisualOnly, $body);
-            $detectedChars = $this->detectCharactersInScene($body, $characters);
+            // V2: scan both direction AND body for character detection
+            $detectedChars = $this->detectCharactersInScene($direction . ' ' . $body, $characters);
             $mood = $this->detectMood($direction, $body, $sceneType);
+            $locationHint = $this->detectLocation($direction);
 
-            // --- Image prompt ---
-            $imagePrompt = '';
-            if ($imagePrefix) {
-                $imagePrompt .= $imagePrefix . '. ';
+            // --- Shot framing (first instruction in image prompt) ---
+            $framing = $this->getShotFraming($sceneType, $i, $total, $dialogueCounter);
+            if ($sceneType === 'dialogue') {
+                $dialogueCounter++;
+            }
+
+            // --- Smart prefix: outdoor elements only for exterior scenes ---
+            $isExterior = in_array($locationHint, ['exterior_urban', 'exterior_natural', 'exterior_unknown']);
+            $smartPrefix = $isExterior ? $outdoorPrefix : $indoorPrefix;
+
+            // --- Image prompt (NanoBanana2 handles long prompts well) ---
+            $imagePromptParts = [];
+            $imagePromptParts[] = $framing;
+            if ($smartPrefix) {
+                $imagePromptParts[] = $smartPrefix;
             }
             if ($direction) {
-                $imagePrompt .= $direction . '. ';
+                $imagePromptParts[] = $direction;
             }
             if ($imageSuffix) {
-                $imagePrompt .= $imageSuffix;
+                $imagePromptParts[] = $imageSuffix;
             }
 
-            // Inject character visual identity for detected characters
+            // Concise character identity: name + 2-3 key visual traits
             if (!empty($detectedChars)) {
-                $charDescriptions = [];
+                $charTraits = [];
                 foreach ($detectedChars as $charName) {
                     foreach ($characters as $char) {
                         if (strtolower($char['name']) === strtolower($charName)) {
-                            $charDescriptions[] = "{$char['name']}: {$char['description']}";
+                            $charTraits[] = $char['name'] . ' — ' . $this->condensCharacterDescription($char['description']);
                             break;
                         }
                     }
                 }
-                if (!empty($charDescriptions)) {
-                    $imagePrompt .= "\n\nCHARACTER VISUAL IDENTITY (maintain exact appearance):\n" . implode("\n", $charDescriptions);
+                if (!empty($charTraits)) {
+                    $imagePromptParts[] = 'Characters: ' . implode('; ', $charTraits);
                 }
             }
 
-            // --- Video action ---
-            $videoAction = $direction;
-            if ($isVisualOnly && $atmosphere) {
-                $videoAction .= '. ' . $atmosphere;
-            }
+            $imagePrompt = implode('. ', array_filter(array_map('trim', $imagePromptParts)));
+            // Clean double periods
+            $imagePrompt = preg_replace('/\.\s*\./', '.', $imagePrompt);
+
+            // --- Video action (for Seedance: 30-100 words, detailed scene description) ---
+            $videoAction = $this->buildConciseVideoAction($direction, $detectedChars, $characters, $isVisualOnly);
 
             // --- Camera motion (cycle through template rules by scene type) ---
             $typeRules = $cameraRules[$sceneType] ?? $cameraRules['dialogue'] ?? ['slow zoom in'];
@@ -270,10 +293,168 @@ PROMPT;
                 'characters_in_scene' => $detectedChars,
                 'transition_type' => $transitionType,
                 'transition_duration' => $transitionDuration,
+                'location_hint' => $locationHint,
+                'scene_type' => $sceneType,
             ];
         }
 
         return $visualScript;
+    }
+
+    /**
+     * Get shot framing instruction based on scene type.
+     */
+    protected function getShotFraming(string $sceneType, int $index, int $total, int $dialogueCounter): string
+    {
+        return match ($sceneType) {
+            'establishing' => 'Wide establishing shot',
+            'action' => 'Dynamic medium shot',
+            'tension' => 'Close-up',
+            'closing' => ($index >= $total - 1) ? 'Close-up' : 'Wide shot',
+            'dialogue' => ($dialogueCounter % 2 === 0) ? 'Medium shot' : 'Over-the-shoulder shot',
+            default => 'Medium shot',
+        };
+    }
+
+    /**
+     * Extract indoor-safe prefix elements (lighting, color, bokeh) — skip outdoor elements.
+     */
+    protected function extractIndoorPrefix(string $fullPrefix): string
+    {
+        if (empty($fullPrefix)) return '';
+
+        // Outdoor-specific terms to strip for indoor scenes
+        $outdoorTerms = ['rain-slicked streets', 'rain-slicked', 'streets', 'wet pavement', 'city skyline', 'neon reflections'];
+        $parts = array_map('trim', explode(',', $fullPrefix));
+        $indoor = [];
+        foreach ($parts as $part) {
+            $lower = strtolower($part);
+            $isOutdoor = false;
+            foreach ($outdoorTerms as $term) {
+                if (str_contains($lower, $term)) {
+                    $isOutdoor = true;
+                    break;
+                }
+            }
+            if (!$isOutdoor) {
+                $indoor[] = $part;
+            }
+        }
+        return implode(', ', $indoor);
+    }
+
+    /**
+     * Detect location type from direction text for smart prefix application.
+     */
+    protected function detectLocation(string $direction): string
+    {
+        $lower = strtolower($direction);
+
+        // Interior tech
+        if (preg_match('/\b(room|lab|terminal|console|screen|monitor|cockpit|server|office|apartment|chamber|headquarters)\b/', $lower)) {
+            return 'interior_tech';
+        }
+        // Interior industrial
+        if (preg_match('/\b(warehouse|dock|underground|tunnel|bunker|factory|basement|garage|sewers?)\b/', $lower)) {
+            return 'interior_industrial';
+        }
+        // Interior generic
+        if (preg_match('/\b(inside|interior|indoors|bar|club|shop|store|elevator|corridor|hallway|stairwell)\b/', $lower)) {
+            return 'interior_generic';
+        }
+        // Exterior urban
+        if (preg_match('/\b(street|alley|rooftop|city|skyline|district|neon|plaza|market|bridge|highway|overpass)\b/', $lower)) {
+            return 'exterior_urban';
+        }
+        // Exterior natural
+        if (preg_match('/\b(forest|ocean|mountain|field|desert|river|lake|sky|horizon|cliff|shore)\b/', $lower)) {
+            return 'exterior_natural';
+        }
+
+        return 'exterior_unknown'; // Default to exterior (safe for cyberpunk)
+    }
+
+    /**
+     * Condense a full character description to 2-3 key visual traits.
+     * "Late 20s, sharp angular features, short dark hair, cybernetic implant above right ear, dark leather jacket with glowing circuit patterns"
+     * → "short dark hair, cybernetic ear implant, leather jacket with glowing circuits"
+     */
+    protected function condensCharacterDescription(string $description): string
+    {
+        // Split on commas and take up to 3 most visual traits (skip age/generic)
+        $parts = array_map('trim', explode(',', $description));
+        $visual = [];
+        foreach ($parts as $part) {
+            // Skip age descriptors and generic body type
+            if (preg_match('/^\b(late|early|mid)\s+\d+s?\b/i', $part)) continue;
+            if (preg_match('/^\b(tall|short|average|slim|athletic|stocky)\b$/i', $part)) continue;
+            $visual[] = trim($part);
+            if (count($visual) >= 3) break;
+        }
+        return implode(', ', $visual) ?: $description;
+    }
+
+    /**
+     * Build concise video_action for Seedance (30-100 words).
+     * Focuses on: subject + motion + key visual detail + degree adverbs.
+     * No template prefix/suffix — those go into buildVideoPrompt's style layers.
+     */
+    protected function buildConciseVideoAction(string $direction, array $detectedChars, array $characters, bool $isVisualOnly): string
+    {
+        if (empty($direction)) return '';
+
+        // Replace character names with brief visual descriptors for Seedance
+        // (Seedance doesn't know who "Ren" is — describe what we see)
+        $action = $direction;
+        foreach ($detectedChars as $charName) {
+            foreach ($characters as $char) {
+                if (strtolower($char['name']) === strtolower($charName)) {
+                    $brief = $this->getCharacterVisualBrief($char);
+                    // Replace "REN" or "Ren" with brief descriptor (first occurrence only)
+                    $action = preg_replace('/\b' . preg_quote($charName, '/') . '\b/i', $brief, $action, 1);
+                    break;
+                }
+            }
+        }
+
+        // Trim to 80 words max (buildVideoPrompt adds camera/style/lighting ~40 more words)
+        $words = explode(' ', $action);
+        if (count($words) > 80) {
+            $action = implode(' ', array_slice($words, 0, 80));
+        }
+
+        return trim($action);
+    }
+
+    /**
+     * Get a brief visual descriptor for a character (for Seedance prompts).
+     * "Ren" → "A man with a cybernetic ear implant"
+     */
+    protected function getCharacterVisualBrief(array $char): string
+    {
+        $gender = $char['gender'] ?? 'unknown';
+        $subject = match ($gender) {
+            'male' => 'A man',
+            'female' => 'A woman',
+            default => 'A person',
+        };
+
+        // Extract the most distinctive visual trait
+        $desc = $char['description'] ?? '';
+        $parts = array_map('trim', explode(',', $desc));
+        foreach ($parts as $part) {
+            if (preg_match('/\b(cybernetic|implant|scar|tattoo|visor|prosthetic|augmented|glowing|silver|chrome)\b/i', $part)) {
+                return $subject . ' with ' . strtolower(trim($part));
+            }
+        }
+        // Fallback: use hair descriptor
+        foreach ($parts as $part) {
+            if (preg_match('/\b(hair|bald|shaved|dreadlocks|braids|mohawk)\b/i', $part)) {
+                return $subject . ' with ' . strtolower(trim($part));
+            }
+        }
+
+        return $subject;
     }
 
     /**
@@ -311,15 +492,17 @@ PROMPT;
     }
 
     /**
-     * Detect which template characters appear in the scene body.
+     * Detect which template characters appear in the scene text.
+     * V2: Scans both direction and dialogue text — matches dialogue pattern (NAME:)
+     * and plain name mentions in direction text.
      */
-    public function detectCharactersInScene(string $body, array $characters): array
+    public function detectCharactersInScene(string $text, array $characters): array
     {
         $found = [];
         foreach ($characters as $char) {
-            $name = strtoupper($char['name']);
-            // Match "CHARACTER:" dialogue pattern
-            if (preg_match('/\b' . preg_quote($name, '/') . '\s*:/i', $body)) {
+            $name = preg_quote($char['name'], '/');
+            // Match "CHARACTER:" dialogue pattern OR plain name mention in direction
+            if (preg_match('/\b' . $name . '\b/i', $text)) {
                 $found[] = $char['name'];
             }
         }

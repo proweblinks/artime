@@ -224,6 +224,26 @@ trait HasImageSelection
         $this->isSourcingImages = true;
 
         try {
+            // Film mode: skip stock search, ALL scenes use AI generation
+            if ($this->filmMode ?? false) {
+                $this->sceneImageCandidates = [];
+                $this->sceneSearchSuggestions = [];
+                $this->selectedSceneImages = [];
+
+                foreach ($segments as $i => $segment) {
+                    $sceneId = 'scene_' . $i;
+                    $this->sceneImageCandidates[$sceneId] = [];
+                    $this->selectedSceneImages[$sceneId] = 'ai';
+                    // Force AI animation for all film scenes
+                    $this->sceneAnimateWithAI[$sceneId] = true;
+                }
+
+                $this->generatedSegments = $segments;
+                $this->showImageSelectionModal = true;
+                $this->isSourcingImages = false;
+                return;
+            }
+
             $scenes = [];
             foreach ($segments as $i => $segment) {
                 $scenes[] = [
