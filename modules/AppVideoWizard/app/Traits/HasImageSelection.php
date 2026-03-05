@@ -795,6 +795,13 @@ trait HasImageSelection
                                 'referenceImageMimeType' => 'image/png',
                             ]],
                         ],
+                        // Scene progression context for cascade prompt differentiation
+                        'sceneContext' => [
+                            'sceneIndex' => $sceneIndex,
+                            'totalScenes' => count($this->sceneImageCandidates),
+                            'narration' => $this->generatedSegments[$sceneIndex]['text'] ?? '',
+                            'anchorSceneNarration' => $this->generatedSegments[0]['text'] ?? '',
+                        ],
                     ];
                     $hasCharacterAnchor = true;
 

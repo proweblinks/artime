@@ -1383,9 +1383,10 @@ class ImageGenerationService
      *
      * @param string $basePrompt The original scene prompt
      * @param array $references The reference cascade
+     * @param array|null $sceneContext Scene progression context for differentiation
      * @return string Enhanced prompt with reference instructions
      */
-    protected function buildCascadeEnhancedPrompt(string $basePrompt, array $references): string
+    protected function buildCascadeEnhancedPrompt(string $basePrompt, array $references, ?array $sceneContext = null): string
     {
         $sections = [];
 
@@ -1456,46 +1457,79 @@ class ImageGenerationService
             }
         }
 
-        // Assemble prompt
+        // Assemble prompt with scene differentiation
         $enhancedPrompt = "";
 
+        // 1. Identity anchors (character/location/style/continuity references)
         if (!empty($sections)) {
             $enhancedPrompt .= "REFERENCE CASCADE INSTRUCTIONS:\n" . implode("\n\n", $sections) . "\n\n";
         }
 
+        // 2. Scene progression — tells Gemini the reference is for identity ONLY, not composition
+        if ($sceneContext && ($sceneContext['sceneIndex'] ?? 0) > 0) {
+            $sceneNum = $sceneContext['sceneIndex'];
+            $totalScenes = $sceneContext['totalScenes'] ?? '?';
+            $currentNarration = $sceneContext['narration'] ?? '';
+            $anchorNarration = $sceneContext['anchorSceneNarration'] ?? '';
+
+            // Truncate narrations to keep prompt concise
+            $anchorSummary = mb_substr($anchorNarration, 0, 120);
+            if (mb_strlen($anchorNarration) > 120) $anchorSummary .= '...';
+            $currentSummary = mb_substr($currentNarration, 0, 120);
+            if (mb_strlen($currentNarration) > 120) $currentSummary .= '...';
+
+            $enhancedPrompt .= "SCENE PROGRESSION (CRITICAL — READ CAREFULLY):\n" .
+                "The reference image is ONLY for character identity (face, hair, body, clothing).\n" .
+                "Do NOT copy the reference image's composition, pose, camera angle, background, or setting.\n" .
+                "This is Scene {$sceneNum} of {$totalScenes} — a DIFFERENT moment in the story.\n";
+
+            if ($anchorSummary && $currentSummary) {
+                $enhancedPrompt .= "The reference scene showed: \"{$anchorSummary}\"\n" .
+                    "THIS scene shows: \"{$currentSummary}\"\n";
+            }
+
+            $enhancedPrompt .= "Generate a COMPLETELY NEW composition that matches the SCENE TO GENERATE description below.\n" .
+                "The character must look identical but the IMAGE must be entirely different — new pose, new angle, new setting.\n\n";
+        }
+
+        // 3. Scene description — promoted to be right after progression context
         $enhancedPrompt .= "SCENE TO GENERATE:\n{$basePrompt}\n\n";
 
+        // 4. Quality requirements
         $enhancedPrompt .= "QUALITY REQUIREMENTS:\n" .
             "- 8K photorealistic cinematic quality\n" .
             "- Natural skin texture, visible pores\n" .
             "- Professional cinematography lighting\n" .
             "- Sharp focus with cinematic depth of field\n\n";
 
+        // 5. Face consistency — identity preservation without triggering composition copying
         if ($characterCount > 1) {
-            $enhancedPrompt .= "CRITICAL FACE CONSISTENCY:\n" .
+            $enhancedPrompt .= "FACE IDENTITY PRESERVATION:\n" .
                 "- Each character's FACE must be IDENTICAL to their respective reference image\n" .
                 "- Same facial structure, same eyes, same nose, same mouth, same jawline for EACH person\n" .
                 "- Same skin tone, same complexion, same facial proportions for EACH person\n" .
                 "- These are the SAME PEOPLE from the references, not similar-looking people\n" .
                 "- Both characters must appear in the image with their own distinct face\n\n";
         } else {
-            $enhancedPrompt .= "CRITICAL FACE CONSISTENCY:\n" .
-                "- The character's FACE must be IDENTICAL to the reference image\n" .
+            $enhancedPrompt .= "FACE IDENTITY PRESERVATION:\n" .
+                "- The character's FACE must match the reference image identity\n" .
                 "- Same facial structure, same eyes, same nose, same mouth, same jawline\n" .
                 "- Same skin tone, same complexion, same facial proportions\n" .
-                "- This is the SAME PERSON, not a similar-looking person\n\n";
+                "- This is the SAME PERSON as in the reference, not a similar-looking person\n\n";
         }
 
+        // 6. Prop consistency
         $enhancedPrompt .= "PROP/OBJECT CONSISTENCY:\n" .
             "- Any objects characters are holding, wearing, or interacting with must maintain CONSISTENT SIZE\n" .
             "- A handheld object should remain the SAME SIZE relative to the character's hands/body\n" .
             "- Artifacts, weapons, tools, or props must keep their exact proportions across shots\n" .
             "- If the reference shows an object, generate it at the SAME scale and dimensions\n\n";
 
+        // 7. Output — emphasize new scene composition with same identity
         if ($characterCount > 1) {
-            $enhancedPrompt .= "OUTPUT: Generate a single high-quality image showing THESE EXACT SAME PEOPLE (not similar people, THE SAME people) from the reference images. Both characters must be clearly visible with their EXACT facial features, hair, and clothing.";
+            $enhancedPrompt .= "OUTPUT: Generate a single high-quality image with a NEW composition and setting that matches the SCENE TO GENERATE description. The characters must be THESE EXACT SAME PEOPLE from the reference images with their EXACT facial features, hair, and clothing — but in the new scene described above.";
         } else {
-            $enhancedPrompt .= "OUTPUT: Generate a single high-quality image showing THIS EXACT SAME PERSON (not a similar person, THE SAME person) with their EXACT facial features, hair, clothing, and any props/objects at consistent sizes from the reference.";
+            $enhancedPrompt .= "OUTPUT: Generate a single high-quality image with a NEW composition and setting that matches the SCENE TO GENERATE description. The character must be THIS EXACT SAME PERSON from the reference with their EXACT facial features, hair, and clothing — but in the new scene described above.";
         }
 
         return $enhancedPrompt;
@@ -1553,8 +1587,12 @@ class ImageGenerationService
             'model' => $modelId,
         ]);
 
-        // Build cascade-enhanced prompt
-        $cascadePrompt = $this->buildCascadeEnhancedPrompt($prompt, $references);
+        // Extract scene context for scene differentiation (passed from AI Studio via sceneMemory)
+        $sceneMemory = $options['sceneMemory'] ?? null;
+        $sceneContext = $sceneMemory['sceneContext'] ?? null;
+
+        // Build cascade-enhanced prompt with scene differentiation
+        $cascadePrompt = $this->buildCascadeEnhancedPrompt($prompt, $references, $sceneContext);
 
         // Determine primary reference image (the base image for image-to-image generation)
         $primaryBase64 = null;
