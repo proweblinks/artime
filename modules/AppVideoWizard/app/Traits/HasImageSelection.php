@@ -9,7 +9,7 @@ use Modules\AppVideoWizard\Services\ImageGenerationService;
 use Modules\AppVideoWizard\Services\ImageSourceService;
 use Modules\AppVideoWizard\Services\SeedancePromptService;
 use Modules\AppVideoWizard\Services\StoryModeScriptService;
-use Modules\Authentication\Facades\Credit;
+use Modules\AdminCredits\Facades\Credit;
 
 /**
  * Shared image selection properties and methods for URL-to-Video and Story Mode.
