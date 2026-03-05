@@ -99,6 +99,11 @@ class UrlToVideoProject extends Model
         return $this->status === 'failed';
     }
 
+    public function isDraft(): bool
+    {
+        return $this->status === 'draft';
+    }
+
     public function updateProgress(string $status, int $percent, ?string $stage = null): void
     {
         $this->update([

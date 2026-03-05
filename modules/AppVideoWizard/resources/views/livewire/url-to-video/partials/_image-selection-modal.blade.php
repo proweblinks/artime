@@ -222,6 +222,7 @@
                     <span style="font-size: 0.7rem; color: var(--at-text-muted, #94a0b8); white-space: nowrap; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">{{ __('Style') }}</span>
                     @foreach($this->getVisualStylePresets() as $styleId => $styleConfig)
                         <button wire:click="setVisualStyle('{{ $styleId }}')" type="button"
+                                wire:loading.attr="disabled" wire:target="setVisualStyle, regenerateAllPrompts, generateSceneAIImage"
                                 class="d-flex align-items-center gap-1 px-3 py-1"
                                 style="border: 2px solid {{ $selectedVisualStyle === $styleId ? $styleConfig['color'] : 'transparent' }};
                                        background: {{ $selectedVisualStyle === $styleId ? $styleConfig['color'] . '15' : '#f8f9fb' }};
@@ -235,13 +236,15 @@
                     @endforeach
                     @if(!empty($sceneVisualScript))
                         <button wire:click="regenerateAllPrompts" type="button"
+                                wire:loading.attr="disabled" wire:target="regenerateAllPrompts"
                                 class="d-flex align-items-center gap-1 px-3 py-1"
                                 style="border: 1px dashed #7c3aed40; background: transparent; border-radius: 20px;
                                        cursor: pointer; white-space: nowrap; font-size: 0.7rem; color: #7c3aed;
                                        font-weight: 500; flex-shrink: 0;"
                                 title="{{ __('Regenerate all prompts with the selected style') }}">
-                            <i class="fa-light fa-arrows-rotate" style="font-size: 0.7rem;"></i>
-                            {{ __('Regen Prompts') }}
+                            <i class="fa-light fa-arrows-rotate" wire:loading.class="fa-spin" wire:target="regenerateAllPrompts" style="font-size: 0.7rem;"></i>
+                            <span wire:loading.remove wire:target="regenerateAllPrompts">{{ __('Regen Prompts') }}</span>
+                            <span wire:loading wire:target="regenerateAllPrompts">{{ __('Regenerating...') }}</span>
                         </button>
                     @endif
                 </div>
@@ -400,42 +403,56 @@
                             <button wire:click="generateSceneAIImage('{{ $sceneId }}')"
                                     type="button"
                                     class="utv-studio-gen-btn"
+                                    wire:loading.attr="disabled" wire:target="generateSceneAIImage"
                                     @if($isGeneratingImage) disabled @endif
                                     style="flex: 1;">
-                                @if($isGeneratingImage)
+                                <span wire:loading.remove wire:target="generateSceneAIImage('{{ $sceneId }}')">
+                                    @if($isGeneratingImage)
+                                        <i class="fa-light fa-spinner-third fa-spin"></i>
+                                        <span>{{ __('Generating...') }}</span>
+                                    @elseif($hasGeneratedImage)
+                                        <i class="fa-light fa-arrows-rotate"></i>
+                                        <span>{{ __('Regenerate Image') }}</span>
+                                    @else
+                                        <i class="fa-light fa-image"></i>
+                                        <span>{{ __('Generate Image') }}</span>
+                                    @endif
+                                </span>
+                                <span wire:loading wire:target="generateSceneAIImage('{{ $sceneId }}')">
                                     <i class="fa-light fa-spinner-third fa-spin"></i>
                                     <span>{{ __('Generating...') }}</span>
-                                @elseif($hasGeneratedImage)
-                                    <i class="fa-light fa-arrows-rotate"></i>
-                                    <span>{{ __('Regenerate Image') }}</span>
-                                @else
-                                    <i class="fa-light fa-image"></i>
-                                    <span>{{ __('Generate Image') }}</span>
-                                @endif
+                                </span>
                             </button>
 
                             {{-- Generate Video (requires image) --}}
                             <button wire:click="generateSceneAIVideo('{{ $sceneId }}')"
                                     type="button"
                                     class="utv-studio-gen-btn utv-studio-gen-btn--video"
+                                    wire:loading.attr="disabled" wire:target="generateSceneAIVideo"
                                     @if(!$hasImageSelected || $videoStatus === 'submitting' || $videoStatus === 'processing') disabled @endif
                                     style="flex: 1;">
-                                @if($videoStatus === 'submitting')
+                                <span wire:loading.remove wire:target="generateSceneAIVideo('{{ $sceneId }}')">
+                                    @if($videoStatus === 'submitting')
+                                        <i class="fa-light fa-spinner-third fa-spin"></i>
+                                        <span>{{ __('Submitting...') }}</span>
+                                    @elseif($videoStatus === 'processing')
+                                        <i class="fa-light fa-spinner-third fa-spin"></i>
+                                        <span>{{ __('Rendering...') }}</span>
+                                    @elseif($videoStatus === 'completed' || $hasGeneratedVideo)
+                                        <i class="fa-light fa-arrows-rotate"></i>
+                                        <span>{{ __('Regenerate Video') }}</span>
+                                    @elseif($videoStatus === 'failed')
+                                        <i class="fa-light fa-triangle-exclamation"></i>
+                                        <span>{{ __('Retry Video') }}</span>
+                                    @else
+                                        <i class="fa-light fa-video"></i>
+                                        <span>{{ __('Generate Video') }}</span>
+                                    @endif
+                                </span>
+                                <span wire:loading wire:target="generateSceneAIVideo('{{ $sceneId }}')">
                                     <i class="fa-light fa-spinner-third fa-spin"></i>
                                     <span>{{ __('Submitting...') }}</span>
-                                @elseif($videoStatus === 'processing')
-                                    <i class="fa-light fa-spinner-third fa-spin"></i>
-                                    <span>{{ __('Rendering...') }}</span>
-                                @elseif($videoStatus === 'completed' || $hasGeneratedVideo)
-                                    <i class="fa-light fa-arrows-rotate"></i>
-                                    <span>{{ __('Regenerate Video') }}</span>
-                                @elseif($videoStatus === 'failed')
-                                    <i class="fa-light fa-triangle-exclamation"></i>
-                                    <span>{{ __('Retry Video') }}</span>
-                                @else
-                                    <i class="fa-light fa-video"></i>
-                                    <span>{{ __('Generate Video') }}</span>
-                                @endif
+                                </span>
                             </button>
                         </div>
                     </div>
@@ -474,6 +491,17 @@
                 {{-- Phone frame preview --}}
                 <div class="mb-3" style="width: 100%; max-width: 280px;">
                     <div class="utv-phone-frame" style="position: relative; width: 100%; padding-top: 177.78%; background: #0a0a0a; border-radius: 24px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+                        {{-- wire:loading overlays (instant client-side feedback) --}}
+                        <div wire:loading wire:target="generateSceneAIImage"
+                             style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; z-index: 5; background: rgba(10,10,10,0.85);">
+                            <div style="width: 36px; height: 36px; border: 3px solid #7c3aed40; border-top-color: #7c3aed; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                            <span style="color: #a78bfa; font-size: 0.78rem;">{{ __('Generating image...') }}</span>
+                        </div>
+                        <div wire:loading wire:target="generateSceneAIVideo"
+                             style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; z-index: 5; background: rgba(10,10,10,0.85);">
+                            <div style="width: 36px; height: 36px; border: 3px solid #d9770640; border-top-color: #d97706; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                            <span style="color: #fbbf24; font-size: 0.78rem;">{{ __('Submitting video...') }}</span>
+                        </div>
                         @if($activeIsGeneratingImg)
                             {{-- Image generating skeleton --}}
                             <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
@@ -1234,14 +1262,21 @@
                     {{ __('Back') }}
                 </button>
                 <button wire:click="confirmImageSelection" type="button"
+                        wire:loading.attr="disabled" wire:target="confirmImageSelection"
                         class="btn flex-grow-1 fw-semibold" style="background: #03fcf4; color: #0a2e2e; border-radius: 10px;">
-                    @if($isAIStudioMode)
-                        <i class="fa-light fa-rocket me-1"></i>
-                        {{ __('Generate Final Video') }}
-                    @else
-                        <i class="fa-light fa-video me-1"></i>
-                        {{ __('Generate Video') }}
-                    @endif
+                    <span wire:loading.remove wire:target="confirmImageSelection">
+                        @if($isAIStudioMode)
+                            <i class="fa-light fa-rocket me-1"></i>
+                            {{ __('Generate Final Video') }}
+                        @else
+                            <i class="fa-light fa-video me-1"></i>
+                            {{ __('Generate Video') }}
+                        @endif
+                    </span>
+                    <span wire:loading wire:target="confirmImageSelection">
+                        <i class="fa-light fa-spinner-third fa-spin me-1"></i>
+                        {{ __('Starting pipeline...') }}
+                    </span>
                 </button>
             </div>
         </div>

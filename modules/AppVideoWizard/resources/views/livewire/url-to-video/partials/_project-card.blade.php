@@ -1,9 +1,16 @@
 {{-- URL-to-Video Project Card --}}
 <div wire:key="utv-project-{{ $project->id }}">
-    <div class="utv-project-card" wire:click="openProject({{ $project->id }})">
+    <div class="utv-project-card" wire:click="{{ $project->isDraft() ? 'resumeDraft(' . $project->id . ')' : 'openProject(' . $project->id . ')' }}">
         {{-- Thumbnail --}}
         <div class="position-relative" style="background: #f5f7fa;">
-            @if($project->thumbnail_url)
+            @if($project->isDraft())
+                {{-- Draft placeholder --}}
+                <div class="d-flex flex-column align-items-center justify-content-center"
+                     style="aspect-ratio: {{ $project->aspect_ratio === '16:9' ? '16/9' : ($project->aspect_ratio === '1:1' ? '1/1' : '9/16') }}; background: linear-gradient(135deg, #7c3aed10, #7c3aed05);">
+                    <i class="fa-light fa-wand-magic-sparkles mb-2" style="font-size: 1.4rem; color: #7c3aed;"></i>
+                    <span style="font-size: 0.65rem; color: #7c3aed; font-weight: 500;">{{ __('AI Studio Draft') }}</span>
+                </div>
+            @elseif($project->thumbnail_url)
                 <img src="{{ $project->thumbnail_url }}" alt="{{ $project->title }}"
                      style="aspect-ratio: {{ $project->aspect_ratio === '16:9' ? '16/9' : ($project->aspect_ratio === '1:1' ? '1/1' : '9/16') }}; object-fit: cover;">
             @elseif($project->isReady() && $project->video_url)
@@ -33,6 +40,15 @@
                     <div class="utv-card-play-icon">
                         <i class="fa-solid fa-play"></i>
                     </div>
+                </div>
+            @endif
+
+            {{-- Draft Badge --}}
+            @if($project->isDraft())
+                <div class="position-absolute top-0 end-0 m-2" style="z-index: 3;">
+                    <span style="background: rgba(124,58,237,0.9); color: #fff; font-size: 0.58rem; padding: 3px 7px; border-radius: 4px; font-weight: 500;">
+                        <i class="fa-light fa-pen-to-square me-1" style="font-size: 0.5rem;"></i>{{ __('Draft') }}
+                    </span>
                 </div>
             @endif
 

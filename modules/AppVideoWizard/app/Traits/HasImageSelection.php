@@ -2,7 +2,9 @@
 
 namespace Modules\AppVideoWizard\Traits;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Modules\AppVideoWizard\Models\UrlToVideoProject;
 use Modules\AppVideoWizard\Models\WizardProject;
 use Modules\AppVideoWizard\Services\AnimationService;
 use Modules\AppVideoWizard\Services\ImageGenerationService;
@@ -611,6 +613,7 @@ trait HasImageSelection
             session()->flash('error', 'Failed to generate visual script: ' . $e->getMessage());
         } finally {
             $this->isGeneratingVisualScript = false;
+            $this->saveDraftState();
         }
     }
 
@@ -812,6 +815,8 @@ trait HasImageSelection
                 Log::info('HasImageSelection: AI image generated for scene', [
                     'scene' => $sceneId, 'url' => substr($imageUrl, 0, 80),
                 ]);
+
+                $this->saveDraftState();
             }
 
             $wizardProject->delete();
@@ -954,6 +959,8 @@ trait HasImageSelection
                     Log::info('HasImageSelection: AI video completed for scene', [
                         'scene' => $sceneId, 'url' => substr($videoUrl, 0, 80),
                     ]);
+
+                    $this->saveDraftState();
                 } elseif ($state === 'failed') {
                     $this->sceneVideoStatus[$sceneId] = 'failed';
                     Log::warning('HasImageSelection: AI video failed for scene', ['scene' => $sceneId]);
@@ -1242,6 +1249,185 @@ trait HasImageSelection
                 $this->sceneAnimateWithAI[$sceneId] = true;
             }
         }
+    }
+
+    // ────────────────────────────────────────────────────────────────────
+    // AI Studio: Draft Auto-Save & Resume
+    // ────────────────────────────────────────────────────────────────────
+
+    /**
+     * Save the current AI Studio state as a draft project.
+     * Creates a new draft or updates an existing one.
+     */
+    public function saveDraftState(): void
+    {
+        try {
+            // Only save if we have meaningful state (visual script or generated images)
+            if (empty($this->sceneVisualScript) && empty($this->sceneGeneratedImages)) {
+                return;
+            }
+
+            $studioState = [
+                'sceneVisualScript' => $this->sceneVisualScript,
+                'characterBible' => $this->characterBible,
+                'sceneGeneratedImages' => $this->sceneGeneratedImages,
+                'sceneGeneratedVideos' => $this->sceneGeneratedVideos,
+                'selectedSceneImages' => $this->selectedSceneImages,
+                'sceneImageCandidates' => $this->sceneImageCandidates,
+                'selectedVisualStyle' => $this->selectedVisualStyle,
+                'sceneAnimateWithAI' => $this->sceneAnimateWithAI,
+                'activeStudioScene' => $this->activeStudioScene,
+                'sceneVideoStatus' => $this->sceneVideoStatus,
+                'sceneVideoTaskIds' => $this->sceneVideoTaskIds,
+            ];
+
+            $draftData = [
+                'user_id' => auth()->id(),
+                'team_id' => session('current_team_id'),
+                'title' => (property_exists($this, 'generatedTitle') ? $this->generatedTitle : null) ?: 'Untitled Draft',
+                'prompt' => property_exists($this, 'prompt') ? ($this->prompt ?: null) : null,
+                'source_url' => property_exists($this, 'sourceUrl') ? ($this->sourceUrl ?: '') : '',
+                'source_type' => property_exists($this, 'detectedSourceType') ? ($this->detectedSourceType ?: 'prompt') : 'prompt',
+                'transcript' => property_exists($this, 'editableTranscript') ? $this->editableTranscript : null,
+                'transcript_word_count' => property_exists($this, 'transcriptWordCount') ? $this->transcriptWordCount : 0,
+                'aspect_ratio' => property_exists($this, 'aspectRatio') ? ($this->aspectRatio ?? '9:16') : '9:16',
+                'voice_id' => property_exists($this, 'selectedVoice') ? ($this->selectedVoice !== 'auto' ? $this->selectedVoice : null) : null,
+                'voice_provider' => property_exists($this, 'voiceProvider') ? ($this->voiceProvider ?: null) : null,
+                'visual_script' => !empty($this->sceneVisualScript) ? array_values($this->sceneVisualScript) : null,
+                'status' => 'draft',
+                'progress_percent' => 0,
+                'metadata' => [
+                    'video_resolution' => property_exists($this, 'videoResolution') ? $this->videoResolution : '480p',
+                    'video_quality' => property_exists($this, 'videoQuality') ? $this->videoQuality : 'pro',
+                    'video_duration_target' => property_exists($this, 'videoDuration') ? $this->videoDuration : 60,
+                    'narrative_style' => property_exists($this, 'narrativeStyle') ? $this->narrativeStyle : 'hook_reveal',
+                    'creative_mode' => property_exists($this, 'creativeMode') ? $this->creativeMode : false,
+                    'creative_concept_title' => property_exists($this, 'creativeConceptTitle') ? $this->creativeConceptTitle : null,
+                    'creative_concept_pitch' => property_exists($this, 'creativeConceptPitch') ? $this->creativeConceptPitch : null,
+                    'studio_state' => $studioState,
+                ],
+                'scenes' => null,
+                'extracted_content' => property_exists($this, 'storedExtractedContent') ? ($this->storedExtractedContent ?: null) : null,
+                'content_brief' => property_exists($this, 'storedContentBrief') ? ($this->storedContentBrief ?: null) : null,
+            ];
+
+            $draftProjectId = property_exists($this, 'draftProjectId') ? $this->draftProjectId : null;
+
+            if ($draftProjectId) {
+                // Update existing draft
+                UrlToVideoProject::where('id', $draftProjectId)
+                    ->where('status', 'draft')
+                    ->update($draftData);
+            } else {
+                // Create new draft
+                $draft = UrlToVideoProject::create($draftData);
+                if (property_exists($this, 'draftProjectId')) {
+                    $this->draftProjectId = $draft->id;
+                }
+            }
+
+            Cache::forget('url-to-video-projects-' . auth()->id());
+
+            Log::info('HasImageSelection: Draft saved', [
+                'draft_id' => property_exists($this, 'draftProjectId') ? $this->draftProjectId : 'unknown',
+                'images' => count($this->sceneGeneratedImages),
+                'videos' => count($this->sceneGeneratedVideos),
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('HasImageSelection: Draft save failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Resume an AI Studio session from a saved draft.
+     */
+    public function resumeDraft(int $projectId): void
+    {
+        $draft = UrlToVideoProject::where('id', $projectId)
+            ->where('user_id', auth()->id())
+            ->where('status', 'draft')
+            ->first();
+
+        if (!$draft) {
+            session()->flash('error', 'Draft not found or already used.');
+            return;
+        }
+
+        // Restore basic fields
+        if (property_exists($this, 'prompt')) $this->prompt = $draft->prompt ?? '';
+        if (property_exists($this, 'sourceUrl')) $this->sourceUrl = $draft->source_url ?? '';
+        if (property_exists($this, 'detectedSourceType')) $this->detectedSourceType = $draft->source_type ?? 'prompt';
+        if (property_exists($this, 'editableTranscript')) $this->editableTranscript = $draft->transcript;
+        if (property_exists($this, 'transcriptWordCount')) $this->transcriptWordCount = $draft->transcript_word_count ?? 0;
+        if (property_exists($this, 'generatedTitle')) $this->generatedTitle = $draft->title;
+        if (property_exists($this, 'aspectRatio')) $this->aspectRatio = $draft->aspect_ratio ?? '9:16';
+        if (property_exists($this, 'selectedVoice')) $this->selectedVoice = $draft->voice_id ?? 'auto';
+        if (property_exists($this, 'voiceProvider')) $this->voiceProvider = $draft->voice_provider ?? '';
+        if (property_exists($this, 'storedExtractedContent')) $this->storedExtractedContent = $draft->extracted_content ?? [];
+        if (property_exists($this, 'storedContentBrief')) $this->storedContentBrief = $draft->content_brief ?? [];
+
+        // Restore metadata config
+        $meta = $draft->metadata ?? [];
+        if (property_exists($this, 'videoResolution')) $this->videoResolution = $meta['video_resolution'] ?? '480p';
+        if (property_exists($this, 'videoQuality')) $this->videoQuality = $meta['video_quality'] ?? 'pro';
+        if (property_exists($this, 'videoDuration')) $this->videoDuration = $meta['video_duration_target'] ?? 60;
+        if (property_exists($this, 'narrativeStyle')) $this->narrativeStyle = $meta['narrative_style'] ?? 'hook_reveal';
+        if (property_exists($this, 'creativeMode')) $this->creativeMode = $meta['creative_mode'] ?? false;
+        if (property_exists($this, 'creativeConceptTitle')) $this->creativeConceptTitle = $meta['creative_concept_title'] ?? null;
+        if (property_exists($this, 'creativeConceptPitch')) $this->creativeConceptPitch = $meta['creative_concept_pitch'] ?? null;
+
+        // Restore AI Studio state
+        $studio = $meta['studio_state'] ?? [];
+        if (!empty($studio)) {
+            $this->sceneVisualScript = $studio['sceneVisualScript'] ?? [];
+            $this->characterBible = $studio['characterBible'] ?? null;
+            $this->sceneGeneratedImages = $studio['sceneGeneratedImages'] ?? [];
+            $this->sceneGeneratedVideos = $studio['sceneGeneratedVideos'] ?? [];
+            $this->selectedSceneImages = $studio['selectedSceneImages'] ?? [];
+            $this->sceneImageCandidates = $studio['sceneImageCandidates'] ?? [];
+            $this->selectedVisualStyle = $studio['selectedVisualStyle'] ?? 'cinematic';
+            $this->sceneAnimateWithAI = $studio['sceneAnimateWithAI'] ?? [];
+            $this->activeStudioScene = $studio['activeStudioScene'] ?? '';
+            $this->sceneVideoTaskIds = $studio['sceneVideoTaskIds'] ?? [];
+
+            // Reset stale video statuses (processing/submitting → idle)
+            $this->sceneVideoStatus = [];
+            foreach (($studio['sceneVideoStatus'] ?? []) as $sceneId => $status) {
+                if ($status === 'processing' || $status === 'submitting') {
+                    $this->sceneVideoStatus[$sceneId] = 'idle';
+                } else {
+                    $this->sceneVideoStatus[$sceneId] = $status;
+                }
+            }
+        }
+
+        // Re-segment transcript to restore generatedSegments
+        if (!empty($this->editableTranscript ?? null)) {
+            $scriptService = new StoryModeScriptService();
+            $targetDuration = property_exists($this, 'videoDuration') ? $this->videoDuration : 60;
+            if (property_exists($this, 'generatedSegments')) {
+                $this->generatedSegments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
+            }
+        }
+
+        // Track draft ID and open the modal
+        if (property_exists($this, 'draftProjectId')) $this->draftProjectId = $draft->id;
+        if (property_exists($this, 'detailProjectId')) $this->detailProjectId = null;
+
+        // Open AI Studio if visual script exists, otherwise show transcript editor
+        if (!empty($this->sceneVisualScript)) {
+            $this->showTranscriptModal = false;
+            $this->showImageSelectionModal = true;
+        } else {
+            $this->showTranscriptModal = true;
+            $this->showImageSelectionModal = false;
+        }
+
+        Log::info('HasImageSelection: Draft resumed', [
+            'draft_id' => $draft->id,
+            'scenes' => count($this->sceneVisualScript),
+            'images' => count($this->sceneGeneratedImages),
+        ]);
     }
 
     /**

@@ -67,6 +67,9 @@ class UrlToVideo extends Component
     // Recreate: stores original project's scenes for restoring clip selections
     public ?int $recreateFromProjectId = null;
 
+    // Draft: tracks the active draft project for auto-save/resume
+    public ?int $draftProjectId = null;
+
     protected $listeners = [
         'projectCompleted' => '$refresh',
     ];
@@ -622,6 +625,15 @@ class UrlToVideo extends Component
 
         $this->activeProjectId = $project->id;
         $this->detailProjectId = $project->id;
+
+        // Clean up draft now that the real project exists
+        if ($this->draftProjectId) {
+            UrlToVideoProject::where('id', $this->draftProjectId)
+                ->where('status', 'draft')
+                ->delete();
+            $this->draftProjectId = null;
+        }
+
         Cache::forget('url-to-video-projects-' . auth()->id());
 
         UrlToVideoGenerationJob::dispatch($project->id)
