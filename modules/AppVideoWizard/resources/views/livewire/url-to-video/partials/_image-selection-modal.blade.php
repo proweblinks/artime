@@ -261,6 +261,144 @@
                 </div>
             </div>
         @elseif($isAIStudioMode)
+
+        {{-- ═══════════════════════════════════════════════════════════════ --}}
+        {{-- SHOTS FLOW CAROUSEL                                            --}}
+        {{-- ═══════════════════════════════════════════════════════════════ --}}
+        @php
+            $hasAnyGeneratedImage = false;
+            foreach ($sceneImageCandidates as $_sfId => $_sfCands) {
+                if (!empty($sceneGeneratedImages[$_sfId]) || !empty($selectedSceneImages[$_sfId])) {
+                    $hasAnyGeneratedImage = true;
+                    break;
+                }
+            }
+        @endphp
+        @if($hasAnyGeneratedImage)
+        <div class="utv-shots-flow-wrap"
+             x-data="{
+                 isDragging: false,
+                 dragStartX: 0,
+                 scrollStartX: 0,
+                 dragDistance: 0,
+                 startDrag(e) {
+                     this.isDragging = false;
+                     this.dragStartX = e.pageX;
+                     this.scrollStartX = this.$refs.shotsTrack.scrollLeft;
+                     this.dragDistance = 0;
+                     this.$refs.shotsTrack.style.cursor = 'grabbing';
+                     const onMove = (ev) => {
+                         const dx = ev.pageX - this.dragStartX;
+                         this.dragDistance = Math.abs(dx);
+                         if (this.dragDistance > 5) this.isDragging = true;
+                         this.$refs.shotsTrack.scrollLeft = this.scrollStartX - dx * 1.5;
+                     };
+                     const onUp = () => {
+                         this.$refs.shotsTrack.style.cursor = 'grab';
+                         window.removeEventListener('mousemove', onMove);
+                         window.removeEventListener('mouseup', onUp);
+                         setTimeout(() => { this.isDragging = false; }, 50);
+                     };
+                     window.addEventListener('mousemove', onMove);
+                     window.addEventListener('mouseup', onUp);
+                 },
+                 scrollBy(dir) {
+                     this.$refs.shotsTrack.scrollBy({ left: dir * 200, behavior: 'smooth' });
+                 }
+             }">
+            {{-- Left arrow --}}
+            <button class="utv-shots-flow-arrow" @click="scrollBy(-1)" type="button" title="{{ __('Scroll left') }}">
+                <i class="fa-light fa-chevron-left"></i>
+            </button>
+
+            {{-- Scrollable track --}}
+            <div class="utv-shots-flow-track" x-ref="shotsTrack" @mousedown.prevent="startDrag($event)">
+                @foreach($sceneImageCandidates as $sfSceneId => $sfCands)
+                    @php
+                        $sfIndex = (int) str_replace('scene_', '', $sfSceneId);
+                        $sfSegment = $generatedSegments[$sfIndex] ?? [];
+                        $sfDuration = $sfSegment['estimated_duration'] ?? 6;
+                        $sfIsGenerating = $sceneImageGenerating[$sfSceneId] ?? false;
+                        $sfVideoStatus = $sceneVideoStatus[$sfSceneId] ?? 'idle';
+                        $sfHasVideo = !empty($sceneGeneratedVideos[$sfSceneId]) || $sfVideoStatus === 'completed';
+
+                        // Resolve thumbnail URL
+                        $sfThumbUrl = null;
+                        $sfSelection = $selectedSceneImages[$sfSceneId] ?? [];
+                        if (is_array($sfSelection) && !empty($sfSelection)) {
+                            $sfLastIdx = end($sfSelection);
+                            $sfCand = $sfCands[(int) $sfLastIdx] ?? null;
+                            if ($sfCand) {
+                                $sfThumbUrl = (($sfCand['type'] ?? 'image') === 'video')
+                                    ? ($sfCand['thumbnail'] ?? $sfCand['url'] ?? null)
+                                    : ($sfCand['url'] ?? null);
+                            }
+                        }
+                        if (!$sfThumbUrl && !empty($sceneGeneratedImages[$sfSceneId])) {
+                            $sfLatest = end($sceneGeneratedImages[$sfSceneId]);
+                            $sfThumbUrl = $sfLatest['url'] ?? null;
+                        }
+                    @endphp
+
+                    <div class="utv-shots-flow-item"
+                         :class="{ 'active': studioActiveScene === '{{ $sfSceneId }}' }"
+                         @click="if(!isDragging) setStudioScene('{{ $sfSceneId }}')"
+                         title="{{ __('Scene') }} {{ $sfIndex + 1 }}">
+
+                        {{-- Thumbnail --}}
+                        <div class="utv-shots-flow-thumb"
+                             :class="{ 'active': studioActiveScene === '{{ $sfSceneId }}' }">
+                            @if($sfIsGenerating)
+                                <div class="utv-shots-flow-generating">
+                                    <div style="width: 18px; height: 18px; border: 2px solid #7c3aed40; border-top-color: #7c3aed; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                </div>
+                            @elseif($sfThumbUrl)
+                                <img src="{{ $sfThumbUrl }}" alt="Scene {{ $sfIndex + 1 }}" style="width: 100%; height: 100%; object-fit: cover;">
+                            @else
+                                <div class="utv-shots-flow-empty">
+                                    <i class="fa-light fa-image" style="font-size: 0.85rem; color: #555;"></i>
+                                </div>
+                            @endif
+
+                            {{-- Video badge --}}
+                            @if($sfHasVideo)
+                                <span class="utv-shots-flow-video-badge" style="background: #22c55e;">
+                                    <i class="fa-solid fa-play" style="font-size: 0.35rem; color: #fff; margin-left: 1px;"></i>
+                                </span>
+                            @elseif($sfVideoStatus === 'processing')
+                                <span class="utv-shots-flow-video-badge" style="background: #7c3aed;">
+                                    <i class="fa-light fa-spinner-third fa-spin" style="font-size: 0.35rem; color: #fff;"></i>
+                                </span>
+                            @endif
+                        </div>
+
+                        {{-- Scene label --}}
+                        <span class="utv-shots-flow-label" :class="{ 'active': studioActiveScene === '{{ $sfSceneId }}' }">
+                            {{ $sfIndex + 1 }}
+                        </span>
+
+                        {{-- Duration pill --}}
+                        <span class="utv-shots-flow-duration" :class="{ 'active': studioActiveScene === '{{ $sfSceneId }}' }">
+                            {{ number_format($sfDuration, 1) }}s
+                        </span>
+                    </div>
+
+                    {{-- Chevron connector (not after last) --}}
+                    @if(!$loop->last)
+                        <div class="utv-shots-flow-connector">
+                            <i class="fa-light fa-chevron-right"></i>
+                        </div>
+                    @endif
+                @endforeach
+            </div>
+
+            {{-- Right arrow --}}
+            <button class="utv-shots-flow-arrow" @click="scrollBy(1)" type="button" title="{{ __('Scroll right') }}">
+                <i class="fa-light fa-chevron-right"></i>
+            </button>
+        </div>
+        @endif
+
         {{-- ═══════════════════════════════════════════════════════════════ --}}
         {{-- AI STUDIO: Two-column layout                                   --}}
         {{-- ═══════════════════════════════════════════════════════════════ --}}
@@ -1807,6 +1945,147 @@
     }
     @keyframes spin {
         to { transform: rotate(360deg); }
+    }
+
+    /* ─── Shots Flow Carousel ─── */
+    .utv-shots-flow-wrap {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 8px 12px;
+        border-bottom: 1px solid #eef1f5;
+        background: linear-gradient(180deg, #fafbfc 0%, #ffffff 100%);
+        flex-shrink: 0;
+    }
+    .utv-shots-flow-arrow {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 1px solid #e2e5ea;
+        background: #fff;
+        color: #94a0b8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
+        font-size: 0.65rem;
+        transition: all 0.15s;
+    }
+    .utv-shots-flow-arrow:hover {
+        border-color: #7c3aed;
+        color: #7c3aed;
+        background: #f8f5ff;
+    }
+    .utv-shots-flow-track {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        overflow-x: auto;
+        flex: 1;
+        cursor: grab;
+        scroll-snap-type: x proximity;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding: 4px 0;
+    }
+    .utv-shots-flow-track::-webkit-scrollbar {
+        display: none;
+    }
+    .utv-shots-flow-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        flex-shrink: 0;
+        padding: 4px 6px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.15s;
+        scroll-snap-align: start;
+    }
+    .utv-shots-flow-item:hover {
+        background: #f0ebff;
+    }
+    .utv-shots-flow-item.active {
+        background: rgba(124,58,237,0.08);
+    }
+    .utv-shots-flow-thumb {
+        width: 56px;
+        height: 100px;
+        border-radius: 6px;
+        background: #1a1a2e;
+        border: 2px solid #2a2a3e;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+    }
+    .utv-shots-flow-thumb.active {
+        border-color: #7c3aed;
+        box-shadow: 0 0 0 2px rgba(124,58,237,0.25);
+    }
+    .utv-shots-flow-empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+    }
+    .utv-shots-flow-generating {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+    }
+    .utv-shots-flow-label {
+        font-size: 0.6rem;
+        font-weight: 700;
+        color: #94a0b8;
+        line-height: 1;
+        transition: color 0.15s;
+    }
+    .utv-shots-flow-label.active {
+        color: #7c3aed;
+    }
+    .utv-shots-flow-duration {
+        font-size: 0.55rem;
+        font-weight: 500;
+        color: #b0b8c9;
+        background: #f0f2f5;
+        padding: 1px 5px;
+        border-radius: 8px;
+        line-height: 1.3;
+        transition: all 0.15s;
+    }
+    .utv-shots-flow-duration.active {
+        color: #7c3aed;
+        background: rgba(124,58,237,0.1);
+    }
+    .utv-shots-flow-video-badge {
+        position: absolute;
+        bottom: 3px;
+        right: 3px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+    }
+    .utv-shots-flow-connector {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 16px;
+        color: #d0d5dd;
+        font-size: 0.55rem;
     }
 </style>
 @endif
