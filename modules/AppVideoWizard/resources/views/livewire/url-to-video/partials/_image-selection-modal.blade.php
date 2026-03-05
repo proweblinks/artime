@@ -492,13 +492,14 @@
                 <div class="mb-3" style="width: 100%; max-width: 280px;">
                     <div class="utv-phone-frame" style="position: relative; width: 100%; padding-top: 177.78%; background: #0a0a0a; border-radius: 24px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
                         {{-- wire:loading overlays (instant client-side feedback) --}}
-                        <div wire:loading wire:target="generateSceneAIImage"
-                             style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; z-index: 5; background: rgba(10,10,10,0.85);">
+                        {{-- Use wire:loading.flex so Livewire controls display; inline display:flex would override the hide --}}
+                        <div wire:loading.flex wire:target="generateSceneAIImage"
+                             style="position: absolute; inset: 0; flex-direction: column; align-items: center; justify-content: center; gap: 8px; z-index: 5; background: rgba(10,10,10,0.85);">
                             <div style="width: 36px; height: 36px; border: 3px solid #7c3aed40; border-top-color: #7c3aed; border-radius: 50%; animation: spin 1s linear infinite;"></div>
                             <span style="color: #a78bfa; font-size: 0.78rem;">{{ __('Generating image...') }}</span>
                         </div>
-                        <div wire:loading wire:target="generateSceneAIVideo"
-                             style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; z-index: 5; background: rgba(10,10,10,0.85);">
+                        <div wire:loading.flex wire:target="generateSceneAIVideo"
+                             style="position: absolute; inset: 0; flex-direction: column; align-items: center; justify-content: center; gap: 8px; z-index: 5; background: rgba(10,10,10,0.85);">
                             <div style="width: 36px; height: 36px; border: 3px solid #d9770640; border-top-color: #d97706; border-radius: 50%; animation: spin 1s linear infinite;"></div>
                             <span style="color: #fbbf24; font-size: 0.78rem;">{{ __('Submitting video...') }}</span>
                         </div>
