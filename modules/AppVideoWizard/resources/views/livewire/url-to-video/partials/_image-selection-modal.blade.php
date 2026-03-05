@@ -303,7 +303,8 @@
                         }
                     @endphp
 
-                    <div class="utv-studio-scene mb-3 p-3 {{ $activeStudioScene === $sceneId ? 'active' : '' }}"
+                    <div wire:key="studio-scene-{{ $sceneId }}"
+                         class="utv-studio-scene mb-3 p-3 {{ $activeStudioScene === $sceneId ? 'active' : '' }}"
                          @click="setStudioScene('{{ $sceneId }}')"
                          style="background: {{ $activeStudioScene === $sceneId ? '#f8f5ff' : '#ffffff' }}; border: 1px solid {{ $activeStudioScene === $sceneId ? '#7c3aed40' : '#eef1f5' }}; border-radius: 12px; cursor: pointer; transition: all 0.2s;">
 
@@ -557,7 +558,14 @@
                 @endif
 
                 {{-- Generation History (thumbnails of all versions) --}}
-                @php $activeImages = $sceneGeneratedImages[$activeId] ?? []; @endphp
+                @php
+                    $activeImages = $sceneGeneratedImages[$activeId] ?? [];
+                    // Determine which history image is currently selected
+                    $selectedHistoryUrl = null;
+                    if ($activeImageUrl) {
+                        $selectedHistoryUrl = $activeImageUrl;
+                    }
+                @endphp
                 @if(!empty($activeImages))
                     <div style="max-width: 280px; width: 100%;">
                         <label style="font-size: 0.7rem; color: var(--at-text-muted, #94a0b8); font-weight: 600; display: block; margin-bottom: 6px;">
@@ -565,9 +573,27 @@
                         </label>
                         <div class="d-flex gap-2 flex-wrap">
                             @foreach($activeImages as $gi => $genImg)
-                                <div class="position-relative" style="width: 48px; height: 48px; border-radius: 6px; overflow: hidden; border: 1px solid #eef1f5;">
+                                @php $isSelectedHistory = $selectedHistoryUrl && $selectedHistoryUrl === ($genImg['url'] ?? ''); @endphp
+                                <div class="position-relative" x-data="{ hover: false }"
+                                     @mouseenter="hover = true" @mouseleave="hover = false"
+                                     wire:click="selectHistoryImage('{{ $activeId }}', {{ $gi }})"
+                                     style="width: 48px; height: 48px; border-radius: 6px; overflow: hidden; cursor: pointer; transition: all 0.15s;
+                                            border: 2px solid {{ $isSelectedHistory ? '#7c3aed' : '#eef1f5' }};
+                                            {{ $isSelectedHistory ? 'box-shadow: 0 0 0 2px #7c3aed40;' : '' }}"
+                                     title="{{ __('Click to select') }} (v{{ $gi + 1 }})">
                                     <img src="{{ $genImg['url'] }}" style="width: 100%; height: 100%; object-fit: cover;">
-                                    <span style="position: absolute; bottom: 1px; right: 1px; background: rgba(0,0,0,0.7); color: #fff; font-size: 0.5rem; padding: 1px 3px; border-radius: 2px;">v{{ $gi + 1 }}</span>
+                                    <span style="position: absolute; bottom: 1px; right: 1px; background: rgba(0,0,0,0.7); color: {{ $isSelectedHistory ? '#a78bfa' : '#fff' }}; font-size: 0.5rem; padding: 1px 3px; border-radius: 2px;">
+                                        @if($isSelectedHistory)<i class="fa-solid fa-check" style="font-size: 0.4rem;"></i> @endif
+                                        v{{ $gi + 1 }}
+                                    </span>
+                                    {{-- Delete button (visible on hover) --}}
+                                    <button wire:click.stop="deleteHistoryImage('{{ $activeId }}', {{ $gi }})"
+                                            class="position-absolute"
+                                            x-show="hover" x-transition.opacity.duration.150ms
+                                            style="top: 1px; right: 1px; width: 16px; height: 16px; border-radius: 50%; background: rgba(239,68,68,0.85); border: none; color: #fff; font-size: 0.45rem; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; z-index: 2;"
+                                            title="{{ __('Delete') }}">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
                                 </div>
                             @endforeach
                         </div>
@@ -583,12 +609,22 @@
                         </label>
                         <div class="d-flex gap-2 flex-wrap">
                             @foreach($activeVids as $vi => $genVid)
-                                <div class="position-relative" style="width: 48px; height: 48px; border-radius: 6px; overflow: hidden; border: 1px solid #eef1f5; background: #0a0a0a;">
+                                <div class="position-relative" x-data="{ hover: false }"
+                                     @mouseenter="hover = true" @mouseleave="hover = false"
+                                     style="width: 48px; height: 48px; border-radius: 6px; overflow: hidden; border: 1px solid #eef1f5; background: #0a0a0a;">
                                     <video src="{{ $genVid['url'] }}" muted style="width: 100%; height: 100%; object-fit: cover;"
                                            @mouseenter="$el.play()" @mouseleave="$el.pause(); $el.currentTime = 0;"></video>
                                     <span style="position: absolute; bottom: 1px; right: 1px; background: rgba(0,0,0,0.7); color: #22c55e; font-size: 0.5rem; padding: 1px 3px; border-radius: 2px;">
                                         <i class="fa-solid fa-play" style="font-size: 0.35rem;"></i> v{{ $vi + 1 }}
                                     </span>
+                                    {{-- Delete button (visible on hover) --}}
+                                    <button wire:click.stop="deleteHistoryVideo('{{ $activeId }}', {{ $vi }})"
+                                            class="position-absolute"
+                                            x-show="hover" x-transition.opacity.duration.150ms
+                                            style="top: 1px; right: 1px; width: 16px; height: 16px; border-radius: 50%; background: rgba(239,68,68,0.85); border: none; color: #fff; font-size: 0.45rem; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; z-index: 2;"
+                                            title="{{ __('Delete') }}">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
                                 </div>
                             @endforeach
                         </div>

@@ -706,6 +706,15 @@ trait HasImageSelection
             return;
         }
 
+        $sceneIndex = (int) str_replace('scene_', '', $sceneId);
+
+        Log::info('HasImageSelection: generateSceneAIImage called', [
+            'sceneId' => $sceneId,
+            'sceneIndex' => $sceneIndex,
+            'prompt_preview' => substr($visual['image_prompt'], 0, 100),
+            'visualScriptKeys' => array_keys($this->sceneVisualScript),
+        ]);
+
         $this->sceneImageGenerating[$sceneId] = true;
         $this->activeStudioScene = $sceneId;
 
@@ -826,6 +835,160 @@ trait HasImageSelection
         } finally {
             $this->sceneImageGenerating[$sceneId] = false;
         }
+    }
+
+    // ────────────────────────────────────────────────────────────────────
+    // AI Studio: Generation History — Select & Delete
+    // ────────────────────────────────────────────────────────────────────
+
+    /**
+     * Select a previously generated image from history as the active image for a scene.
+     */
+    public function selectHistoryImage(string $sceneId, int $historyIndex): void
+    {
+        $history = $this->sceneGeneratedImages[$sceneId] ?? [];
+        $entry = $history[$historyIndex] ?? null;
+        if (!$entry || empty($entry['url'])) return;
+
+        $targetUrl = $entry['url'];
+        $candidates = $this->sceneImageCandidates[$sceneId] ?? [];
+
+        // Find the candidate with the matching URL
+        $candidateIndex = null;
+        foreach ($candidates as $idx => $candidate) {
+            if (($candidate['url'] ?? '') === $targetUrl) {
+                $candidateIndex = $idx;
+                break;
+            }
+        }
+
+        if ($candidateIndex !== null) {
+            $this->selectedSceneImages[$sceneId] = [$candidateIndex];
+        } else {
+            // Candidate was removed or missing — re-add it
+            $this->sceneImageCandidates[$sceneId][] = [
+                'url' => $targetUrl,
+                'thumbnail' => $targetUrl,
+                'source' => 'ai_generated',
+                'title' => 'AI Generated',
+                'type' => 'image',
+                'width' => 0,
+                'height' => 0,
+            ];
+            $newIdx = count($this->sceneImageCandidates[$sceneId]) - 1;
+            $this->selectedSceneImages[$sceneId] = [$newIdx];
+        }
+
+        $this->saveDraftState();
+    }
+
+    /**
+     * Delete a generated image from history and its candidate entry.
+     */
+    public function deleteHistoryImage(string $sceneId, int $historyIndex): void
+    {
+        $history = $this->sceneGeneratedImages[$sceneId] ?? [];
+        $entry = $history[$historyIndex] ?? null;
+        if (!$entry) return;
+
+        $deletedUrl = $entry['url'] ?? '';
+
+        // Remove from generation history
+        array_splice($this->sceneGeneratedImages[$sceneId], $historyIndex, 1);
+
+        // Remove matching candidate
+        if ($deletedUrl) {
+            $candidates = $this->sceneImageCandidates[$sceneId] ?? [];
+            $wasSelected = false;
+            foreach ($candidates as $idx => $candidate) {
+                if (($candidate['url'] ?? '') === $deletedUrl) {
+                    // Check if this candidate was selected
+                    $selection = $this->selectedSceneImages[$sceneId] ?? [];
+                    if (is_array($selection) && in_array($idx, $selection)) {
+                        $wasSelected = true;
+                    }
+                    unset($this->sceneImageCandidates[$sceneId][$idx]);
+                    break;
+                }
+            }
+            // Re-index candidates array after removal
+            $this->sceneImageCandidates[$sceneId] = array_values($this->sceneImageCandidates[$sceneId]);
+
+            // If deleted image was selected, auto-select the latest remaining
+            if ($wasSelected) {
+                $remaining = $this->sceneGeneratedImages[$sceneId] ?? [];
+                if (!empty($remaining)) {
+                    $lastEntry = end($remaining);
+                    $lastUrl = $lastEntry['url'] ?? '';
+                    foreach ($this->sceneImageCandidates[$sceneId] as $idx => $c) {
+                        if (($c['url'] ?? '') === $lastUrl) {
+                            $this->selectedSceneImages[$sceneId] = [$idx];
+                            break;
+                        }
+                    }
+                } else {
+                    $this->selectedSceneImages[$sceneId] = [];
+                }
+            } else {
+                // Re-map selection indices after re-indexing
+                $selection = $this->selectedSceneImages[$sceneId] ?? [];
+                if (is_array($selection) && !empty($selection)) {
+                    $selectedUrl = null;
+                    // Try to find the currently selected URL in the old candidates
+                    foreach ($candidates as $idx => $c) {
+                        if (in_array($idx, $selection)) {
+                            $selectedUrl = $c['url'] ?? null;
+                            break;
+                        }
+                    }
+                    if ($selectedUrl) {
+                        foreach ($this->sceneImageCandidates[$sceneId] as $idx => $c) {
+                            if (($c['url'] ?? '') === $selectedUrl) {
+                                $this->selectedSceneImages[$sceneId] = [$idx];
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        $this->saveDraftState();
+
+        Log::info('HasImageSelection: History image deleted', [
+            'scene' => $sceneId,
+            'historyIndex' => $historyIndex,
+            'remainingHistory' => count($this->sceneGeneratedImages[$sceneId] ?? []),
+        ]);
+    }
+
+    /**
+     * Delete a generated video from history.
+     */
+    public function deleteHistoryVideo(string $sceneId, int $historyIndex): void
+    {
+        $history = $this->sceneGeneratedVideos[$sceneId] ?? [];
+        $entry = $history[$historyIndex] ?? null;
+        if (!$entry) return;
+
+        $deletedUrl = $entry['url'] ?? '';
+
+        // Remove from video history
+        array_splice($this->sceneGeneratedVideos[$sceneId], $historyIndex, 1);
+
+        // Remove matching candidate
+        if ($deletedUrl) {
+            $candidates = $this->sceneImageCandidates[$sceneId] ?? [];
+            foreach ($candidates as $idx => $candidate) {
+                if (($candidate['url'] ?? '') === $deletedUrl && ($candidate['type'] ?? 'image') === 'video') {
+                    unset($this->sceneImageCandidates[$sceneId][$idx]);
+                    break;
+                }
+            }
+            $this->sceneImageCandidates[$sceneId] = array_values($this->sceneImageCandidates[$sceneId]);
+        }
+
+        $this->saveDraftState();
     }
 
     // ────────────────────────────────────────────────────────────────────
