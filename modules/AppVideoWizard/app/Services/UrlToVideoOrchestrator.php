@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Modules\AppVideoWizard\Models\UrlToVideoProject;
 use Modules\AppVideoWizard\Models\WizardProject;
+use Modules\AppVideoWizard\Services\SpeechSegment;
 use Modules\AppVideoWizard\Services\SpeechSegmentParser;
 use Modules\AppVideoWizard\Services\VoiceRegistryService;
 
@@ -359,9 +360,16 @@ class UrlToVideoOrchestrator
                 $dialogueSegments = [];
 
                 foreach ($segments as $seg) {
-                    $segType = $seg->type ?? ($seg['type'] ?? 'narrator');
-                    $segText = $seg->text ?? ($seg['text'] ?? '');
-                    $segSpeaker = $seg->speaker ?? ($seg['speaker'] ?? 'NARRATOR');
+                    // SpeechSegmentParser returns SpeechSegment objects — use property access
+                    if ($seg instanceof SpeechSegment) {
+                        $segType = $seg->type;
+                        $segText = $seg->text;
+                        $segSpeaker = $seg->speaker ?? 'NARRATOR';
+                    } else {
+                        $segType = $seg['type'] ?? 'narrator';
+                        $segText = $seg['text'] ?? '';
+                        $segSpeaker = $seg['speaker'] ?? 'NARRATOR';
+                    }
 
                     // Skip narrator/direction segments in film mode (no narrator voice)
                     if ($segType === 'narrator' || empty(trim($segText))) {
