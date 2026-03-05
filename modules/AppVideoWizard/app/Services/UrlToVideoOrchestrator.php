@@ -152,6 +152,44 @@ class UrlToVideoOrchestrator
             }
         }
 
+        // Film mode: build visual script deterministically from screenplay directions
+        // Skips AI call — directions are already rich visual descriptions
+        if ($isFilmMode) {
+            $templateConfig = $metadata['film_template_config'] ?? [];
+            $filmService = new FilmTemplateService();
+            $visualScript = $filmService->buildFilmVisualScript($scenes, $templateConfig);
+            $characterBible = $filmService->getCharacterBibleForTemplate($templateConfig);
+
+            $updatedScenes = [];
+            foreach ($scenes as $i => $scene) {
+                $visual = $visualScript[$i] ?? [];
+                $scene['image_prompt'] = $scene['image_prompt'] ?? $visual['image_prompt'] ?? '';
+                $scene['video_action'] = $scene['video_action'] ?? $visual['video_action'] ?? '';
+                $scene['characters_in_scene'] = $scene['characters_in_scene'] ?? $visual['characters_in_scene'] ?? [];
+                $scene['camera_motion'] = $scene['camera_motion'] ?? $visual['camera_motion'] ?? 'slow zoom in';
+                $scene['mood'] = $scene['mood'] ?? $visual['mood'] ?? 'dramatic';
+                $scene['voice_emotion'] = $scene['voice_emotion'] ?? $visual['voice_emotion'] ?? 'neutral';
+                $scene['transition_type'] = $scene['transition_type'] ?? $visual['transition_type'] ?? 'fadeblack';
+                $scene['transition_duration'] = (float) ($scene['transition_duration'] ?? $visual['transition_duration'] ?? 0.5);
+                $updatedScenes[] = $scene;
+            }
+
+            $project->update([
+                'scenes' => $updatedScenes,
+                'visual_script' => $visualScript,
+                'metadata' => array_merge($metadata, [
+                    'character_bible' => $characterBible,
+                    'style_instruction' => $styleInstruction,
+                ]),
+            ]);
+
+            Log::info('UrlToVideoOrchestrator: Film visual script built deterministically', [
+                'project_id' => $project->id,
+                'scenes' => count($updatedScenes),
+            ]);
+            return;
+        }
+
         $segments = array_map(fn ($s) => [
             'text' => $s['text'] ?? '',
             'estimated_duration' => $s['audio_duration'] ?? $s['estimated_duration'] ?? 6,

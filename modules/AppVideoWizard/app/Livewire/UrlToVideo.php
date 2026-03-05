@@ -615,7 +615,7 @@ class UrlToVideo extends Component
                         $scene['video_edit'] = $edit;
                     }
                 }
-                $scene['animate_with_ai'] = $this->sceneAnimateWithAI[$sceneId] ?? false;
+                $scene['animate_with_ai'] = $this->sceneAnimateWithAI[$sceneId] ?? ($this->filmMode ? true : false);
             }
             unset($scene);
 

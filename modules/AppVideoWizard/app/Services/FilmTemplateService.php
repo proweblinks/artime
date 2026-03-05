@@ -177,6 +177,193 @@ PROMPT;
     }
 
     /**
+     * Build visual script deterministically from screenplay directions + template config.
+     * Skips AI entirely — the [Scene: ...] directions are already rich visual descriptions.
+     */
+    public function buildFilmVisualScript(array $scenes, array $template): array
+    {
+        $overrides = $template['visual_overrides'] ?? [];
+        $imagePrefix = $overrides['imagePrefix'] ?? '';
+        $imageSuffix = $overrides['imageSuffix'] ?? '';
+        $atmosphere = $template['atmosphere'] ?? '';
+        $cameraRules = $template['camera_rules'] ?? [];
+        $transitions = $template['transitions'] ?? [];
+        $characters = $template['characters'] ?? [];
+        $total = count($scenes);
+
+        // Track camera picks per scene type to cycle through options
+        $cameraCounters = [];
+
+        $visualScript = [];
+        foreach ($scenes as $i => $scene) {
+            $direction = $scene['direction'] ?? '';
+            $body = $scene['text'] ?? '';
+            $isVisualOnly = !empty($scene['is_visual_only']);
+
+            $sceneType = $this->detectSceneType($i, $total, $direction, $isVisualOnly, $body);
+            $detectedChars = $this->detectCharactersInScene($body, $characters);
+            $mood = $this->detectMood($direction, $body, $sceneType);
+
+            // --- Image prompt ---
+            $imagePrompt = '';
+            if ($imagePrefix) {
+                $imagePrompt .= $imagePrefix . '. ';
+            }
+            if ($direction) {
+                $imagePrompt .= $direction . '. ';
+            }
+            if ($imageSuffix) {
+                $imagePrompt .= $imageSuffix;
+            }
+
+            // Inject character visual identity for detected characters
+            if (!empty($detectedChars)) {
+                $charDescriptions = [];
+                foreach ($detectedChars as $charName) {
+                    foreach ($characters as $char) {
+                        if (strtolower($char['name']) === strtolower($charName)) {
+                            $charDescriptions[] = "{$char['name']}: {$char['description']}";
+                            break;
+                        }
+                    }
+                }
+                if (!empty($charDescriptions)) {
+                    $imagePrompt .= "\n\nCHARACTER VISUAL IDENTITY (maintain exact appearance):\n" . implode("\n", $charDescriptions);
+                }
+            }
+
+            // --- Video action ---
+            $videoAction = $direction;
+            if ($isVisualOnly && $atmosphere) {
+                $videoAction .= '. ' . $atmosphere;
+            }
+
+            // --- Camera motion (cycle through template rules by scene type) ---
+            $typeRules = $cameraRules[$sceneType] ?? $cameraRules['dialogue'] ?? ['slow zoom in'];
+            if (!isset($cameraCounters[$sceneType])) {
+                $cameraCounters[$sceneType] = 0;
+            }
+            $cameraMotion = $typeRules[$cameraCounters[$sceneType] % count($typeRules)];
+            $cameraCounters[$sceneType]++;
+
+            // --- Transition ---
+            $isLast = ($i === $total - 1);
+            if ($isLast) {
+                $transitionType = 'fade';
+            } else {
+                $transitionType = $transitions[$sceneType] ?? $transitions['default'] ?? 'fadeblack';
+            }
+
+            // Transition duration by scene type
+            $transitionDuration = match ($sceneType) {
+                'action' => 0.3,
+                'establishing' => 0.8,
+                default => 0.5,
+            };
+
+            $visualScript[] = [
+                'image_prompt' => trim($imagePrompt),
+                'video_action' => trim($videoAction),
+                'camera_motion' => $cameraMotion,
+                'mood' => $mood,
+                'voice_emotion' => $mood,
+                'characters_in_scene' => $detectedChars,
+                'transition_type' => $transitionType,
+                'transition_duration' => $transitionDuration,
+            ];
+        }
+
+        return $visualScript;
+    }
+
+    /**
+     * Detect scene type from content and position.
+     */
+    public function detectSceneType(int $index, int $total, string $direction, bool $isVisualOnly, string $body): string
+    {
+        // First scene
+        if ($index === 0) {
+            return 'establishing';
+        }
+        // Last 2 scenes
+        if ($index >= $total - 2) {
+            return 'closing';
+        }
+        // Visual-only scenes (no dialogue)
+        if ($isVisualOnly) {
+            return 'establishing';
+        }
+
+        $combined = strtolower($direction . ' ' . $body);
+
+        // Action keywords
+        if (preg_match('/\b(lunges?|grabs?|explodes?|crash|slams?|erupts?|surge|blinding|flash|fights?|chase|runs?|leaps?|strikes?|smash)\b/', $combined)) {
+            return 'action';
+        }
+
+        // Tension keywords
+        if (preg_match('/\b(danger|threat|confront|choice|decide|destroy|risk|chaos|trembl|hesitat|betray)\b/', $combined)) {
+            return 'tension';
+        }
+
+        // Default — scenes with dialogue
+        return 'dialogue';
+    }
+
+    /**
+     * Detect which template characters appear in the scene body.
+     */
+    public function detectCharactersInScene(string $body, array $characters): array
+    {
+        $found = [];
+        foreach ($characters as $char) {
+            $name = strtoupper($char['name']);
+            // Match "CHARACTER:" dialogue pattern
+            if (preg_match('/\b' . preg_quote($name, '/') . '\s*:/i', $body)) {
+                $found[] = $char['name'];
+            }
+        }
+        return $found;
+    }
+
+    /**
+     * Detect mood from scene content with scene-type fallback.
+     */
+    public function detectMood(string $direction, string $body, string $sceneType): string
+    {
+        $combined = strtolower($direction . ' ' . $body);
+
+        // Keyword-based detection
+        if (preg_match('/\b(rain|dark|shadow|fog|mist|dim|murky|noir)\b/', $combined)) {
+            return 'mysterious';
+        }
+        if (preg_match('/\b(explod|surge|blinding|epic|massive|powerful|thunder)\b/', $combined)) {
+            return 'epic';
+        }
+        if (preg_match('/\b(danger|threat|tense|confront|risk|chaos|betray)\b/', $combined)) {
+            return 'tense';
+        }
+        if (preg_match('/\b(silence|quiet|still|intimate|gentle|soft|whisper)\b/', $combined)) {
+            return 'intimate';
+        }
+        if (preg_match('/\b(hope|light|dawn|bright|warm|smile|relief)\b/', $combined)) {
+            return 'hopeful';
+        }
+        if (preg_match('/\b(rush|fast|chase|sprint|slam|crash|fight)\b/', $combined)) {
+            return 'intense';
+        }
+
+        // Scene-type fallback
+        return match ($sceneType) {
+            'establishing' => 'atmospheric',
+            'action' => 'intense',
+            'tension' => 'tense',
+            'closing' => 'reflective',
+            default => 'dramatic',
+        };
+    }
+
+    /**
      * Get comma-separated character names for prompt.
      */
     protected function getCharacterNameList(array $template): string
