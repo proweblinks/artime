@@ -377,10 +377,22 @@ trait HasImageSelection
 
     /**
      * Set all scenes to use AI-generated images.
+     * Preserves selection for scenes that already have an AI-generated image selected.
      */
     public function setAllScenesAI(): void
     {
         foreach ($this->sceneImageCandidates as $sceneId => $candidates) {
+            // If scene already has an AI-generated image selected, keep it
+            $currentSelection = $this->selectedSceneImages[$sceneId] ?? null;
+            if (is_array($currentSelection) && !empty($currentSelection)) {
+                $lastIdx = end($currentSelection);
+                $candidate = $candidates[(int) $lastIdx] ?? null;
+                if ($candidate && ($candidate['source'] ?? '') === 'ai_generated') {
+                    // Already has an AI-generated image — keep the selection
+                    $this->sceneAnimateWithAI[$sceneId] = true;
+                    continue;
+                }
+            }
             $this->selectedSceneImages[$sceneId] = 'ai';
             $this->sceneAnimateWithAI[$sceneId] = true;
         }
@@ -392,19 +404,35 @@ trait HasImageSelection
     }
 
     /**
-     * Revert all scenes from AI back to their first stock candidate.
+     * Revert scenes from AI back to best available candidate.
+     * Prefers AI-generated images, then falls back to first stock candidate.
      * Scenes with no candidates stay on AI.
      */
     public function clearAllScenesAI(): void
     {
         foreach ($this->sceneImageCandidates as $sceneId => $candidates) {
             if (!empty($candidates)) {
-                $this->selectedSceneImages[$sceneId] = [0];
-                $this->sceneAnimateWithAI[$sceneId] = false;
+                // Prefer the latest AI-generated image if one exists
+                $aiIndex = null;
+                foreach ($candidates as $idx => $c) {
+                    if (($c['source'] ?? '') === 'ai_generated') {
+                        $aiIndex = $idx; // Keep updating to get the LAST (newest) AI image
+                    }
+                }
 
-                $firstCandidate = $candidates[0];
-                if (($firstCandidate['type'] ?? 'image') === 'video') {
-                    $this->autoTrimVideoClip($sceneId, $firstCandidate);
+                if ($aiIndex !== null) {
+                    // Use the AI-generated image
+                    $this->selectedSceneImages[$sceneId] = [$aiIndex];
+                    $this->sceneAnimateWithAI[$sceneId] = false;
+                } else {
+                    // Fall back to first stock candidate
+                    $this->selectedSceneImages[$sceneId] = [0];
+                    $this->sceneAnimateWithAI[$sceneId] = false;
+
+                    $firstCandidate = $candidates[0];
+                    if (($firstCandidate['type'] ?? 'image') === 'video') {
+                        $this->autoTrimVideoClip($sceneId, $firstCandidate);
+                    }
                 }
             }
             // Scenes with no candidates keep AI selection
@@ -412,7 +440,7 @@ trait HasImageSelection
     }
 
     /**
-     * Check if every scene is set to AI-generated image.
+     * Check if every scene is set to AI mode (either pending 'ai' or has an AI-generated image).
      */
     public function areAllScenesAI(): bool
     {
@@ -421,9 +449,24 @@ trait HasImageSelection
         }
 
         foreach ($this->sceneImageCandidates as $sceneId => $candidates) {
-            if (($this->selectedSceneImages[$sceneId] ?? null) !== 'ai') {
-                return false;
+            $selection = $this->selectedSceneImages[$sceneId] ?? null;
+
+            // Scene marked as 'ai' (pending generation)
+            if ($selection === 'ai') {
+                continue;
             }
+
+            // Scene has an AI-generated image selected
+            if (is_array($selection) && !empty($selection)) {
+                $lastIdx = end($selection);
+                $candidate = $candidates[(int) $lastIdx] ?? null;
+                if ($candidate && ($candidate['source'] ?? '') === 'ai_generated') {
+                    continue;
+                }
+            }
+
+            // Scene has a stock image — not all AI
+            return false;
         }
 
         return true;
