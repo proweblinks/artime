@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Modules\AppVideoWizard\Models\UrlToVideoProject;
 use Modules\AppVideoWizard\Models\WizardProject;
+use Modules\AppVideoWizard\Services\SpeechSegmentParser;
+use Modules\AppVideoWizard\Services\VoiceRegistryService;
 
 /**
  * UrlToVideoOrchestrator
@@ -126,17 +128,28 @@ class UrlToVideoOrchestrator
         }
 
         $aspectRatio = $project->aspect_ratio ?? '9:16';
+        $metadata = $project->metadata ?? [];
+        $isFilmMode = !empty($metadata['film_mode']);
 
         // Derive style instruction from visual style config (if set) or content brief
         $brief = $project->content_brief ?? [];
         $tone = $brief['tone'] ?? 'professional';
-        $metadata = $project->metadata ?? [];
         $styleConfig = $metadata['visual_style_config'] ?? null;
         if ($styleConfig && !empty($styleConfig['imagePrefix'])) {
             $styleInstruction = "{$styleConfig['imagePrefix']}. {$tone} tone. {$styleConfig['imageSuffix']}";
         } else {
             $category = $brief['content_category'] ?? 'general';
             $styleInstruction = "Cinematic, photorealistic, {$tone} tone, {$category} content";
+        }
+
+        // Film mode: use template visual overrides for richer style instruction
+        if ($isFilmMode) {
+            $templateConfig = $metadata['film_template_config'] ?? [];
+            $overrides = $templateConfig['visual_overrides'] ?? $styleConfig ?? [];
+            if (!empty($overrides['imagePrefix'])) {
+                $atmosphere = $templateConfig['atmosphere'] ?? '';
+                $styleInstruction = "{$overrides['imagePrefix']}. {$overrides['imageSuffix']}. {$atmosphere}";
+            }
         }
 
         $segments = array_map(fn ($s) => [
@@ -182,6 +195,14 @@ class UrlToVideoOrchestrator
      */
     protected function stepGenerateVoiceover(UrlToVideoProject $project): void
     {
+        $metadata = $project->metadata ?? [];
+        $isFilmMode = !empty($metadata['film_mode']);
+
+        if ($isFilmMode) {
+            $this->stepGenerateFilmVoiceover($project);
+            return;
+        }
+
         $project->updateProgress('generating_voiceover', 35, 'Generating voiceover');
 
         $scenes = $project->scenes ?? [];
@@ -253,6 +274,258 @@ class UrlToVideoOrchestrator
     }
 
     /**
+     * Film mode voiceover: parse dialogue per scene, generate per-character TTS, concatenate.
+     */
+    protected function stepGenerateFilmVoiceover(UrlToVideoProject $project): void
+    {
+        $project->updateProgress('generating_voiceover', 35, 'Generating character voices');
+
+        $scenes = $project->scenes ?? [];
+        if (empty($scenes)) {
+            throw new \Exception('No scenes data available for voiceover generation');
+        }
+
+        $metadata = $project->metadata ?? [];
+        $templateConfig = $metadata['film_template_config'] ?? [];
+        $characterBible = $metadata['character_bible'] ?? [];
+
+        // Initialize voice registry from template characters
+        $voiceRegistry = new VoiceRegistryService();
+        $voiceRegistry->initializeFromCharacterBible($characterBible, 'echo'); // default narrator fallback
+
+        $parser = new SpeechSegmentParser();
+        $wizardProject = $this->createTempWizardProject($project);
+        $updatedScenes = [];
+
+        foreach ($scenes as $i => $scene) {
+            if ($this->isCancelled($project)) return;
+
+            $progress = 35 + (int) (($i / count($scenes)) * 15);
+            $project->updateProgress('generating_voiceover', $progress, "Character voices (" . ($i + 1) . "/" . count($scenes) . ")");
+
+            $sceneText = $scene['text'] ?? '';
+            $isVisualOnly = !empty($scene['is_visual_only']);
+
+            // Visual-only scenes (pure scene directions, no dialogue) — no TTS needed
+            if ($isVisualOnly || empty(trim($sceneText))) {
+                $scene['audio_url'] = null;
+                $scene['audio_duration'] = $scene['estimated_duration'] ?? 4;
+                $scene['is_visual_only'] = true;
+                $updatedScenes[] = $scene;
+                continue;
+            }
+
+            try {
+                // Parse dialogue segments from screenplay text
+                $segments = $parser->parse($sceneText, $characterBible);
+                $dialogueSegments = [];
+
+                foreach ($segments as $seg) {
+                    $segType = $seg->type ?? ($seg['type'] ?? 'narrator');
+                    $segText = $seg->text ?? ($seg['text'] ?? '');
+                    $segSpeaker = $seg->speaker ?? ($seg['speaker'] ?? 'NARRATOR');
+
+                    // Skip narrator/direction segments in film mode (no narrator voice)
+                    if ($segType === 'narrator' || empty(trim($segText))) {
+                        continue;
+                    }
+
+                    // Look up voice for this character
+                    $voiceId = $voiceRegistry->getVoiceForCharacter(
+                        $segSpeaker,
+                        fn ($name) => $this->guessVoiceForCharacter($name, $characterBible)
+                    );
+
+                    // Determine provider from template config or default to openai
+                    $provider = 'openai';
+                    foreach ($templateConfig['characters'] ?? [] as $charDef) {
+                        if (strtoupper($charDef['name']) === strtoupper($segSpeaker)) {
+                            $provider = $charDef['voice']['provider'] ?? 'openai';
+                            break;
+                        }
+                    }
+
+                    $dialogueSegments[] = [
+                        'speaker' => $segSpeaker,
+                        'text' => trim($segText, '" '),
+                        'voice_id' => $voiceId,
+                        'provider' => $provider,
+                    ];
+                }
+
+                // If no dialogue segments found, treat as visual-only
+                if (empty($dialogueSegments)) {
+                    $scene['audio_url'] = null;
+                    $scene['audio_duration'] = $scene['estimated_duration'] ?? 4;
+                    $scene['is_visual_only'] = true;
+                    $updatedScenes[] = $scene;
+                    continue;
+                }
+
+                // Generate TTS for each dialogue segment
+                $segmentAudios = [];
+                $totalDuration = 0;
+                foreach ($dialogueSegments as $dSeg) {
+                    $sceneData = [
+                        'id' => ($scene['id'] ?? "scene_{$i}") . '_' . strtolower($dSeg['speaker']),
+                        'narration' => $dSeg['text'],
+                    ];
+
+                    $result = $this->voiceoverService->generateSceneVoiceover($wizardProject, $sceneData, [
+                        'voice' => $dSeg['voice_id'],
+                        'provider' => $dSeg['provider'],
+                        'sceneIndex' => $i,
+                        'emotion' => $scene['voice_emotion'] ?? null,
+                    ]);
+
+                    $audioUrl = $result['audioUrl'] ?? $result['audio_url'] ?? null;
+                    $duration = $result['duration'] ?? 2;
+
+                    if ($audioUrl) {
+                        $segmentAudios[] = [
+                            'speaker' => $dSeg['speaker'],
+                            'voice_id' => $dSeg['voice_id'],
+                            'audio_url' => $audioUrl,
+                            'duration' => $duration,
+                        ];
+                        $totalDuration += $duration;
+                    }
+                }
+
+                // If single speaker, use audio directly; if multiple, concatenate
+                if (count($segmentAudios) === 1) {
+                    $scene['audio_url'] = $segmentAudios[0]['audio_url'];
+                    $scene['audio_duration'] = $segmentAudios[0]['duration'];
+                } elseif (count($segmentAudios) > 1) {
+                    $concat = $this->concatenateSceneAudio($segmentAudios, $project->id, $i);
+                    $scene['audio_url'] = $concat['audio_url'];
+                    $scene['audio_duration'] = $concat['duration'];
+                } else {
+                    $scene['audio_url'] = null;
+                    $scene['audio_duration'] = $scene['estimated_duration'] ?? 4;
+                }
+
+                $scene['dialogue_segments'] = $segmentAudios;
+            } catch (\Exception $e) {
+                Log::warning("UrlToVideoOrchestrator: Film voiceover failed for scene {$i}", [
+                    'error' => $e->getMessage(),
+                ]);
+                $scene['audio_url'] = null;
+                $scene['audio_duration'] = $scene['estimated_duration'] ?? 4;
+            }
+
+            $updatedScenes[] = $scene;
+        }
+
+        $project->update(['scenes' => $updatedScenes]);
+        $wizardProject->delete();
+
+        Log::info('UrlToVideoOrchestrator: Film voiceover completed', [
+            'project_id' => $project->id,
+            'scenes_with_audio' => collect($updatedScenes)->filter(fn ($s) => !empty($s['audio_url']))->count(),
+            'visual_only_scenes' => collect($updatedScenes)->filter(fn ($s) => !empty($s['is_visual_only']))->count(),
+        ]);
+    }
+
+    /**
+     * Concatenate multiple per-speaker audio files into a single scene audio.
+     */
+    protected function concatenateSceneAudio(array $segmentAudios, int $projectId, int $sceneIndex): array
+    {
+        $dir = $this->ensureProjectDir($projectId, 'audio');
+        $outputFile = "{$dir}/scene_{$sceneIndex}_concat.mp3";
+
+        // Build ffmpeg concat input
+        $inputFiles = [];
+        $totalDuration = 0;
+        foreach ($segmentAudios as $seg) {
+            $audioPath = $seg['audio_url'];
+            // Convert URL to local path if needed
+            if (str_starts_with($audioPath, 'http')) {
+                $tmpPath = "{$dir}/seg_{$sceneIndex}_" . count($inputFiles) . '.mp3';
+                $contents = @file_get_contents($audioPath);
+                if ($contents) {
+                    file_put_contents($tmpPath, $contents);
+                    $audioPath = $tmpPath;
+                }
+            } elseif (str_starts_with($audioPath, '/')) {
+                $audioPath = public_path(ltrim($audioPath, '/'));
+            }
+            $inputFiles[] = $audioPath;
+            $totalDuration += $seg['duration'];
+        }
+
+        if (count($inputFiles) < 2) {
+            return [
+                'audio_url' => $segmentAudios[0]['audio_url'] ?? null,
+                'duration' => $totalDuration,
+            ];
+        }
+
+        // Create concat list file
+        $listFile = "{$dir}/concat_list_{$sceneIndex}.txt";
+        $listContent = '';
+        foreach ($inputFiles as $file) {
+            $escaped = str_replace("'", "'\\''", $file);
+            $listContent .= "file '{$escaped}'\n";
+        }
+        file_put_contents($listFile, $listContent);
+
+        // Run ffmpeg concat
+        $ffmpeg = $this->getFfmpegPath();
+        $cmd = "{$ffmpeg} -y -f concat -safe 0 -i " . escapeshellarg($listFile) . " -c:a libmp3lame -q:a 2 " . escapeshellarg($outputFile) . " 2>&1";
+
+        $output = shell_exec($cmd);
+        @unlink($listFile);
+
+        if (file_exists($outputFile) && filesize($outputFile) > 0) {
+            $relativePath = str_replace(public_path(), '', $outputFile);
+            $relativePath = '/' . ltrim(str_replace('\\', '/', $relativePath), '/');
+            return [
+                'audio_url' => $relativePath,
+                'duration' => $totalDuration,
+            ];
+        }
+
+        Log::warning('UrlToVideoOrchestrator: Audio concat failed, using first segment', [
+            'scene_index' => $sceneIndex,
+            'output' => substr($output ?? '', 0, 500),
+        ]);
+
+        return [
+            'audio_url' => $segmentAudios[0]['audio_url'] ?? null,
+            'duration' => $totalDuration,
+        ];
+    }
+
+    /**
+     * Guess a voice ID for a character name based on character bible gender.
+     */
+    protected function guessVoiceForCharacter(string $name, array $characterBible): string
+    {
+        $nameLower = strtolower($name);
+        foreach ($characterBible as $char) {
+            if (strtolower($char['name'] ?? '') === $nameLower) {
+                $gender = $char['gender'] ?? 'male';
+                return $gender === 'female' ? 'nova' : 'echo';
+            }
+        }
+        return 'echo';
+    }
+
+    /**
+     * Get ffmpeg binary path.
+     */
+    protected function getFfmpegPath(): string
+    {
+        $serverPath = '/home/artime/bin/ffmpeg';
+        if (file_exists($serverPath)) {
+            return $serverPath;
+        }
+        return 'ffmpeg';
+    }
+
+    /**
      * Step 3: Generate images for each scene.
      */
     protected function stepGenerateImages(UrlToVideoProject $project): void
@@ -317,10 +590,12 @@ class UrlToVideoOrchestrator
 
         $scenes = $project->scenes ?? [];
         $wizardProject = $this->createTempWizardProject($project);
-        $styleInstruction = $project->metadata['style_instruction'] ?? '';
-        $styleConfig = $project->metadata['visual_style_config'] ?? null;
+        $metadata = $project->metadata ?? [];
+        $styleInstruction = $metadata['style_instruction'] ?? '';
+        $styleConfig = $metadata['visual_style_config'] ?? null;
         $aspectRatio = $project->aspect_ratio ?? '9:16';
         $imageUrls = array_map(fn($s) => $s['image_url'] ?? null, $scenes);
+        $filmTemplateConfig = !empty($metadata['film_mode']) ? ($metadata['film_template_config'] ?? null) : null;
 
         // Phase 1: Submit all jobs
         $pendingTasks = [];
@@ -353,7 +628,7 @@ class UrlToVideoOrchestrator
 
                 $animationOptions = [
                     'imageUrl' => $imageUrl,
-                    'prompt' => $this->buildVideoPrompt($scene, $styleInstruction, $aspectRatio, $styleConfig),
+                    'prompt' => $this->buildVideoPrompt($scene, $styleInstruction, $aspectRatio, $styleConfig, $filmTemplateConfig),
                     'duration' => $clipDuration,
                     'sceneIndex' => $i,
                     'resolution' => $project->metadata['video_resolution'] ?? '480p',
@@ -452,12 +727,21 @@ class UrlToVideoOrchestrator
         $fadeOutDuration = (float) get_option('story_mode_fadeout_duration', 1.5);
         $transitionType = get_option('story_mode_transition_type', 'fade');
 
+        $metadata = $project->metadata ?? [];
+        $isFilmMode = !empty($metadata['film_mode']);
+
+        // Film mode: tighter crossfade and template-driven transition defaults
+        if ($isFilmMode) {
+            $crossfadeDuration = 0.4;
+            $transitionType = 'fadeblack';
+        }
+
         // Increase crossfade for AI-heavy videos (smoother transitions between generated images)
         $aiSceneCount = collect($scenes)->filter(fn($s) =>
             !empty($s['animate_with_ai']) || (empty($s['video_url']) && empty($s['clips']))
         )->count();
         $aiRatio = count($scenes) > 0 ? $aiSceneCount / count($scenes) : 0;
-        if ($aiRatio >= 0.5 && $crossfadeDuration < 1.0) {
+        if (!$isFilmMode && $aiRatio >= 0.5 && $crossfadeDuration < 1.0) {
             $crossfadeDuration = 1.0;
         }
 
@@ -591,14 +875,20 @@ class UrlToVideoOrchestrator
     /**
      * Build a Seedance video prompt for a scene.
      */
-    protected function buildVideoPrompt(array $scene, string $styleInstruction, string $aspectRatio, ?array $styleConfig = null): string
+    protected function buildVideoPrompt(array $scene, string $styleInstruction, string $aspectRatio, ?array $styleConfig = null, ?array $filmTemplateConfig = null): string
     {
         $parts = [];
+
+        // Film mode: use scene direction for video action if available
+        $direction = trim($scene['direction'] ?? '');
 
         // 1. CORE: Rich video action (2-4 sentences from AI)
         $videoAction = trim($scene['video_action'] ?? '');
         if (!empty($videoAction)) {
             $parts[] = rtrim($videoAction, '.');
+        } elseif (!empty($direction)) {
+            // Film mode: scene direction serves as the visual description
+            $parts[] = rtrim($direction, '.');
         } else {
             $narration = trim($scene['text'] ?? '');
             if (!empty($narration)) {
@@ -607,6 +897,11 @@ class UrlToVideoOrchestrator
                     $parts[] = trim($firstSentence);
                 }
             }
+        }
+
+        // Film mode: inject template atmosphere
+        if ($filmTemplateConfig && !empty($filmTemplateConfig['atmosphere'])) {
+            $parts[] = $filmTemplateConfig['atmosphere'];
         }
 
         if (empty($parts)) {

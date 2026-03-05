@@ -712,6 +712,70 @@ PROMPT;
     }
 
     /**
+     * Segment a screenplay into time-based scenes.
+     * Splits at [Scene: ...] markers, preserving dialogue speaker markers and direction text.
+     *
+     * @param string $transcript Full screenplay text with [Scene: ...] markers
+     * @param int $targetDuration Total video duration in seconds
+     * @return array Segments with text, direction, and estimated duration
+     */
+    public function segmentScreenplay(string $transcript, int $targetDuration = 120): array
+    {
+        // Split at [Scene: ...] markers
+        $parts = preg_split('/\[Scene:\s*/i', $transcript);
+
+        $segments = [];
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if (empty($part)) {
+                continue;
+            }
+
+            // Extract scene direction (everything up to the closing ])
+            $direction = '';
+            $body = $part;
+            if (($closeBracket = strpos($part, ']')) !== false) {
+                $direction = trim(substr($part, 0, $closeBracket));
+                $body = trim(substr($part, $closeBracket + 1));
+            }
+
+            // The body contains dialogue lines (CHARACTER: "text") and possibly more directions
+            // Estimate duration from dialogue word count only (directions are visual-only)
+            $dialogueText = '';
+            $lines = preg_split('/\r?\n/', $body);
+            foreach ($lines as $line) {
+                $line = trim($line);
+                // Match CHARACTER: "dialogue" or CHARACTER: dialogue
+                if (preg_match('/^[A-Z][A-Z0-9_\s]+:\s*(.+)$/u', $line, $m)) {
+                    $dialogueText .= ' ' . trim($m[1], '" ');
+                }
+            }
+
+            $dialogueWords = str_word_count(trim($dialogueText));
+            $wordsPerMinute = 140;
+            $segmentDuration = $dialogueWords > 0
+                ? round(($dialogueWords / $wordsPerMinute) * 60, 1)
+                : 4.0; // Visual-only scenes get a base duration
+
+            $isVisualOnly = $dialogueWords === 0;
+
+            $segments[] = [
+                'text' => $body ?: "[Scene: {$direction}]",
+                'direction' => $direction,
+                'estimated_duration' => max(3, $segmentDuration),
+                'is_visual_only' => $isVisualOnly,
+            ];
+        }
+
+        // If no [Scene:] markers found, fall back to regular sentence segmentation
+        if (empty($segments)) {
+            return $this->segmentTranscript($transcript, $targetDuration);
+        }
+
+        return $segments;
+    }
+
+    /**
      * Parse JSON from AI response (handles markdown code blocks, BOM, etc.).
      */
     protected function parseJsonResponse(string $content): ?array

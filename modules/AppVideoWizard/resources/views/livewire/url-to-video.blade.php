@@ -165,10 +165,10 @@
 
                 {{-- Mode Toggle + Narrative Style Pills --}}
                 <div class="px-3 pb-2">
-                    {{-- Standard / Creative toggle --}}
+                    {{-- Standard / Creative / Film toggle --}}
                     <div class="utv-mode-toggle mb-2">
-                        <button wire:click="$set('creativeMode', false)" type="button"
-                                class="utv-mode-btn {{ !$creativeMode ? 'active' : '' }}">
+                        <button wire:click="clearFilmTemplate" type="button"
+                                class="utv-mode-btn {{ !$creativeMode && !$filmMode ? 'active' : '' }}">
                             <i class="fa-light fa-list-music"></i>
                             {{ __('Standard') }}
                         </button>
@@ -177,9 +177,44 @@
                             <i class="fa-light fa-wand-magic-sparkles"></i>
                             {{ __('Creative') }}
                         </button>
+                        <button wire:click="$set('filmMode', true)" type="button"
+                                class="utv-mode-btn {{ $filmMode ? 'active film' : '' }}">
+                            <i class="fa-light fa-clapperboard"></i>
+                            {{ __('Film') }}
+                        </button>
                     </div>
 
-                    @if(!$creativeMode)
+                    @if($filmMode)
+                        {{-- Film: template cards --}}
+                        <div class="utv-film-templates mb-1">
+                            @foreach($this->filmTemplates as $tmpl)
+                                <button wire:click="selectFilmTemplate('{{ $tmpl['slug'] }}')" type="button"
+                                        class="utv-film-card {{ $selectedFilmTemplate === $tmpl['slug'] ? 'active' : '' }}">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <i class="{{ $tmpl['icon'] }}" style="color: {{ $tmpl['color'] }}; font-size: 0.9rem;"></i>
+                                        <span class="fw-semibold" style="font-size: 0.82rem;">{{ $tmpl['name'] }}</span>
+                                    </div>
+                                    <div style="font-size: 0.72rem; color: #5a6178; line-height: 1.4;">{{ $tmpl['description'] }}</div>
+                                    <div class="d-flex align-items-center gap-3 mt-1" style="font-size: 0.65rem; color: #94a0b8;">
+                                        <span><i class="fa-light fa-users me-1"></i>{{ $tmpl['character_count'] }} characters</span>
+                                        <span><i class="fa-light fa-timer me-1"></i>{{ $tmpl['duration'] }}s</span>
+                                        <span><i class="fa-light fa-rectangle-wide me-1"></i>{{ $tmpl['aspect_ratio'] }}</span>
+                                    </div>
+                                </button>
+                            @endforeach
+                        </div>
+                        @if($selectedFilmTemplate)
+                            <div class="utv-film-banner">
+                                <i class="fa-light fa-film"></i>
+                                <span>{{ __('Screenplay mode: AI writes character dialogue, no narrator') }}</span>
+                            </div>
+                        @else
+                            <div class="utv-film-banner" style="background: rgba(168,85,247,0.04); border-color: rgba(168,85,247,0.1); color: #7c3aed;">
+                                <i class="fa-light fa-hand-pointer"></i>
+                                <span>{{ __('Select a film template above to get started') }}</span>
+                            </div>
+                        @endif
+                    @elseif(!$creativeMode)
                         {{-- Standard: show 12 narrative style pills --}}
                         <div class="utv-style-pills-row">
                             @foreach($this->narrativePresets as $preset)
@@ -804,5 +839,50 @@
         .utv-tone-provocative { background: rgba(239,68,68,0.1); color: #dc2626; }
         .utv-tone-whimsical { background: rgba(168,85,247,0.1); color: #7c3aed; }
         .utv-tone-dramatic { background: rgba(251,146,60,0.1); color: #ea580c; }
+        /* Film Mode */
+        .utv-mode-btn.active.film {
+            background: rgba(168,85,247,0.1);
+            color: #a855f7;
+        }
+        .utv-film-templates {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding: 4px 0;
+        }
+        .utv-film-templates::-webkit-scrollbar { display: none; }
+        .utv-film-card {
+            flex: 0 0 220px;
+            padding: 12px 14px;
+            background: #ffffff;
+            border: 1px solid #eef1f5;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+            text-align: left;
+        }
+        .utv-film-card:hover {
+            border-color: rgba(168,85,247,0.3);
+            background: #faf8ff;
+        }
+        .utv-film-card.active {
+            border-color: #a855f7;
+            background: rgba(168,85,247,0.04);
+            box-shadow: 0 0 0 1px rgba(168,85,247,0.2);
+        }
+        .utv-film-banner {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: rgba(168,85,247,0.06);
+            border: 1px solid rgba(168,85,247,0.12);
+            border-radius: 10px;
+            color: #a855f7;
+            font-size: 0.8rem;
+        }
+        .utv-film-banner i { font-size: 0.85rem; }
     </style>
 </div>

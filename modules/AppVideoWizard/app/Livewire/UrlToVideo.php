@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use Modules\AppVideoWizard\Models\UrlToVideoProject;
 use Modules\AppVideoWizard\Services\UrlContentExtractorService;
 use Modules\AppVideoWizard\Services\StoryModeScriptService;
+use Modules\AppVideoWizard\Services\FilmTemplateService;
 use Modules\AppVideoWizard\Services\ImageSourceService;
 use Modules\AppVideoWizard\Jobs\UrlToVideoGenerationJob;
 use Modules\AppVideoWizard\Traits\HasImageSelection;
@@ -39,6 +40,11 @@ class UrlToVideo extends Component
     public array $alternativeConcepts = [];
     public bool $isGeneratingConcepts = false;
     public bool $showConceptCards = false;
+
+    // Film Mode state
+    public bool $filmMode = false;
+    public ?string $selectedFilmTemplate = null;
+    public ?array $filmTemplateConfig = null;
 
     // Extraction state
     public bool $isExtracting = false;
@@ -170,6 +176,46 @@ class UrlToVideo extends Component
         try {
             $extractor = new UrlContentExtractorService();
 
+            // Film mode: build screenplay prompt from template
+            if ($this->filmMode && $this->filmTemplateConfig) {
+                $filmService = new FilmTemplateService();
+                $userConcept = trim(preg_replace('/(https?:\/\/[^\s<>"\']+)/i', '', $this->prompt));
+
+                // If URL provided, extract content subject for richer context
+                if (!empty($this->sourceUrl)) {
+                    $sourceType = $this->detectedSourceType ?: $extractor->detectSourceType($this->sourceUrl);
+                    $extractedContent = $extractor->extract($this->sourceUrl, $sourceType);
+                    $this->storedExtractedContent = $extractedContent;
+                    $contentBrief = $extractor->analyzeContent($extractedContent, $userConcept ?: null);
+                    $this->storedContentBrief = $contentBrief;
+                    $userConcept = $contentBrief['subject'] ?? $extractedContent['title'] ?? $userConcept;
+                } else {
+                    $this->storedExtractedContent = [];
+                    $this->storedContentBrief = [];
+                }
+
+                $enhancedPrompt = $filmService->buildScreenplayPrompt(
+                    $this->filmTemplateConfig,
+                    $userConcept ?: $this->prompt,
+                    $this->videoDuration
+                );
+
+                // Generate screenplay (rawPrompt=true so it uses the prompt as-is with JSON output)
+                $scriptService = new StoryModeScriptService();
+                $maxWords = $this->calculateMaxWords($this->videoDuration);
+                $result = $scriptService->generateScript($enhancedPrompt, $this->videoDuration, $maxWords, true);
+
+                $this->editableTranscript = $result['transcript'];
+                $this->transcriptWordCount = $result['word_count'];
+                $this->generatedTitle = $result['title'] ?? 'Untitled Film';
+                $this->generatedSegments = $result['segments'] ?? [];
+                $this->creativeConceptTitle = $result['concept_title'] ?? null;
+                $this->creativeConceptPitch = $result['concept_pitch'] ?? null;
+
+                $this->showTranscriptModal = true;
+                return;
+            }
+
             if (!empty($this->sourceUrl)) {
                 // URL mode: extract → analyze → build prompt → generate script
                 $sourceType = $this->detectedSourceType ?: $extractor->detectSourceType($this->sourceUrl);
@@ -246,11 +292,15 @@ class UrlToVideo extends Component
             return;
         }
 
+        $scriptService = new StoryModeScriptService();
+        $targetDuration = $this->videoDuration;
+        $useScreenplay = $this->filmMode && $this->filmTemplateConfig;
+
         // If we already have candidates, verify scene count still matches the transcript
         if (!empty($this->sceneImageCandidates)) {
-            $scriptService = new StoryModeScriptService();
-            $targetDuration = $this->videoDuration;
-            $currentSegments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
+            $currentSegments = $useScreenplay
+                ? $scriptService->segmentScreenplay($this->editableTranscript, $targetDuration)
+                : $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
             $currentCount = count($currentSegments);
             $cachedCount = count($this->sceneImageCandidates);
 
@@ -271,9 +321,9 @@ class UrlToVideo extends Component
         }
 
         // Segment the transcript and source images
-        $scriptService = new StoryModeScriptService();
-        $targetDuration = $this->videoDuration;
-        $segments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
+        $segments = $useScreenplay
+            ? $scriptService->segmentScreenplay($this->editableTranscript, $targetDuration)
+            : $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
 
         // Use the trait's sourceImagesForScenes which handles sourcing + opening modal
         $this->sourceImagesForScenes($segments, $this->storedContentBrief, $this->storedExtractedContent);
@@ -455,17 +505,28 @@ class UrlToVideo extends Component
         } else {
             $scriptService = new StoryModeScriptService();
             $targetDuration = $this->videoDuration;
-            $segments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
+            $useScreenplay = $this->filmMode && $this->filmTemplateConfig;
+            $segments = $useScreenplay
+                ? $scriptService->segmentScreenplay($this->editableTranscript, $targetDuration)
+                : $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
         }
 
         $scenes = [];
         foreach ($segments as $i => $segment) {
-            $scenes[] = [
+            $scene = [
                 'id' => 'scene_' . $i,
                 'index' => $i,
                 'text' => $segment['text'],
                 'estimated_duration' => $segment['estimated_duration'],
             ];
+            // Film mode: carry screenplay-specific fields
+            if (!empty($segment['direction'])) {
+                $scene['direction'] = $segment['direction'];
+            }
+            if (!empty($segment['is_visual_only'])) {
+                $scene['is_visual_only'] = true;
+            }
+            $scenes[] = $scene;
         }
 
         $sourceType = $this->detectedSourceType ?: 'prompt';
@@ -611,15 +672,22 @@ class UrlToVideo extends Component
                 'video_resolution' => $this->videoResolution,
                 'video_quality' => $this->videoQuality,
                 'video_duration_target' => $this->videoDuration,
-                'narrative_style' => $this->creativeMode ? 'creative' : $this->narrativeStyle,
+                'narrative_style' => $this->filmMode ? 'film' : ($this->creativeMode ? 'creative' : $this->narrativeStyle),
                 'image_source' => $imageSource,
                 'creative_mode' => $this->creativeMode,
                 'creative_concept_title' => $this->creativeConceptTitle,
                 'creative_concept_pitch' => $this->creativeConceptPitch,
-                'character_bible' => $this->characterBible,
+                'character_bible' => $this->filmMode
+                    ? (new FilmTemplateService())->getCharacterBibleForTemplate($this->filmTemplateConfig ?? [])
+                    : $this->characterBible,
                 'interactive_studio' => !empty($this->sceneVisualScript),
                 'visual_style' => $this->selectedVisualStyle ?? 'cinematic',
-                'visual_style_config' => self::VISUAL_STYLE_PRESETS[$this->selectedVisualStyle ?? 'cinematic'] ?? null,
+                'visual_style_config' => $this->filmMode && $this->filmTemplateConfig
+                    ? (new FilmTemplateService())->getVisualStyleConfig($this->filmTemplateConfig)
+                    : (self::VISUAL_STYLE_PRESETS[$this->selectedVisualStyle ?? 'cinematic'] ?? null),
+                'film_mode' => $this->filmMode,
+                'film_template' => $this->selectedFilmTemplate,
+                'film_template_config' => $this->filmTemplateConfig,
             ],
         ]);
 
@@ -663,6 +731,69 @@ class UrlToVideo extends Component
         $this->creativeConceptPitch = null;
         $this->alternativeConcepts = [];
         $this->showConceptCards = false;
+        if ($this->creativeMode) {
+            $this->filmMode = false;
+            $this->selectedFilmTemplate = null;
+            $this->filmTemplateConfig = null;
+        }
+    }
+
+    public function updatedFilmMode()
+    {
+        $this->editableTranscript = null;
+        $this->generatedTitle = null;
+        $this->generatedSegments = [];
+        $this->resetImageSelectionState();
+        if ($this->filmMode) {
+            $this->creativeMode = false;
+            $this->creativeConceptTitle = null;
+            $this->creativeConceptPitch = null;
+        } else {
+            $this->selectedFilmTemplate = null;
+            $this->filmTemplateConfig = null;
+        }
+    }
+
+    public function selectFilmTemplate(string $slug): void
+    {
+        $filmService = new FilmTemplateService();
+        $template = $filmService->getTemplate($slug);
+
+        if (!$template) {
+            return;
+        }
+
+        $this->selectedFilmTemplate = $slug;
+        $this->filmTemplateConfig = $template;
+        $this->filmMode = true;
+        $this->creativeMode = false;
+        $this->aspectRatio = $template['aspect_ratio'] ?? '16:9';
+        $this->videoDuration = $template['duration_default'] ?? 120;
+        $this->selectedVisualStyle = $template['visual_style'] ?? 'cyberpunk';
+
+        // Clear stale state
+        $this->editableTranscript = null;
+        $this->generatedTitle = null;
+        $this->generatedSegments = [];
+        $this->resetImageSelectionState();
+    }
+
+    public function clearFilmTemplate(): void
+    {
+        $this->filmMode = false;
+        $this->creativeMode = false;
+        $this->selectedFilmTemplate = null;
+        $this->filmTemplateConfig = null;
+        $this->editableTranscript = null;
+        $this->generatedTitle = null;
+        $this->generatedSegments = [];
+        $this->resetImageSelectionState();
+    }
+
+    #[Computed]
+    public function filmTemplates(): array
+    {
+        return (new FilmTemplateService())->getTemplates();
     }
 
     public function updatedVideoDuration()
@@ -786,6 +917,9 @@ class UrlToVideo extends Component
         $this->creativeMode = $meta['creative_mode'] ?? false;
         $this->creativeConceptTitle = $meta['creative_concept_title'] ?? null;
         $this->creativeConceptPitch = $meta['creative_concept_pitch'] ?? null;
+        $this->filmMode = $meta['film_mode'] ?? false;
+        $this->selectedFilmTemplate = $meta['film_template'] ?? null;
+        $this->filmTemplateConfig = $meta['film_template_config'] ?? null;
 
         // Store the original project ID so confirmTranscript can restore clips
         $this->recreateFromProjectId = $projectId;
