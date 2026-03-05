@@ -732,58 +732,16 @@ trait HasImageSelection
                 'narration' => $this->generatedSegments[$sceneIndex]['text'] ?? '',
             ];
 
-            // ── Reference Cascade: Build sceneMemory from characterBible ──
-            $sceneMemory = null;
-            if (!empty($this->characterBible)) {
-                $sceneMemory = [
-                    'characterBible' => [
-                        'enabled' => true,
-                        'characters' => array_map(function ($char) {
-                            return [
-                                'name' => $char['name'] ?? '',
-                                'description' => $char['description'] ?? '',
-                                'scenes' => $char['appears_in'] ?? [],
-                                'referenceImageStatus' => 'none',
-                            ];
-                        }, $this->characterBible),
-                    ],
-                ];
-            }
-
-            // ── Reference Cascade: Build mini storyboard with previous imageUrls ──
-            $storyboard = ['scenes' => []];
-            $segments = $this->generatedSegments ?? [];
-            foreach ($segments as $i => $seg) {
-                $sid = 'scene_' . $i;
-                $genImages = $this->sceneGeneratedImages[$sid] ?? [];
-                $selectedIdx = $this->selectedSceneImages[$sid] ?? [];
-                $candidates = $this->sceneImageCandidates[$sid] ?? [];
-
-                $imgUrl = null;
-                if (!empty($genImages)) {
-                    $imgUrl = end($genImages)['url'] ?? null;
-                } elseif (is_array($selectedIdx) && !empty($selectedIdx) && !empty($candidates)) {
-                    $lastIdx = end($selectedIdx);
-                    $imgUrl = $candidates[(int) $lastIdx]['url'] ?? null;
-                }
-
-                $storyboard['scenes'][$i] = [
-                    'id' => $sid,
-                    'imageUrl' => $imgUrl,
-                    'status' => $imgUrl ? 'ready' : 'pending',
-                ];
-            }
-
-            // ── Reference Cascade: Set storyboard on project + pass sceneMemory ──
-            $wizardProject->storyboard = $storyboard;
-
+            // AI Studio: Disable reference cascade. Each scene's image prompt already
+            // contains CHARACTER VISUAL IDENTITY text for consistency. Passing previous
+            // scene images as references causes Gemini to reproduce the reference instead
+            // of following the new scene's distinct prompt.
             $imageService = app(ImageGenerationService::class);
             $result = $imageService->generateSceneImage($wizardProject, $sceneData, [
                 'model' => $imageModel,
                 'sceneIndex' => $sceneIndex,
                 'teamId' => $teamId,
-                'sceneMemory' => $sceneMemory,
-                'useCascade' => true,
+                'useCascade' => false,
             ]);
 
             $imageUrl = $result['imageUrl'] ?? $result['image_url'] ?? null;
