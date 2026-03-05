@@ -716,7 +716,7 @@ trait HasImageSelection
                 $imgUrl = null;
                 if (!empty($genImages)) {
                     $imgUrl = end($genImages)['url'] ?? null;
-                } elseif (!empty($selectedIdx) && !empty($candidates)) {
+                } elseif (is_array($selectedIdx) && !empty($selectedIdx) && !empty($candidates)) {
                     $lastIdx = end($selectedIdx);
                     $imgUrl = $candidates[(int) $lastIdx]['url'] ?? null;
                 }
