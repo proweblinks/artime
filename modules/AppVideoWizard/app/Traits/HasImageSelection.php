@@ -741,12 +741,21 @@ trait HasImageSelection
                 'narration' => $this->generatedSegments[$sceneIndex]['text'] ?? '',
             ];
 
-            // AI Studio: Use ONLY scene_0's image as a single reference for character
-            // consistency. The old approach passed ALL previous scene images which caused
-            // Gemini to reproduce them. By limiting to just the first image, subsequent
-            // scenes maintain character appearance while following their own unique prompts.
+            // AI Studio: Use scene_0's image as CHARACTER identity reference
+            //
+            // CRITICAL FIX: Previously Scene 0's image was passed via storyboard['scenes'][0]
+            // which was picked up as "continuity" reference (weak: "maintain lighting/color").
+            // The strong IDENTITY ANCHOR + FACE CONSISTENCY instructions only fire for
+            // CHARACTER references (with base64 images). By fetching Scene 0's image as base64
+            // and injecting it as a character reference, the cascade now generates:
+            //   "IDENTITY ANCHOR: Generate THIS EXACT SAME PERSON..."
+            //   "CRITICAL FACE CONSISTENCY: Same facial structure, eyes, nose..."
+            //
+            // Additionally, the old storyboard index was wrong — scene_0 was always at index [0],
+            // so getContinuityReference() only worked for scene_1 (looks at $sceneIndex - 1 = 0).
+            // Scenes 2+ got NO references at all — pure text-to-image generation!
             $sceneMemory = null;
-            $storyboard = ['scenes' => []];
+            $hasCharacterAnchor = false;
 
             // Find the first generated image (scene_0) to use as character anchor
             $firstImageUrl = null;
@@ -755,33 +764,47 @@ trait HasImageSelection
                 $firstImageUrl = end($firstGenImages)['url'] ?? null;
             }
 
-            // Only build reference if we have a first image AND we're not generating scene_0 itself
+            // Build CHARACTER reference from scene_0's image for all subsequent scenes
             if ($firstImageUrl && $sceneIndex > 0) {
-                // Storyboard with only scene_0's image as anchor
-                $storyboard['scenes'][0] = [
-                    'id' => 'scene_0',
-                    'imageUrl' => $firstImageUrl,
-                    'status' => 'ready',
-                ];
+                // Fetch Scene 0's image as base64 for character identity reference
+                $anchorBase64 = null;
+                try {
+                    $imageContent = @file_get_contents($firstImageUrl);
+                    if ($imageContent) {
+                        $anchorBase64 = base64_encode($imageContent);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('HasImageSelection: Failed to fetch anchor image for cascade', [
+                        'url' => $firstImageUrl,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
 
-                // Character bible so the cascade can find character references
-                if (!empty($this->characterBible)) {
+                // Inject as CHARACTER reference — triggers IDENTITY ANCHOR + FACE CONSISTENCY
+                // instructions in ImageGenerationService::buildCascadeEnhancedPrompt()
+                if ($anchorBase64) {
                     $sceneMemory = [
                         'characterBible' => [
                             'enabled' => true,
-                            'characters' => array_map(function ($char) {
-                                return [
-                                    'name' => $char['name'] ?? '',
-                                    'description' => $char['description'] ?? '',
-                                    'scenes' => $char['appears_in'] ?? [],
-                                    'referenceImageStatus' => 'none',
-                                ];
-                            }, $this->characterBible),
+                            'characters' => [[
+                                'name' => 'Visual Anchor',
+                                'description' => 'All characters exactly as shown in the reference image — maintain identical appearance, face, hair, clothing, and body type for every character visible',
+                                'scenes' => [], // empty = applies to all scenes
+                                'referenceImageStatus' => 'ready',
+                                'referenceImageBase64' => $anchorBase64,
+                                'referenceImageMimeType' => 'image/png',
+                            ]],
                         ],
                     ];
-                }
+                    $hasCharacterAnchor = true;
 
-                $wizardProject->storyboard = $storyboard;
+                    Log::info('HasImageSelection: Character anchor injected for cascade', [
+                        'sceneId' => $sceneId,
+                        'sceneIndex' => $sceneIndex,
+                        'anchorImageUrl' => $firstImageUrl,
+                        'anchorBase64Length' => strlen($anchorBase64),
+                    ]);
+                }
             }
 
             $imageService = app(ImageGenerationService::class);
@@ -790,7 +813,7 @@ trait HasImageSelection
                 'sceneIndex' => $sceneIndex,
                 'teamId' => $teamId,
                 'sceneMemory' => $sceneMemory,
-                'useCascade' => $firstImageUrl && $sceneIndex > 0,
+                'useCascade' => $hasCharacterAnchor,
             ]);
 
             $imageUrl = $result['imageUrl'] ?? $result['image_url'] ?? null;
