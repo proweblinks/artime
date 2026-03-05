@@ -365,8 +365,8 @@ class GeminiService
             'responseModalities' => ['image', 'text'], // Request image output
         ];
 
-        // Aspect ratio guidance
-        $requestedAspectRatio = $options['aspectRatio'] ?? '16:9';
+        // Aspect ratio guidance (default to portrait 9:16 for social-first content)
+        $requestedAspectRatio = $options['aspectRatio'] ?? '9:16';
         $aspectRatioGuidance = match($requestedAspectRatio) {
             '9:16' => 'Portrait orientation (9:16 aspect ratio). Compose vertically — use tall framing with subjects filling the vertical space. Use close-up or medium shots, NOT wide panoramic shots.',
             '1:1' => 'Square format (1:1 aspect ratio). Center subjects with balanced composition.',
@@ -588,7 +588,7 @@ EOT;
         $maxAttempts = 3;
 
         // Extract configuration options (shared across attempts)
-        $aspectRatio = $options['aspectRatio'] ?? '16:9';
+        $aspectRatio = $options['aspectRatio'] ?? '9:16';
         $resolution = $options['resolution'] ?? '2K';
         $additionalImages = $options['additionalImages'] ?? [];
 

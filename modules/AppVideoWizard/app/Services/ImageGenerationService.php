@@ -360,7 +360,8 @@ class ImageGenerationService
                 $shouldUseCascade = !$isMultiCharDialogueWithoutRefs && (
                     count($references['characters']) >= 2 ||
                     (count($references['characters']) >= 1 && !empty($references['location'])) ||
-                    $references['totalImages'] >= 2
+                    $references['totalImages'] >= 2 ||
+                    !empty($references['continuity'])  // Continuity alone (1 image) triggers cascade for visual consistency
                 );
 
                 if ($isMultiCharDialogueWithoutRefs) {
@@ -1536,7 +1537,8 @@ class ImageGenerationService
         ];
 
         $isCollagePreview = $options['is_collage_preview'] ?? false;
-        $aspectRatio = $isCollagePreview ? '1:1' : ($aspectRatioMap[$project->aspect_ratio] ?? '16:9');
+        $projectAR = $project->aspect_ratio ?? '9:16';
+        $aspectRatio = $isCollagePreview ? '1:1' : ($aspectRatioMap[$projectAR] ?? $projectAR);
         $modelResolution = $modelConfig['resolution'] ?? '2K';
 
         Log::info('[generateWithReferenceCascade] Starting cascade generation', [
@@ -2029,7 +2031,14 @@ class ImageGenerationService
         if ($isCollagePreview) {
             $aspectRatio = '1:1';
         } else {
-            $aspectRatio = $aspectRatioMap[$project->aspect_ratio] ?? '16:9';
+            $projectAR = $project->aspect_ratio ?? '9:16';
+            $aspectRatio = $aspectRatioMap[$projectAR] ?? $projectAR;
+            if (!isset($aspectRatioMap[$projectAR])) {
+                Log::warning('[generateWithGemini] Unknown aspect ratio from project', [
+                    'projectAR' => $projectAR,
+                    'projectId' => $project->id ?? 'temp',
+                ]);
+            }
         }
 
         // Get model resolution string (1K, 2K, 4K) for API call
@@ -2619,7 +2628,7 @@ EOT;
         // Build options for structured prompt builder
         $options = [
             'visual_mode' => $visualMode,
-            'aspect_ratio' => $project->aspect_ratio ?? '16:9',
+            'aspect_ratio' => $project->aspect_ratio ?? '9:16',
             'scene_description' => $visualDescription,
             'scene_index' => $sceneIndex ?? 0,
             'style_bible' => $styleBible,
@@ -3105,7 +3114,7 @@ EOT;
         }
 
         // Aspect ratio optimization
-        $aspectRatio = $project->aspect_ratio ?? '16:9';
+        $aspectRatio = $project->aspect_ratio ?? '9:16';
         $anchors[] = "optimized for {$aspectRatio} aspect ratio";
 
         return implode(', ', array_unique($anchors));
@@ -3502,7 +3511,14 @@ EOT;
             '4:3' => ['width' => 1365, 'height' => 1024, 'size' => '1365x1024'],
         ];
 
-        return $resolutions[$aspectRatio] ?? $resolutions['16:9'];
+        if (!isset($resolutions[$aspectRatio])) {
+            Log::warning('[getResolution] Unknown aspect ratio, defaulting to 9:16', [
+                'requested' => $aspectRatio,
+                'available' => array_keys($resolutions),
+            ]);
+        }
+
+        return $resolutions[$aspectRatio] ?? $resolutions['9:16'];
     }
 
     /**
