@@ -796,9 +796,16 @@ PROMPT;
             return $decoded;
         }
 
-        // Always try aggressive control char removal — collapse ALL control chars to spaces.
-        // AI responses often contain literal newlines/tabs inside JSON string values.
-        // This turns pretty-printed JSON into a single line, which is still valid JSON.
+        // Try smart sanitizer first — properly escapes newlines/tabs inside string values
+        // (preserves line breaks in transcripts unlike aggressive removal)
+        $sanitized = $this->sanitizeJsonControlChars($content);
+        $decoded = json_decode($sanitized, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            Log::info('StoryModeScriptService: JSON parsed via smart sanitizer');
+            return $decoded;
+        }
+
+        // Fallback: aggressive control char removal — collapse ALL control chars to spaces.
         $aggressive = preg_replace('/[\x00-\x1F\x7F]+/', ' ', $content) ?? $content;
         // Ensure valid UTF-8 (replace invalid sequences)
         $aggressive = mb_convert_encoding($aggressive, 'UTF-8', 'UTF-8');
@@ -820,13 +827,6 @@ PROMPT;
         $decoded = json_decode($doublePass, true, 512, JSON_INVALID_UTF8_SUBSTITUTE);
         if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
             Log::info('StoryModeScriptService: JSON parsed via double-pass control char removal');
-            return $decoded;
-        }
-
-        // Try smart sanitizer (replaces control chars only inside string values)
-        $sanitized = $this->sanitizeJsonControlChars($content);
-        $decoded = json_decode($sanitized, true);
-        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
             return $decoded;
         }
 
@@ -897,7 +897,13 @@ PROMPT;
             $char = $content[$pos];
 
             if ($escaped) {
-                $value .= $char;
+                // Convert JSON escape sequences to actual characters
+                $value .= match($char) {
+                    'n' => "\n",
+                    'r' => "\r",
+                    't' => "\t",
+                    default => $char,
+                };
                 $escaped = false;
                 $pos++;
                 continue;
@@ -931,8 +937,9 @@ PROMPT;
 
     /**
      * Sanitize control characters that break json_decode.
-     * Replaces literal newlines/tabs/etc. inside JSON string values with spaces,
-     * while preserving structural whitespace between JSON keys.
+     * Inside JSON string values: escapes newlines/tabs as \\n/\\t (preserving content),
+     * replaces other control chars with spaces.
+     * Outside strings: preserves structural whitespace.
      */
     protected function sanitizeJsonControlChars(string $json): string
     {
@@ -968,9 +975,15 @@ PROMPT;
                 continue;
             }
 
-            // Inside a string value, replace control chars with space
+            // Inside a string value, properly escape control chars
             if ($inString && $ord < 0x20) {
-                $result .= ' ';
+                if ($ord === 0x0A) {
+                    $result .= '\\n';  // newline → \n
+                } elseif ($ord === 0x09) {
+                    $result .= '\\t';  // tab → \t
+                } else {
+                    $result .= ' ';    // other control chars → space
+                }
                 continue;
             }
 
