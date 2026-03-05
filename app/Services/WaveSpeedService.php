@@ -71,7 +71,7 @@ class WaveSpeedService
 
         // Bookend face identity: end on the same image to constrain face drift
         if (!empty($options['end_image_url'])) {
-            $payload['end_image_url'] = $options['end_image_url'];
+            $payload['last_image'] = $options['end_image_url'];
         }
 
         // Determine endpoint: version-aware routing

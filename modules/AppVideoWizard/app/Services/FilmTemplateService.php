@@ -44,7 +44,7 @@ class FilmTemplateService
                 'tension' => ['slow zoom in', 'settle in'],
                 'closing' => ['slow zoom out', 'rise and reveal'],
             ],
-            'transitions' => ['default' => 'fadeblack', 'action' => 'wipeleft', 'dialogue' => 'dissolve'],
+            'transitions' => ['default' => 'none', 'action' => 'none', 'dialogue' => 'none'],
             'scene_count_target' => 25,
             'duration_default' => 120,
             'aspect_ratio' => '16:9',

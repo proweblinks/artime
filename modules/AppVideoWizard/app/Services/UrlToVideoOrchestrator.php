@@ -313,163 +313,78 @@ class UrlToVideoOrchestrator
     }
 
     /**
-     * Film mode voiceover: parse dialogue per scene, generate per-character TTS, concatenate.
+     * Film mode voiceover: analyse dialogue per scene for Seedance native audio.
+     * No TTS calls — Seedance generates voices natively when dialogue is in the prompt.
+     * Sets has_dialogue flag so buildVideoPrompt() includes dialogue in single quotes.
      */
     protected function stepGenerateFilmVoiceover(UrlToVideoProject $project): void
     {
-        $project->updateProgress('generating_voiceover', 35, 'Generating character voices');
+        $project->updateProgress('generating_voiceover', 35, 'Analysing film dialogue');
 
         $scenes = $project->scenes ?? [];
         if (empty($scenes)) {
-            throw new \Exception('No scenes data available for voiceover generation');
+            throw new \Exception('No scenes data available for dialogue analysis');
         }
 
         $metadata = $project->metadata ?? [];
-        $templateConfig = $metadata['film_template_config'] ?? [];
         $characterBible = $metadata['character_bible'] ?? [];
 
-        // Initialize voice registry from template characters
-        $voiceRegistry = new VoiceRegistryService();
-        $voiceRegistry->initializeFromCharacterBible($characterBible, 'echo'); // default narrator fallback
-
-        $parser = new SpeechSegmentParser();
-        $wizardProject = $this->createTempWizardProject($project);
         $updatedScenes = [];
+        $dialogueScenes = 0;
+        $visualOnlyScenes = 0;
 
         foreach ($scenes as $i => $scene) {
             if ($this->isCancelled($project)) return;
 
-            $progress = 35 + (int) (($i / count($scenes)) * 15);
-            $project->updateProgress('generating_voiceover', $progress, "Character voices (" . ($i + 1) . "/" . count($scenes) . ")");
-
             $sceneText = $scene['text'] ?? '';
             $isVisualOnly = !empty($scene['is_visual_only']);
 
-            // Visual-only scenes (pure scene directions, no dialogue) — no TTS needed
+            // Visual-only scenes: no dialogue to analyse
             if ($isVisualOnly || empty(trim($sceneText))) {
                 $scene['audio_url'] = null;
                 $scene['audio_duration'] = $scene['estimated_duration'] ?? 4;
                 $scene['is_visual_only'] = true;
+                $scene['has_dialogue'] = false;
+                $visualOnlyScenes++;
                 $updatedScenes[] = $scene;
                 continue;
             }
 
-            try {
-                // Parse dialogue segments from screenplay text
-                $segments = $parser->parse($sceneText, $characterBible);
-                $dialogueSegments = [];
+            // Check for dialogue pattern (SPEAKER: text)
+            $hasDialoguePattern = (bool) preg_match('/^[A-Z][A-Z0-9_\s]+:\s*.+/m', $sceneText);
 
-                foreach ($segments as $seg) {
-                    // SpeechSegmentParser returns SpeechSegment objects — use property access
-                    if ($seg instanceof SpeechSegment) {
-                        $segType = $seg->type;
-                        $segText = $seg->text;
-                        $segSpeaker = $seg->speaker ?? 'NARRATOR';
-                    } else {
-                        $segType = $seg['type'] ?? 'narrator';
-                        $segText = $seg['text'] ?? '';
-                        $segSpeaker = $seg['speaker'] ?? 'NARRATOR';
-                    }
-
-                    // Skip narrator/direction segments in film mode (no narrator voice)
-                    if ($segType === 'narrator' || empty(trim($segText))) {
-                        continue;
-                    }
-
-                    // Look up voice for this character
-                    $voiceId = $voiceRegistry->getVoiceForCharacter(
-                        $segSpeaker,
-                        fn ($name) => $this->guessVoiceForCharacter($name, $characterBible)
-                    );
-
-                    // Determine provider from template config or default to openai
-                    $provider = 'openai';
-                    foreach ($templateConfig['characters'] ?? [] as $charDef) {
-                        if (strtoupper($charDef['name']) === strtoupper($segSpeaker)) {
-                            $provider = $charDef['voice']['provider'] ?? 'openai';
-                            break;
-                        }
-                    }
-
-                    $dialogueSegments[] = [
-                        'speaker' => $segSpeaker,
-                        'text' => trim($segText, '" '),
-                        'voice_id' => $voiceId,
-                        'provider' => $provider,
-                    ];
-                }
-
-                // If no dialogue segments found, treat as visual-only
-                if (empty($dialogueSegments)) {
-                    $scene['audio_url'] = null;
-                    $scene['audio_duration'] = $scene['estimated_duration'] ?? 4;
-                    $scene['is_visual_only'] = true;
-                    $updatedScenes[] = $scene;
-                    continue;
-                }
-
-                // Generate TTS for each dialogue segment
-                $segmentAudios = [];
-                $totalDuration = 0;
-                foreach ($dialogueSegments as $dSeg) {
-                    $sceneData = [
-                        'id' => ($scene['id'] ?? "scene_{$i}") . '_' . strtolower($dSeg['speaker']),
-                        'narration' => $dSeg['text'],
-                    ];
-
-                    $result = $this->voiceoverService->generateSceneVoiceover($wizardProject, $sceneData, [
-                        'voice' => $dSeg['voice_id'],
-                        'provider' => $dSeg['provider'],
-                        'sceneIndex' => $i,
-                        'emotion' => $scene['voice_emotion'] ?? null,
-                    ]);
-
-                    $audioUrl = $result['audioUrl'] ?? $result['audio_url'] ?? null;
-                    $duration = $result['duration'] ?? 2;
-
-                    if ($audioUrl) {
-                        $segmentAudios[] = [
-                            'speaker' => $dSeg['speaker'],
-                            'voice_id' => $dSeg['voice_id'],
-                            'audio_url' => $audioUrl,
-                            'duration' => $duration,
-                        ];
-                        $totalDuration += $duration;
+            if ($hasDialoguePattern) {
+                // Estimate duration from word count (~2.5 words/sec for spoken dialogue)
+                $lines = preg_split('/\n+/', trim($sceneText));
+                $wordCount = 0;
+                foreach ($lines as $line) {
+                    if (preg_match('/^[A-Z][A-Z0-9_\s]+:\s*(.+)$/s', trim($line), $m)) {
+                        $wordCount += str_word_count($m[1]);
                     }
                 }
+                $estimatedDuration = max(4, min(10, (int) ceil($wordCount / 2.5) + 1));
 
-                // If single speaker, use audio directly; if multiple, concatenate
-                if (count($segmentAudios) === 1) {
-                    $scene['audio_url'] = $segmentAudios[0]['audio_url'];
-                    $scene['audio_duration'] = $segmentAudios[0]['duration'];
-                } elseif (count($segmentAudios) > 1) {
-                    $concat = $this->concatenateSceneAudio($segmentAudios, $project->id, $i);
-                    $scene['audio_url'] = $concat['audio_url'];
-                    $scene['audio_duration'] = $concat['duration'];
-                } else {
-                    $scene['audio_url'] = null;
-                    $scene['audio_duration'] = $scene['estimated_duration'] ?? 4;
-                }
-
-                $scene['dialogue_segments'] = $segmentAudios;
-            } catch (\Exception $e) {
-                Log::warning("UrlToVideoOrchestrator: Film voiceover failed for scene {$i}", [
-                    'error' => $e->getMessage(),
-                ]);
+                $scene['audio_url'] = null; // No TTS file — Seedance handles voice
+                $scene['audio_duration'] = $estimatedDuration;
+                $scene['has_dialogue'] = true;
+                $dialogueScenes++;
+            } else {
+                // Non-dialogue text (action descriptions, etc.)
                 $scene['audio_url'] = null;
-                $scene['audio_duration'] = $scene['estimated_duration'] ?? 4;
+                $scene['audio_duration'] = $scene['estimated_duration'] ?? 5;
+                $scene['has_dialogue'] = false;
             }
 
             $updatedScenes[] = $scene;
         }
 
         $project->update(['scenes' => $updatedScenes]);
-        $wizardProject->delete();
 
-        Log::info('UrlToVideoOrchestrator: Film voiceover completed', [
+        Log::info('UrlToVideoOrchestrator: Film dialogue analysis completed', [
             'project_id' => $project->id,
-            'scenes_with_audio' => collect($updatedScenes)->filter(fn ($s) => !empty($s['audio_url']))->count(),
-            'visual_only_scenes' => collect($updatedScenes)->filter(fn ($s) => !empty($s['is_visual_only']))->count(),
+            'dialogue_scenes' => $dialogueScenes,
+            'visual_only_scenes' => $visualOnlyScenes,
+            'total_scenes' => count($updatedScenes),
         ]);
     }
 
@@ -642,6 +557,7 @@ class UrlToVideoOrchestrator
         $aspectRatio = $project->aspect_ratio ?? '9:16';
         $imageUrls = array_map(fn($s) => $s['image_url'] ?? null, $scenes);
         $filmTemplateConfig = !empty($metadata['film_mode']) ? ($metadata['film_template_config'] ?? null) : null;
+        $isFilmMode = !empty($metadata['film_mode']);
 
         // Phase 1: Submit all jobs
         $pendingTasks = [];
@@ -679,7 +595,8 @@ class UrlToVideoOrchestrator
                     'sceneIndex' => $i,
                     'resolution' => $project->metadata['video_resolution'] ?? '480p',
                     'variant' => $project->metadata['video_quality'] ?? 'pro',
-                    'generate_audio' => false,
+                    'generate_audio' => $isFilmMode,
+                    'anti_speech' => !$isFilmMode,
                 ];
 
                 if ($i < count($scenes) - 1 && !empty($imageUrls[$i + 1])) {
@@ -776,10 +693,10 @@ class UrlToVideoOrchestrator
         $metadata = $project->metadata ?? [];
         $isFilmMode = !empty($metadata['film_mode']);
 
-        // Film mode: tighter crossfade and template-driven transition defaults
+        // Film mode: hard cuts between scenes, no crossfade
         if ($isFilmMode) {
-            $crossfadeDuration = 0.4;
-            $transitionType = 'fadeblack';
+            $crossfadeDuration = 0;
+            $transitionType = 'none';
         }
 
         // Increase crossfade for AI-heavy videos (smoother transitions between generated images)
@@ -851,6 +768,7 @@ class UrlToVideoOrchestrator
             ],
             'music' => $musicEnabled ? ['volume' => $musicVolume] : null,
             'captions' => $captionsEnabled ? ['enabled' => true, 'style' => 'default'] : null,
+            'preserve_audio' => $isFilmMode,
             'userId' => $project->user_id,
             'projectId' => $project->id,
         ];
@@ -919,6 +837,97 @@ class UrlToVideoOrchestrator
     }
 
     /**
+     * Extract dialogue from scene text and format for Seedance lip-sync.
+     * Returns character-described dialogue in single quotes for Seedance to vocalize.
+     */
+    protected function extractDialogueForSeedance(array $scene, ?array $filmTemplateConfig): string
+    {
+        $text = $scene['text'] ?? '';
+        if (empty(trim($text)) || !empty($scene['is_visual_only'])) return '';
+
+        $characters = $filmTemplateConfig['characters'] ?? [];
+
+        // Emotional descriptor from scene mood
+        $mood = strtolower($scene['mood'] ?? '');
+        $emotionMap = [
+            'tense' => 'urgently', 'dramatic' => 'intensely', 'epic' => 'powerfully',
+            'mysterious' => 'cryptically', 'intimate' => 'softly', 'calm' => 'calmly',
+            'intense' => 'fiercely', 'reflective' => 'thoughtfully', 'hopeful' => 'warmly',
+        ];
+        $emotion = $emotionMap[$mood] ?? 'firmly';
+
+        // Parse "SPEAKER: dialogue" lines from screenplay text
+        $dialogueParts = [];
+        $lines = preg_split('/\n+/', trim($text));
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (preg_match('/^([A-Z][A-Z0-9_\s]+):\s*(.+)$/s', $line, $m)) {
+                $speakerName = trim($m[1]);
+                $spokenText = trim($m[2], '" ');
+                if (empty($spokenText)) continue;
+
+                $brief = $this->getCharacterBriefFromConfig($speakerName, $characters);
+                $dialogueParts[] = "{$brief} says {$emotion}, '{$spokenText}'";
+            }
+        }
+
+        if (empty($dialogueParts)) {
+            // Fallback: no speaker pattern found, use raw text as monologue
+            $cleanText = trim($text, '" \n');
+            $words = explode(' ', $cleanText);
+            if (count($words) > 30) $cleanText = implode(' ', array_slice($words, 0, 30));
+            $charNames = $scene['characters_in_scene'] ?? [];
+            $brief = !empty($charNames) ? $this->getCharacterBriefFromConfig($charNames[0], $characters) : 'The character';
+            return "{$brief} says {$emotion}, '{$cleanText}'";
+        }
+
+        // Seedance 1.5: single speaker is best, multi-speaker degrades
+        // Limit to 2 dialogue lines max, truncate each to 20 words
+        $result = [];
+        foreach (array_slice($dialogueParts, 0, 2) as $part) {
+            if (preg_match("/^(.+says\s+\w+,\s*')(.+)(')$/s", $part, $pm)) {
+                $words = explode(' ', $pm[2]);
+                if (count($words) > 20) {
+                    $part = $pm[1] . implode(' ', array_slice($words, 0, 20)) . $pm[3];
+                }
+            }
+            $result[] = $part;
+        }
+
+        return implode(' ', $result);
+    }
+
+    /**
+     * Get visual brief for a character name from template config.
+     * "REN" + config → "A man with a cybernetic ear implant"
+     */
+    protected function getCharacterBriefFromConfig(string $name, array $characters): string
+    {
+        foreach ($characters as $char) {
+            if (strtoupper(trim($char['name'])) === strtoupper(trim($name))) {
+                $gender = $char['gender'] ?? 'unknown';
+                $subject = match ($gender) {
+                    'male' => 'A man', 'female' => 'A woman', default => 'A person',
+                };
+                $desc = $char['description'] ?? '';
+                $parts = array_map('trim', explode(',', $desc));
+                foreach ($parts as $part) {
+                    if (preg_match('/\b(cybernetic|implant|scar|tattoo|visor|prosthetic|augmented|glowing|silver|chrome)\b/i', $part)) {
+                        return $subject . ' with ' . strtolower(trim($part));
+                    }
+                }
+                foreach ($parts as $part) {
+                    if (preg_match('/\b(hair|bald|shaved|dreadlocks|braids|mohawk)\b/i', $part)) {
+                        return $subject . ' with ' . strtolower(trim($part));
+                    }
+                }
+                return $subject;
+            }
+        }
+        return 'The character';
+    }
+
+    /**
      * Build a Seedance video prompt for a scene.
      */
     protected function buildVideoPrompt(array $scene, string $styleInstruction, string $aspectRatio, ?array $styleConfig = null, ?array $filmTemplateConfig = null): string
@@ -964,6 +973,17 @@ class UrlToVideoOrchestrator
             return $scene['camera_motion'] ?? 'slow zoom in';
         }
 
+        // FILM MODE: Dialogue layer (triggers Seedance native lip-sync + voice)
+        $hasDialogue = !empty($scene['has_dialogue']);
+        $suppressSpeech = true;
+        if ($filmTemplateConfig && $hasDialogue) {
+            $dialogueLine = $this->extractDialogueForSeedance($scene, $filmTemplateConfig);
+            if (!empty($dialogueLine)) {
+                $parts[] = $dialogueLine;
+                $suppressSpeech = false;
+            }
+        }
+
         // 2. CAMERA: Woven naturally into the narrative
         $cameraMotion = $scene['camera_motion'] ?? 'slow zoom in';
         $parts[] = $this->mapCameraToSeedance($cameraMotion);
@@ -990,8 +1010,8 @@ class UrlToVideoOrchestrator
             $parts[] = $styleConfig['videoColor'];
         }
 
-        // 6. AUDIO: Context-aware from scene content
-        $parts[] = $this->extractAudioFromScene($scene);
+        // 6. AUDIO: Context-aware from scene content (no "Only" prefix when dialogue present)
+        $parts[] = $this->extractAudioFromScene($scene, $suppressSpeech);
 
         // Assemble as flowing prose
         $prompt = implode('. ', array_filter($parts)) . '.';
@@ -1054,7 +1074,7 @@ class UrlToVideoOrchestrator
     /**
      * Extract context-aware audio direction from scene content.
      */
-    protected function extractAudioFromScene(array $scene): string
+    protected function extractAudioFromScene(array $scene, bool $suppressSpeech = true): string
     {
         $text = strtolower(($scene['video_action'] ?? '') . ' ' . ($scene['image_prompt'] ?? '') . ' ' . ($scene['text'] ?? ''));
         $cueMap = [
@@ -1071,10 +1091,10 @@ class UrlToVideoOrchestrator
         ];
         foreach ($cueMap as $keyword => $sound) {
             if (str_contains($text, $keyword)) {
-                return "Only {$sound}";
+                return $suppressSpeech ? "Only {$sound}" : ucfirst($sound);
             }
         }
-        return 'Ambient sound only';
+        return $suppressSpeech ? 'Ambient sound only' : 'Subtle ambient sound';
     }
 
     protected function calculateClipDuration(?float $audioDuration): int

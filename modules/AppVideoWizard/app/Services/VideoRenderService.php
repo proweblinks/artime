@@ -50,6 +50,11 @@ class VideoRenderService
     protected bool $parallelProcessing;
 
     /**
+     * Whether to preserve native audio from video clips (film mode with Seedance audio)
+     */
+    protected bool $preserveAudio = false;
+
+    /**
      * Quality settings for different render modes
      */
     protected array $qualitySettings = [
@@ -235,8 +240,10 @@ class VideoRenderService
                 throw new Exception('No scenes provided in manifest');
             }
 
+            $this->preserveAudio = !empty($manifest['preserve_audio']);
+
             $sceneCount = count($scenes);
-            Log::info("[StoryExport:{$jobId}] Starting with {$sceneCount} scenes");
+            Log::info("[StoryExport:{$jobId}] Starting with {$sceneCount} scenes, preserveAudio=" . ($this->preserveAudio ? 'Y' : 'N'));
 
             // Determine target resolution
             $aspectRatio = $output['aspectRatio'] ?? '9:16';
@@ -475,7 +482,14 @@ class VideoRenderService
                         '-c:v', 'libx264',
                         '-preset', $settings['preset'],
                         '-crf', $settings['crf'],
-                        '-an',  // Strip audio (we'll add voiceover separately)
+                    ]);
+                    if ($this->preserveAudio) {
+                        // Film mode: keep native Seedance audio, re-encode to AAC
+                        $cmd = array_merge($cmd, ['-c:a', 'aac', '-b:a', '128k']);
+                    } else {
+                        $cmd[] = '-an'; // Strip audio (we'll add voiceover separately)
+                    }
+                    $cmd = array_merge($cmd, [
                         '-pix_fmt', 'yuv420p',
                         '-y',
                         $normalizedPath,
@@ -920,6 +934,35 @@ class VideoRenderService
 
         if (!$hasVoiceovers && !$hasMusic) {
             Log::info("[VideoRender:{$jobId}] No audio to add, copying video as-is");
+            copy($videoFile, $outputFile);
+            return $outputFile;
+        }
+
+        // Film mode with native audio: layer music on top of clip audio, skip voiceover pipeline
+        if ($this->preserveAudio && !$hasVoiceovers && $hasMusic) {
+            Log::info("[VideoRender:{$jobId}] Film mode: mixing music over native Seedance audio");
+            $cmd = [
+                $this->ffmpegPath,
+                '-i', $videoFile,
+                '-i', $musicFile,
+                '-filter_complex',
+                "[0:a]volume=1.0[native];[1:a]volume={$musicVolume},aloop=loop=-1:size=2e+09[music];[native][music]amix=inputs=2:duration=first:dropout_transition=2[aout]",
+                '-map', '0:v',
+                '-map', '[aout]',
+                '-c:v', 'copy',
+                '-c:a', 'aac',
+                '-b:a', '192k',
+                '-shortest',
+                '-movflags', '+faststart',
+                '-y',
+                $outputFile,
+            ];
+            $this->runCommand($cmd, $jobId, 'Film music overlay');
+            if (file_exists($outputFile)) {
+                return $outputFile;
+            }
+            // Fallback: copy as-is if mix fails
+            Log::warning("[VideoRender:{$jobId}] Film music mix failed, using video with native audio only");
             copy($videoFile, $outputFile);
             return $outputFile;
         }
@@ -1404,11 +1447,21 @@ class VideoRenderService
             '-preset', $settings['preset'],
             '-crf', $settings['crf'],
             '-pix_fmt', 'yuv420p',
-            '-an',
+        ];
+        if ($this->preserveAudio) {
+            // Film mode: preserve native audio with fade-out
+            $cmd = array_merge($cmd, [
+                '-af', "afade=t=out:st={$fadeStart}:d={$fadeOutDuration}",
+                '-c:a', 'aac', '-b:a', '128k',
+            ]);
+        } else {
+            $cmd[] = '-an';
+        }
+        $cmd = array_merge($cmd, [
             '-movflags', '+faststart',
             '-y',
             $outputFile,
-        ];
+        ]);
 
         $this->runCommand($cmd, $jobId, 'Fade Out');
 
