@@ -590,7 +590,9 @@ class UrlToVideoOrchestrator
 
                 $animationOptions = [
                     'imageUrl' => $imageUrl,
-                    'prompt' => $this->buildVideoPrompt($scene, $styleInstruction, $aspectRatio, $styleConfig, $filmTemplateConfig),
+                    'prompt' => $filmTemplateConfig
+                        ? $this->buildFilmVideoPrompt($scene, $styleConfig, $filmTemplateConfig)
+                        : $this->buildVideoPrompt($scene, $styleInstruction, $aspectRatio, $styleConfig, null),
                     'duration' => $clipDuration,
                     'sceneIndex' => $i,
                     'resolution' => $project->metadata['video_resolution'] ?? '480p',
@@ -934,21 +936,18 @@ class UrlToVideoOrchestrator
     {
         $parts = [];
 
-        // Film mode: use scene direction for video action if available
+        // Fallback direction if no video_action
         $direction = trim($scene['direction'] ?? '');
 
         // 1. CORE: Rich video action (2-4 sentences from AI)
         $videoAction = trim($scene['video_action'] ?? '');
         if (!empty($videoAction)) {
-            // Seedance sweet spot: video_action ≤80 words
-            // (buildVideoPrompt adds ~40 more for camera/style/lighting/audio)
             $words = explode(' ', $videoAction);
             if (count($words) > 80) {
                 $videoAction = implode(' ', array_slice($words, 0, 80));
             }
             $parts[] = rtrim($videoAction, '.');
         } elseif (!empty($direction)) {
-            // Film mode: scene direction serves as the visual description
             $parts[] = rtrim($direction, '.');
         } else {
             $narration = trim($scene['text'] ?? '');
@@ -960,28 +959,8 @@ class UrlToVideoOrchestrator
             }
         }
 
-        // Film mode: inject template atmosphere only if prompt isn't already long
-        if ($filmTemplateConfig && !empty($filmTemplateConfig['atmosphere'])) {
-            $currentWordCount = str_word_count(implode(' ', $parts));
-            // Only add atmosphere if total won't exceed ~90 words (leaving room for layers)
-            if ($currentWordCount < 50) {
-                $parts[] = $filmTemplateConfig['atmosphere'];
-            }
-        }
-
         if (empty($parts)) {
             return $scene['camera_motion'] ?? 'slow zoom in';
-        }
-
-        // FILM MODE: Dialogue layer (triggers Seedance native lip-sync + voice)
-        $hasDialogue = !empty($scene['has_dialogue']);
-        $suppressSpeech = true;
-        if ($filmTemplateConfig && $hasDialogue) {
-            $dialogueLine = $this->extractDialogueForSeedance($scene, $filmTemplateConfig);
-            if (!empty($dialogueLine)) {
-                $parts[] = $dialogueLine;
-                $suppressSpeech = false;
-            }
         }
 
         // 2. CAMERA: Woven naturally into the narrative
@@ -1010,8 +989,8 @@ class UrlToVideoOrchestrator
             $parts[] = $styleConfig['videoColor'];
         }
 
-        // 6. AUDIO: Context-aware from scene content (no "Only" prefix when dialogue present)
-        $parts[] = $this->extractAudioFromScene($scene, $suppressSpeech);
+        // 6. AUDIO: Context-aware from scene content
+        $parts[] = $this->extractAudioFromScene($scene, true);
 
         // Assemble as flowing prose
         $prompt = implode('. ', array_filter($parts)) . '.';
@@ -1025,6 +1004,171 @@ class UrlToVideoOrchestrator
         }
 
         return trim($prompt);
+    }
+
+    /**
+     * Build a Seedance video prompt for film mode scenes.
+     * Produces a ~100-word flowing narrative paragraph matching the proven Seedance format.
+     * No standalone style/lighting/color/audio tags — everything woven into prose.
+     */
+    protected function buildFilmVideoPrompt(array $scene, ?array $styleConfig, array $filmTemplateConfig): string
+    {
+        $videoAction = trim($scene['video_action'] ?? '');
+        $direction = trim($scene['direction'] ?? '');
+        $atmosphere = $filmTemplateConfig['atmosphere'] ?? '';
+        $cameraMotion = $scene['camera_motion'] ?? 'slow zoom in';
+        $mood = strtolower(trim($scene['mood'] ?? ''));
+
+        // Core action text (source of the narrative body)
+        $actionText = !empty($videoAction) ? $videoAction : (!empty($direction) ? $direction : '');
+        if (empty($actionText)) {
+            $narration = trim($scene['text'] ?? '');
+            $actionText = !empty($narration) ? strtok($narration, '.!?') : 'slow zoom in';
+        }
+
+        // --- Build flowing narrative ---
+
+        // 1. OPENING: Weave atmosphere into the first clause of action text
+        $narrative = $this->weaveAtmosphereOpening($actionText, $atmosphere, $styleConfig);
+
+        // 2. CAMERA: Inject camera direction at natural break points
+        $cameraPhrase = $this->mapCameraToSeedance($cameraMotion);
+        $narrative = $this->weaveCameraIntoNarrative($narrative, $cameraPhrase);
+
+        // 3. DIALOGUE: Insert character dialogue in single quotes (triggers Seedance lip-sync)
+        $hasDialogue = !empty($scene['has_dialogue']);
+        if ($hasDialogue) {
+            $dialogueLine = $this->extractDialogueForSeedance($scene, $filmTemplateConfig);
+            if (!empty($dialogueLine)) {
+                $narrative = $this->weaveDialogueIntoNarrative($narrative, $dialogueLine);
+            }
+        }
+
+        // 4. LIGHTING: Weave mood lighting as descriptive phrase (not standalone tag)
+        $lighting = $this->mapMoodToLighting($mood);
+        if ($styleConfig && !empty($styleConfig['videoLighting'])) {
+            $lighting = $styleConfig['videoLighting'];
+        }
+        $narrative = $this->weaveLightingIntoNarrative($narrative, $lighting);
+
+        // 5. CLOSING: Scene resolution with emotional tone
+        $closingMood = $this->getMoodCloser($mood);
+        if (!empty($closingMood) && !str_contains(strtolower($narrative), $closingMood)) {
+            $narrative = rtrim($narrative, '. ') . ', ' . $closingMood . '.';
+        }
+
+        // Word limit: ~120 words max (proven format is ~100, dialogue can push higher)
+        $words = explode(' ', $narrative);
+        if (count($words) > 120) {
+            $narrative = implode(' ', array_slice($words, 0, 120));
+        }
+
+        // Clean up double periods, extra spaces, double commas
+        $narrative = preg_replace('/\.\s*\./', '.', $narrative);
+        $narrative = preg_replace('/\s{2,}/', ' ', $narrative);
+        $narrative = preg_replace('/,\s*,/', ',', $narrative);
+
+        if (class_exists(SeedancePromptService::class)) {
+            $narrative = SeedancePromptService::sanitize($narrative);
+        }
+
+        return trim($narrative);
+    }
+
+    /**
+     * Weave atmosphere into the opening of action text.
+     */
+    protected function weaveAtmosphereOpening(string $actionText, string $atmosphere, ?array $styleConfig): string
+    {
+        if (!empty($atmosphere)) {
+            $phrases = array_map('trim', explode(',', $atmosphere));
+            $opening = $phrases[0] ?? '';
+            if (!empty($opening)) {
+                $openingLower = strtolower($opening);
+                if (!str_contains(strtolower($actionText), substr($openingLower, 0, 15))) {
+                    return ucfirst(trim($opening)) . '. ' . $actionText;
+                }
+            }
+        }
+        return $actionText;
+    }
+
+    /**
+     * Insert camera direction at a natural break in the narrative.
+     */
+    protected function weaveCameraIntoNarrative(string $narrative, string $cameraPhrase): string
+    {
+        $sentences = preg_split('/(?<=[.!?])\s+/', $narrative, -1, PREG_SPLIT_NO_EMPTY);
+
+        if (count($sentences) <= 1) {
+            return rtrim($narrative, '. ') . '. ' . $cameraPhrase . '.';
+        }
+
+        // Insert camera after ~40% of sentences (early-mid point)
+        $insertAt = max(1, (int) floor(count($sentences) * 0.4));
+        array_splice($sentences, $insertAt, 0, [$cameraPhrase . '.']);
+
+        return implode(' ', $sentences);
+    }
+
+    /**
+     * Weave dialogue into narrative before the last sentence.
+     */
+    protected function weaveDialogueIntoNarrative(string $narrative, string $dialogueLine): string
+    {
+        $sentences = preg_split('/(?<=[.!?])\s+/', $narrative, -1, PREG_SPLIT_NO_EMPTY);
+
+        if (count($sentences) <= 1) {
+            return rtrim($narrative, '. ') . '. ' . $dialogueLine . '.';
+        }
+
+        $lastSentence = array_pop($sentences);
+        $sentences[] = $dialogueLine . '.';
+        $sentences[] = $lastSentence;
+
+        return implode(' ', $sentences);
+    }
+
+    /**
+     * Weave lighting as a descriptive clause rather than standalone tag.
+     */
+    protected function weaveLightingIntoNarrative(string $narrative, string $lighting): string
+    {
+        $lightingKeywords = ['lit', 'light', 'glow', 'neon', 'illuminat', 'shadow', 'dim'];
+        $narrativeLower = strtolower($narrative);
+        foreach ($lightingKeywords as $kw) {
+            if (str_contains($narrativeLower, $kw)) {
+                return $narrative;
+            }
+        }
+
+        $firstPeriod = strpos($narrative, '.');
+        if ($firstPeriod !== false && $firstPeriod < strlen($narrative) - 1) {
+            $before = substr($narrative, 0, $firstPeriod);
+            $after = substr($narrative, $firstPeriod);
+            return $before . ', illuminated by ' . strtolower($lighting) . $after;
+        }
+
+        return rtrim($narrative, '. ') . ', illuminated by ' . strtolower($lighting) . '.';
+    }
+
+    /**
+     * Get emotional closer phrase from mood.
+     */
+    protected function getMoodCloser(string $mood): string
+    {
+        $closers = [
+            'tense' => 'leaving a sense of urgency',
+            'dramatic' => 'leaving a sense of gravitas',
+            'epic' => 'evoking a feeling of awe',
+            'mysterious' => 'leaving a sense of mystery and anticipation',
+            'calm' => 'evoking a feeling of tranquility',
+            'intimate' => 'creating an intimate atmosphere',
+            'intense' => 'leaving a feeling of raw intensity',
+            'reflective' => 'evoking a contemplative mood',
+            'hopeful' => 'creating a sense of hope',
+        ];
+        return $closers[$mood] ?? '';
     }
 
     protected function mapCameraToSeedance(string $cameraMotion): string

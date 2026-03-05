@@ -417,10 +417,10 @@ PROMPT;
             }
         }
 
-        // Trim to 80 words max (buildVideoPrompt adds camera/style/lighting ~40 more words)
+        // Trim to 100 words max (film mode weaves camera/style inline, not appended)
         $words = explode(' ', $action);
-        if (count($words) > 80) {
-            $action = implode(' ', array_slice($words, 0, 80));
+        if (count($words) > 100) {
+            $action = implode(' ', array_slice($words, 0, 100));
         }
 
         return trim($action);
