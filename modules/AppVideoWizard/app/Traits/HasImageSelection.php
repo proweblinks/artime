@@ -732,16 +732,56 @@ trait HasImageSelection
                 'narration' => $this->generatedSegments[$sceneIndex]['text'] ?? '',
             ];
 
-            // AI Studio: Disable reference cascade. Each scene's image prompt already
-            // contains CHARACTER VISUAL IDENTITY text for consistency. Passing previous
-            // scene images as references causes Gemini to reproduce the reference instead
-            // of following the new scene's distinct prompt.
+            // AI Studio: Use ONLY scene_0's image as a single reference for character
+            // consistency. The old approach passed ALL previous scene images which caused
+            // Gemini to reproduce them. By limiting to just the first image, subsequent
+            // scenes maintain character appearance while following their own unique prompts.
+            $sceneMemory = null;
+            $storyboard = ['scenes' => []];
+
+            // Find the first generated image (scene_0) to use as character anchor
+            $firstImageUrl = null;
+            $firstGenImages = $this->sceneGeneratedImages['scene_0'] ?? [];
+            if (!empty($firstGenImages)) {
+                $firstImageUrl = end($firstGenImages)['url'] ?? null;
+            }
+
+            // Only build reference if we have a first image AND we're not generating scene_0 itself
+            if ($firstImageUrl && $sceneIndex > 0) {
+                // Storyboard with only scene_0's image as anchor
+                $storyboard['scenes'][0] = [
+                    'id' => 'scene_0',
+                    'imageUrl' => $firstImageUrl,
+                    'status' => 'ready',
+                ];
+
+                // Character bible so the cascade can find character references
+                if (!empty($this->characterBible)) {
+                    $sceneMemory = [
+                        'characterBible' => [
+                            'enabled' => true,
+                            'characters' => array_map(function ($char) {
+                                return [
+                                    'name' => $char['name'] ?? '',
+                                    'description' => $char['description'] ?? '',
+                                    'scenes' => $char['appears_in'] ?? [],
+                                    'referenceImageStatus' => 'none',
+                                ];
+                            }, $this->characterBible),
+                        ],
+                    ];
+                }
+
+                $wizardProject->storyboard = $storyboard;
+            }
+
             $imageService = app(ImageGenerationService::class);
             $result = $imageService->generateSceneImage($wizardProject, $sceneData, [
                 'model' => $imageModel,
                 'sceneIndex' => $sceneIndex,
                 'teamId' => $teamId,
-                'useCascade' => false,
+                'sceneMemory' => $sceneMemory,
+                'useCascade' => $firstImageUrl && $sceneIndex > 0,
             ]);
 
             $imageUrl = $result['imageUrl'] ?? $result['image_url'] ?? null;
