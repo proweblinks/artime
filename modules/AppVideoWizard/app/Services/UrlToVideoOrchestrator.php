@@ -172,6 +172,14 @@ class UrlToVideoOrchestrator
                 $scene['voice_emotion'] = $scene['voice_emotion'] ?? $visual['voice_emotion'] ?? 'neutral';
                 $scene['transition_type'] = $scene['transition_type'] ?? $visual['transition_type'] ?? 'fadeblack';
                 $scene['transition_duration'] = (float) ($scene['transition_duration'] ?? $visual['transition_duration'] ?? 0.5);
+
+                // Pre-build rich 100+ word Seedance video prompt and store in video_action
+                // so the AI Studio displays the full narrative (not just raw direction)
+                $richVideoPrompt = $this->buildFilmVideoPrompt($scene, $styleConfig, $templateConfig);
+                if (!empty($richVideoPrompt)) {
+                    $scene['video_action'] = $richVideoPrompt;
+                }
+
                 $updatedScenes[] = $scene;
             }
 
@@ -184,7 +192,7 @@ class UrlToVideoOrchestrator
                 ]),
             ]);
 
-            Log::info('UrlToVideoOrchestrator: Film visual script built deterministically', [
+            Log::info('UrlToVideoOrchestrator: Film visual script built with rich video prompts', [
                 'project_id' => $project->id,
                 'scenes' => count($updatedScenes),
             ]);
@@ -211,6 +219,13 @@ class UrlToVideoOrchestrator
             $scene['voice_emotion'] = $scene['voice_emotion'] ?? $visual['voice_emotion'] ?? 'neutral';
             $scene['transition_type'] = $scene['transition_type'] ?? $visual['transition_type'] ?? 'fade';
             $scene['transition_duration'] = (float) ($scene['transition_duration'] ?? $visual['transition_duration'] ?? 0.5);
+
+            // Pre-build rich 100+ word Seedance video prompt and store in video_action
+            $richVideoPrompt = $this->buildVideoPrompt($scene, $styleInstruction, $aspectRatio, $styleConfig, null);
+            if (!empty($richVideoPrompt)) {
+                $scene['video_action'] = $richVideoPrompt;
+            }
+
             $updatedScenes[] = $scene;
         }
 
@@ -223,7 +238,7 @@ class UrlToVideoOrchestrator
             ]),
         ]);
 
-        Log::info('UrlToVideoOrchestrator: Visual script built', [
+        Log::info('UrlToVideoOrchestrator: Visual script built with rich video prompts', [
             'project_id' => $project->id,
             'scenes' => count($updatedScenes),
         ]);

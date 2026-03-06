@@ -514,7 +514,7 @@
                             @if(!empty($visual['video_action']))
                                 <div x-show="!editingVideoPrompt['{{ $sceneId }}']"
                                      @click="editingVideoPrompt['{{ $sceneId }}'] = true; $nextTick(() => $refs.vidPrompt_{{ $sceneIndex }}?.focus())"
-                                     class="utv-studio-prompt" style="font-size: 0.75rem; color: var(--at-text, #1a1a2e); line-height: 1.4; padding: 6px 8px; background: #f5f7fa; border-radius: 6px; border: 1px solid transparent; cursor: text; min-height: 28px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"
+                                     class="utv-studio-prompt" style="font-size: 0.75rem; color: var(--at-text, #1a1a2e); line-height: 1.4; padding: 6px 8px; background: #f5f7fa; border-radius: 6px; border: 1px solid transparent; cursor: text; min-height: 28px;"
                                      title="{{ __('Click to edit') }}">
                                     {{ $visual['video_action'] }}
                                 </div>
