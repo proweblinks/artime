@@ -212,6 +212,19 @@ PROMPT;
             $body = $scene['text'] ?? '';
             $isVisualOnly = !empty($scene['is_visual_only']);
 
+            // Fallback: if direction is empty, extract scene description from body text
+            if (empty($direction) && !empty($body)) {
+                // Try to extract from [Scene: ...] marker embedded in text
+                if (preg_match('/\[Scene:\s*([^\]]+)\]/i', $body, $sceneMatch)) {
+                    $direction = trim($sceneMatch[1]);
+                } else {
+                    // Use the body text directly — first 2-3 sentences as scene description
+                    $cleanBody = preg_replace('/^[A-Z_]+:\s*/m', '', $body); // strip dialogue speaker labels
+                    $sentences = preg_split('/(?<=[.!?])\s+/', trim($cleanBody), -1, PREG_SPLIT_NO_EMPTY);
+                    $direction = implode(' ', array_slice($sentences, 0, min(3, count($sentences))));
+                }
+            }
+
             $sceneType = $this->detectSceneType($i, $total, $direction, $isVisualOnly, $body);
             // V2: scan both direction AND body for character detection
             $detectedChars = $this->detectCharactersInScene($direction . ' ' . $body, $characters);
