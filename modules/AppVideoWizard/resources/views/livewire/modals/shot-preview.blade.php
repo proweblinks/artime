@@ -429,16 +429,22 @@
             <div style="padding: 0.5rem 0.75rem; background: rgba(0,0,0,0.03); border-top: 1px solid var(--vw-border); flex-shrink: 0;">
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
                     {{-- Image Prompt --}}
-                    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 0.4rem; padding: 0.4rem;">
-                        <div style="font-size: 0.6rem; color: rgba(16, 185, 129, 0.9); margin-bottom: 0.2rem; font-weight: 600;">🖼️ {{ __('IMAGE PROMPT') }}</div>
-                        <div style="font-size: 0.7rem; color: rgba(167, 243, 208, 0.95); line-height: 1.3; max-height: 50px; overflow-y: auto;">
+                    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 0.4rem; padding: 0.4rem;" x-data="{ ipExpanded: false }">
+                        <div style="font-size: 0.6rem; color: rgba(16, 185, 129, 0.9); margin-bottom: 0.2rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+                            <span>🖼️ {{ __('IMAGE PROMPT') }}</span>
+                            <span @click="ipExpanded = !ipExpanded" style="cursor: pointer; font-weight: 400; opacity: 0.8; font-size: 0.55rem;" x-text="ipExpanded ? 'Show less' : 'Show all'"></span>
+                        </div>
+                        <div style="font-size: 0.7rem; color: rgba(167, 243, 208, 0.95); line-height: 1.3; overflow-y: auto;" :style="ipExpanded ? 'max-height: none' : 'max-height: 50px'">
                             {{ $shot['prompt'] ?? $shot['imagePrompt'] ?? __('No prompt') }}
                         </div>
                     </div>
                     {{-- Video Prompt --}}
-                    <div style="background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 0.4rem; padding: 0.4rem;">
-                        <div style="font-size: 0.6rem; color: rgba(6, 182, 212, 0.9); margin-bottom: 0.2rem; font-weight: 600;">🎬 {{ __('VIDEO PROMPT') }}</div>
-                        <div style="font-size: 0.7rem; color: rgba(103, 232, 249, 0.95); line-height: 1.3; max-height: 50px; overflow-y: auto;">
+                    <div style="background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 0.4rem; padding: 0.4rem;" x-data="{ vpExpanded: false }">
+                        <div style="font-size: 0.6rem; color: rgba(6, 182, 212, 0.9); margin-bottom: 0.2rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+                            <span>🎬 {{ __('VIDEO PROMPT') }}</span>
+                            <span @click="vpExpanded = !vpExpanded" style="cursor: pointer; font-weight: 400; opacity: 0.8; font-size: 0.55rem;" x-text="vpExpanded ? 'Show less' : 'Show all'"></span>
+                        </div>
+                        <div style="font-size: 0.7rem; color: rgba(103, 232, 249, 0.95); line-height: 1.3; overflow-y: auto;" :style="vpExpanded ? 'max-height: none' : 'max-height: 50px'">
                             {{ $shot['videoPrompt'] ?? $shot['narrativeBeat']['motionDescription'] ?? __('Action prompt will be generated') }}
                         </div>
                     </div>

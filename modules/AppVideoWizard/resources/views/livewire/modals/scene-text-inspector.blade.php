@@ -482,41 +482,42 @@
 
                                     {{-- Video Prompt (PRMT-02, PRMT-04) --}}
                                     @if($videoPrompt)
-                                        <div data-prompt="{{ $videoPromptJson }}">
+                                        <div data-prompt="{{ $videoPromptJson }}" x-data="{ vpExpanded: false, copied: false, touching: false }">
                                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
                                                 <span style="font-size: 0.65rem; color: var(--vw-text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Video Prompt</span>
-                                                <button type="button"
-                                                        x-data="{ copied: false, touching: false }"
-                                                        @click="
-                                                            const prompt = JSON.parse($el.closest('[data-prompt]').dataset.prompt);
-                                                            navigator.clipboard.writeText(prompt)
-                                                                .then(() => {
-                                                                    copied = true;
-                                                                    setTimeout(() => copied = false, 2000);
-                                                                })
-                                                                .catch(() => {
-                                                                    // Fallback for iOS Safari pre-16.4
-                                                                    const ta = document.createElement('textarea');
-                                                                    ta.value = prompt;
-                                                                    ta.style.position = 'fixed';
-                                                                    ta.style.opacity = '0';
-                                                                    document.body.appendChild(ta);
-                                                                    ta.select();
-                                                                    document.execCommand('copy');
-                                                                    document.body.removeChild(ta);
-                                                                    copied = true;
-                                                                    setTimeout(() => copied = false, 2000);
-                                                                })
-                                                        "
-                                                        @touchstart="touching = true"
-                                                        @touchend="touching = false"
-                                                        :style="touching ? 'background: var(--vw-border-accent)' : 'background: rgba(var(--vw-primary-rgb), 0.08)'"
-                                                        style="padding: 0.5rem 0.75rem; background: rgba(var(--vw-primary-rgb), 0.08); border: 1px solid var(--vw-border-accent); border-radius: 0.25rem; color: var(--vw-text-secondary); font-size: 0.7rem; cursor: pointer; min-width: 48px; min-height: 44px; touch-action: manipulation; display: flex; align-items: center; justify-content: center;">
-                                                    <span x-show="!copied">Copy</span>
-                                                    <span x-show="copied" style="color: #10b981;">Copied!</span>
-                                                </button>
+                                                <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                                    <span @click="vpExpanded = !vpExpanded" style="cursor: pointer; font-size: 0.65rem; color: var(--vw-text-secondary); opacity: 0.8;" x-text="vpExpanded ? 'Show less' : 'Show all'"></span>
+                                                    <button type="button"
+                                                            @click="
+                                                                const prompt = JSON.parse($el.closest('[data-prompt]').dataset.prompt);
+                                                                navigator.clipboard.writeText(prompt)
+                                                                    .then(() => {
+                                                                        copied = true;
+                                                                        setTimeout(() => copied = false, 2000);
+                                                                    })
+                                                                    .catch(() => {
+                                                                        const ta = document.createElement('textarea');
+                                                                        ta.value = prompt;
+                                                                        ta.style.position = 'fixed';
+                                                                        ta.style.opacity = '0';
+                                                                        document.body.appendChild(ta);
+                                                                        ta.select();
+                                                                        document.execCommand('copy');
+                                                                        document.body.removeChild(ta);
+                                                                        copied = true;
+                                                                        setTimeout(() => copied = false, 2000);
+                                                                    })
+                                                            "
+                                                            @touchstart="touching = true"
+                                                            @touchend="touching = false"
+                                                            :style="touching ? 'background: var(--vw-border-accent)' : 'background: rgba(var(--vw-primary-rgb), 0.08)'"
+                                                            style="padding: 0.5rem 0.75rem; background: rgba(var(--vw-primary-rgb), 0.08); border: 1px solid var(--vw-border-accent); border-radius: 0.25rem; color: var(--vw-text-secondary); font-size: 0.7rem; cursor: pointer; min-width: 48px; min-height: 44px; touch-action: manipulation; display: flex; align-items: center; justify-content: center;">
+                                                        <span x-show="!copied">Copy</span>
+                                                        <span x-show="copied" style="color: #10b981;">Copied!</span>
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <div style="font-size: 0.75rem; color: var(--vw-text); line-height: 1.5; white-space: pre-wrap; word-break: break-word; background: rgba(0,0,0,0.04); padding: 0.5rem; border-radius: 0.25rem; max-height: 150px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                                            <div style="font-size: 0.75rem; color: var(--vw-text); line-height: 1.5; white-space: pre-wrap; word-break: break-word; background: rgba(0,0,0,0.04); padding: 0.5rem; border-radius: 0.25rem; overflow-y: auto; -webkit-overflow-scrolling: touch;" :style="vpExpanded ? 'max-height: none' : 'max-height: 150px'">
                                                 {{ $videoPrompt }}
                                             </div>
                                         </div>
