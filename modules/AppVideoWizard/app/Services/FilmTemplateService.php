@@ -206,6 +206,10 @@ PROMPT;
         // Track dialogue scene counter for alternating OTS/medium shots
         $dialogueCounter = 0;
 
+        // Location carry-forward: track current location across scenes
+        $currentLocation = 'exterior_unknown';
+        $currentLocationDesc = '';
+
         $visualScript = [];
         foreach ($scenes as $i => $scene) {
             $direction = $scene['direction'] ?? '';
@@ -231,6 +235,16 @@ PROMPT;
             $mood = $this->detectMood($direction, $body, $sceneType);
             $locationHint = $this->detectLocation($direction);
 
+            // Location carry-forward: if this scene has a specific location, update tracker
+            if ($locationHint !== 'exterior_unknown') {
+                $currentLocation = $locationHint;
+                $currentLocationDesc = $this->extractLocationDescription($direction);
+            }
+            // Use carried-forward location when current scene has no location keywords
+            $effectiveLocation = ($locationHint === 'exterior_unknown' && $currentLocation !== 'exterior_unknown')
+                ? $currentLocation
+                : $locationHint;
+
             // --- Shot framing (first instruction in image prompt) ---
             $framing = $this->getShotFraming($sceneType, $i, $total, $dialogueCounter);
             if ($sceneType === 'dialogue') {
@@ -238,7 +252,7 @@ PROMPT;
             }
 
             // --- Smart prefix: outdoor elements only for exterior scenes ---
-            $isExterior = in_array($locationHint, ['exterior_urban', 'exterior_natural', 'exterior_unknown']);
+            $isExterior = in_array($effectiveLocation, ['exterior_urban', 'exterior_natural', 'exterior_unknown']);
             $smartPrefix = $isExterior ? $outdoorPrefix : $indoorPrefix;
 
             // --- Image prompt: flowing narrative format ---
@@ -272,10 +286,24 @@ PROMPT;
                 default => 0.5,
             };
 
+            // --- Location prefix: prepend SETTING and append constraint ---
+            $locationType = $isExterior ? 'EXTERIOR' : 'INTERIOR';
+            $locationName = $this->getLocationTypeName($effectiveLocation);
+            // Use carried-forward description if available, otherwise use type name
+            $locDesc = (!empty($currentLocationDesc) && $effectiveLocation === $currentLocation)
+                ? $currentLocationDesc
+                : $locationName;
+            $imagePrompt = "SETTING: {$locationType} — {$locDesc}. " . $imagePrompt;
+
+            // Add interior constraint to prevent outdoor elements bleeding in
+            if (!$isExterior) {
+                $imagePrompt .= ". INTERIOR scene — show walls, ceiling, indoor lighting. Do NOT show outdoor sky, city skyline, or open air";
+            }
+
             // Add aspect ratio instruction for 16:9 film format
             $templateAspect = $template['aspect_ratio'] ?? '16:9';
             if ($templateAspect === '16:9') {
-                $imagePrompt .= '. MANDATORY: Compose in landscape 16:9 widescreen format with wide horizontal cinematic composition';
+                $imagePrompt .= '. MANDATORY: Compose in landscape 16:9 format with wide horizontal cinematic composition. Fill the ENTIRE frame edge-to-edge — no black bars, no letterboxing, no borders';
             }
 
             $visualScript[] = [
@@ -287,7 +315,7 @@ PROMPT;
                 'characters_in_scene' => $detectedChars,
                 'transition_type' => $transitionType,
                 'transition_duration' => $transitionDuration,
-                'location_hint' => $locationHint,
+                'location_hint' => $effectiveLocation,
                 'scene_type' => $sceneType,
             ];
         }
@@ -388,6 +416,51 @@ PROMPT;
         }
 
         return 'exterior_unknown'; // Default to exterior (safe for cyberpunk)
+    }
+
+    /**
+     * Extract a brief location description from direction text.
+     * E.g., "a sprawling, rain-slicked industrial dockyard at night" → "rain-slicked industrial dockyard at night"
+     */
+    protected function extractLocationDescription(string $direction): string
+    {
+        $lower = strtolower($direction);
+
+        // Try to extract a location phrase from common patterns
+        // Pattern: "a/an/the [adjectives] [location noun] [prepositional phrases]"
+        $locationNouns = 'room|lab|terminal|warehouse|dock(?:yard)?|underground|tunnel|bunker|factory|office|apartment|chamber|headquarters|bar|club|shop|corridor|hallway|street|alley|rooftop|plaza|market|bridge|server|basement|garage|elevator|stairwell|forest|ocean|mountain|field|penthouse|balcony|loft|hangar|arena|cathedral|temple|station|hospital|prison|cell|courtyard|garden|pier|wharf|harbor|shipyard';
+
+        if (preg_match('/(?:a|an|the|in|inside|within)?\s*([^,.]*?\b(?:' . $locationNouns . ')\b[^,.]{0,40})/i', $direction, $match)) {
+            $desc = trim($match[1]);
+            // Clean up: remove leading articles
+            $desc = preg_replace('/^(?:a|an|the)\s+/i', '', $desc);
+            // Cap at ~60 chars
+            if (strlen($desc) > 60) {
+                $desc = substr($desc, 0, 60);
+                $desc = preg_replace('/\s+\S*$/', '', $desc); // trim to last whole word
+            }
+            return ucfirst($desc);
+        }
+
+        // Fallback: take first 40 chars of direction
+        $short = substr($direction, 0, 40);
+        $short = preg_replace('/\s+\S*$/', '', $short);
+        return ucfirst(trim($short));
+    }
+
+    /**
+     * Map location type enum to human-readable name.
+     */
+    protected function getLocationTypeName(string $locationType): string
+    {
+        return match ($locationType) {
+            'interior_tech' => 'Tech interior (room, lab, terminal)',
+            'interior_industrial' => 'Industrial interior (warehouse, dock, tunnel)',
+            'interior_generic' => 'Indoor space',
+            'exterior_urban' => 'Urban exterior (streets, rooftops, city)',
+            'exterior_natural' => 'Natural exterior (landscape, nature)',
+            default => 'Exterior scene',
+        };
     }
 
     /**

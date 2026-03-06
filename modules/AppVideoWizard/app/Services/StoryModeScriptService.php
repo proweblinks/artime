@@ -918,9 +918,9 @@ PROMPT;
     protected function buildAspectRatioFraming(string $aspectRatio, string $aspectRatioLabel): string
     {
         return match($aspectRatio) {
-            '9:16' => "MANDATORY: Compose in {$aspectRatioLabel} format. Use TALL vertical composition — subjects must fill the frame vertically. Use close-up or medium shots, NOT wide shots. Frame subjects centered with headroom at top. Never compose as if this were a landscape or square image.",
-            '1:1' => "MANDATORY: Compose in {$aspectRatioLabel} format. Center subjects with balanced framing in a square composition.",
-            default => "MANDATORY: Compose in {$aspectRatioLabel} format. Use wide horizontal cinematic composition with subjects spread across the frame.",
+            '9:16' => "MANDATORY: Compose in {$aspectRatioLabel} format. Use TALL vertical composition — subjects must fill the frame vertically. Use close-up or medium shots, NOT wide shots. Frame subjects centered with headroom at top. Never compose as if this were a landscape or square image. Fill the ENTIRE frame edge-to-edge — no black bars, no letterboxing, no borders.",
+            '1:1' => "MANDATORY: Compose in {$aspectRatioLabel} format. Center subjects with balanced framing in a square composition. Fill the ENTIRE frame edge-to-edge — no black bars, no letterboxing, no borders.",
+            default => "MANDATORY: Compose in {$aspectRatioLabel} format. Use wide horizontal cinematic composition with subjects spread across the frame. Fill the ENTIRE frame edge-to-edge — no black bars, no letterboxing, no borders.",
         };
     }
 
