@@ -858,7 +858,7 @@ class UrlToVideoOrchestrator
      * Extract dialogue from scene text and format for Seedance lip-sync.
      * Returns character-described dialogue in single quotes for Seedance to vocalize.
      */
-    protected function extractDialogueForSeedance(array $scene, ?array $filmTemplateConfig): string
+    public function extractDialogueForSeedance(array $scene, ?array $filmTemplateConfig): string
     {
         $text = $scene['text'] ?? '';
         if (empty(trim($text)) || !empty($scene['is_visual_only'])) return '';
@@ -950,7 +950,7 @@ class UrlToVideoOrchestrator
      * Produces a 100-130 word flowing narrative that weaves setting, camera,
      * subject action, environmental physics, and mood together.
      */
-    protected function buildVideoPrompt(array $scene, string $styleInstruction, string $aspectRatio, ?array $styleConfig = null, ?array $filmTemplateConfig = null): string
+    public function buildVideoPrompt(array $scene, string $styleInstruction, string $aspectRatio, ?array $styleConfig = null, ?array $filmTemplateConfig = null): string
     {
         $videoAction = trim($scene['video_action'] ?? '');
         $direction = trim($scene['direction'] ?? '');
@@ -1007,7 +1007,7 @@ class UrlToVideoOrchestrator
      * Produces a 100-130 word flowing narrative paragraph that weaves setting, camera,
      * subject action, environmental physics, and mood together.
      */
-    protected function buildFilmVideoPrompt(array $scene, ?array $styleConfig, array $filmTemplateConfig): string
+    public function buildFilmVideoPrompt(array $scene, ?array $styleConfig, array $filmTemplateConfig): string
     {
         // 1. Gather all source material
         $videoAction = trim($scene['video_action'] ?? '');
@@ -1075,7 +1075,7 @@ class UrlToVideoOrchestrator
     /**
      * Extract the first 1-2 sentences from source text as the scene setting opener.
      */
-    protected function extractSettingOpener(string $sourceText): string
+    public function extractSettingOpener(string $sourceText): string
     {
         if (empty($sourceText)) return '';
 
@@ -1092,7 +1092,7 @@ class UrlToVideoOrchestrator
     /**
      * Extract action content from source text (sentences after the setting opener).
      */
-    protected function extractActionContent(string $sourceText): string
+    public function extractActionContent(string $sourceText): string
     {
         if (empty($sourceText)) return '';
 
@@ -1109,7 +1109,7 @@ class UrlToVideoOrchestrator
     /**
      * Build rich environmental detail (3-4 cues) from atmosphere, mood, source text, and style anchor.
      */
-    protected function buildRichEnvironmentalDetail(string $atmosphere, string $mood, string $sourceText, string $videoAnchor): string
+    public function buildRichEnvironmentalDetail(string $atmosphere, string $mood, string $sourceText, string $videoAnchor): string
     {
         $cues = [];
         $combined = strtolower($atmosphere . ' ' . $sourceText . ' ' . $videoAnchor);
@@ -1187,7 +1187,7 @@ class UrlToVideoOrchestrator
     /**
      * Build a mood-based closer with a second camera reference.
      */
-    protected function buildMoodCloser(string $mood, string $cameraMotion): string
+    public function buildMoodCloser(string $mood, string $cameraMotion): string
     {
         // Second camera reference — continuation phrasing
         $cameraVerb = match (true) {
@@ -1222,7 +1222,7 @@ class UrlToVideoOrchestrator
      * Enforce a word count range on the narrative.
      * Under minimum: pad with atmospheric detail. Over maximum: trim middle while keeping opener + closer.
      */
-    protected function enforceWordRange(string $text, int $min, int $max): string
+    public function enforceWordRange(string $text, int $min, int $max): string
     {
         // Clean up first
         $text = preg_replace('/\.\s*\./', '.', $text);
@@ -1275,7 +1275,7 @@ class UrlToVideoOrchestrator
         return $text;
     }
 
-    protected function mapCameraToSeedance(string $cameraMotion): string
+    public function mapCameraToSeedance(string $cameraMotion): string
     {
         $map = [
             'slow zoom in'      => 'The camera slowly pushes in closer',

@@ -12,6 +12,7 @@ use Modules\AppVideoWizard\Services\ImageSourceService;
 use Modules\AppVideoWizard\Services\SeedancePromptService;
 use Modules\AppVideoWizard\Services\FilmTemplateService;
 use Modules\AppVideoWizard\Services\StoryModeScriptService;
+use Modules\AppVideoWizard\Services\UrlToVideoOrchestrator;
 use Modules\AdminCredits\Facades\Credit;
 
 /**
@@ -635,12 +636,39 @@ trait HasImageSelection
                 ];
             }
 
+            // Enrich video_action with 100+ word Seedance narrative prompts
+            $orchestrator = new UrlToVideoOrchestrator();
+            $style = self::VISUAL_STYLE_PRESETS[$this->selectedVisualStyle] ?? self::VISUAL_STYLE_PRESETS['cinematic'];
+            foreach ($this->sceneVisualScript as $sceneId => &$visual) {
+                $sceneIndex = (int) str_replace('scene_', '', $sceneId);
+                $sceneData = [
+                    'video_action' => $visual['video_action'] ?? '',
+                    'direction' => $visual['video_action'] ?? '',
+                    'text' => $segments[$sceneIndex]['text'] ?? '',
+                    'camera_motion' => $visual['camera_motion'] ?? 'slow zoom in',
+                    'mood' => $visual['mood'] ?? 'dramatic',
+                    'has_dialogue' => false,
+                ];
+
+                if ($isFilmMode) {
+                    $richPrompt = $orchestrator->buildFilmVideoPrompt($sceneData, $style, $this->filmTemplateConfig ?? []);
+                } else {
+                    $styleInstr = $styleInstruction ?? "Cinematic, photorealistic";
+                    $richPrompt = $orchestrator->buildVideoPrompt($sceneData, $styleInstr, $aspectRatio, $style, null);
+                }
+
+                if (!empty($richPrompt) && str_word_count($richPrompt) > str_word_count($visual['video_action'] ?? '')) {
+                    $visual['video_action'] = $richPrompt;
+                }
+            }
+            unset($visual); // Break reference
+
             // Set first scene as active in studio
             if (!empty($this->sceneVisualScript) && empty($this->activeStudioScene)) {
                 $this->activeStudioScene = array_key_first($this->sceneVisualScript);
             }
 
-            Log::info('HasImageSelection: Visual script generated for AI Studio', [
+            Log::info('HasImageSelection: Visual script generated for AI Studio with rich video prompts', [
                 'scenes' => count($this->sceneVisualScript),
                 'characters' => count($this->characterBible ?? []),
             ]);
