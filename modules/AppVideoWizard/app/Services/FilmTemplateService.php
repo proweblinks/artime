@@ -230,8 +230,10 @@ PROMPT;
             }
 
             $sceneType = $this->detectSceneType($i, $total, $direction, $isVisualOnly, $body);
-            // V2: scan both direction AND body for character detection
-            $detectedChars = $this->detectCharactersInScene($direction . ' ' . $body, $characters);
+            // V3: Separate physical presence (direction) from dialogue mentions (body)
+            // Physical chars appear in images/videos; all chars needed for voice/tracking
+            $physicalChars = $this->detectCharactersInScene($direction, $characters);
+            $allDetectedChars = $this->detectCharactersInScene($direction . ' ' . $body, $characters);
             $mood = $this->detectMood($direction, $body, $sceneType);
             $locationHint = $this->detectLocation($direction);
 
@@ -256,13 +258,13 @@ PROMPT;
             $isExterior = in_array($effectiveLocation, ['exterior_urban', 'exterior_natural', 'exterior_unknown']);
             $smartPrefix = $isExterior ? $outdoorPrefix : $indoorPrefix;
 
-            // --- Image prompt: flowing narrative format ---
+            // --- Image prompt: flowing narrative format (physical chars only) ---
             $imagePrompt = $this->buildFlowingImagePrompt(
-                $framing, $direction, $smartPrefix, $imageSuffix, $detectedChars, $characters
+                $framing, $direction, $smartPrefix, $imageSuffix, $physicalChars, $characters
             );
 
-            // --- Video action (for Seedance: 30-100 words, detailed scene description) ---
-            $videoAction = $this->buildConciseVideoAction($direction, $detectedChars, $characters, $isVisualOnly);
+            // --- Video action (for Seedance: 30-100 words, physical chars only) ---
+            $videoAction = $this->buildConciseVideoAction($direction, $physicalChars, $characters, $isVisualOnly);
 
             // --- Camera motion (cycle through template rules by scene type) ---
             $typeRules = $cameraRules[$sceneType] ?? $cameraRules['dialogue'] ?? ['slow zoom in'];
@@ -313,7 +315,7 @@ PROMPT;
                 'camera_motion' => $cameraMotion,
                 'mood' => $mood,
                 'voice_emotion' => $mood,
-                'characters_in_scene' => $detectedChars,
+                'characters_in_scene' => $allDetectedChars,
                 'transition_type' => $transitionType,
                 'transition_duration' => $transitionDuration,
                 'location_hint' => $effectiveLocation,
@@ -407,6 +409,23 @@ PROMPT;
     {
         $lower = strtolower($direction);
 
+        // Explicit INT./EXT. markers from screenplay take absolute priority
+        if (preg_match('/\bINT\b\.?\s/i', $direction)) {
+            if (preg_match('/\b(server|terminal|console|screen|monitor|lab|office|apartment|chamber|headquarters|cockpit)\b/', $lower)) {
+                return 'interior_tech';
+            }
+            if (preg_match('/\b(warehouse|dock|underground|tunnel|bunker|factory|basement|garage|sewers?)\b/', $lower)) {
+                return 'interior_industrial';
+            }
+            return 'interior_generic';
+        }
+        if (preg_match('/\bEXT\b\.?\s/i', $direction)) {
+            if (preg_match('/\b(forest|ocean|mountain|field|desert|river|lake)\b/', $lower)) {
+                return 'exterior_natural';
+            }
+            return 'exterior_urban';
+        }
+
         // Interior tech
         if (preg_match('/\b(room|lab|terminal|console|screen|monitor|cockpit|server|office|apartment|chamber|headquarters)\b/', $lower)) {
             return 'interior_tech';
@@ -419,12 +438,12 @@ PROMPT;
         if (preg_match('/\b(inside|interior|indoors|nightclub|club|shop|store|elevator|corridor|hallway|stairwell|lobby|foyer|lounge|restroom|bathroom|kitchen|bedroom|cellar|attic)\b/', $lower)) {
             return 'interior_generic';
         }
-        // "bar" as location only when preceded by location context
-        if (preg_match('/\b(?:the|a|dark|crowded|smoky|neon|dive)\s+bar\b/', $lower)) {
+        // "bar" as location only when preceded by location context or descriptors
+        if (preg_match('/\b(?:the|a|dark|crowded|smoky|neon[\w-]*|dive|hidden|quiet|grimy|lit)\s+bar\b/', $lower)) {
             return 'interior_generic';
         }
-        // Exterior urban
-        if (preg_match('/\b(street|alley|rooftop|city|skyline|district|neon|plaza|market|bridge|highway|overpass)\b/', $lower)) {
+        // Exterior urban — "neon" removed (too common in cyberpunk interiors)
+        if (preg_match('/\b(street|alley|rooftop|city|skyline|district|plaza|market|bridge|highway|overpass)\b/', $lower)) {
             return 'exterior_urban';
         }
         // Exterior natural
@@ -519,32 +538,31 @@ PROMPT;
         foreach ($detectedChars as $charName) {
             foreach ($characters as $char) {
                 if (strtolower($char['name']) === strtolower($charName)) {
+                    $namePattern = preg_quote($charName, '/');
+
+                    // Step 1: Replace ALL possessives FIRST (NAME'S → his/her/their)
+                    // This prevents broken output like "A man with cybernetic implant'S apartment"
+                    $pronoun = match ($char['gender'] ?? 'unknown') {
+                        'male' => 'his',
+                        'female' => 'her',
+                        default => 'their',
+                    };
+                    $action = preg_replace("/\b{$namePattern}['']s\b/i", $pronoun, $action);
+
+                    // Step 2: Replace first remaining name with visual brief
                     $brief = $this->getCharacterVisualBrief($char);
-                    $pattern = '/\b' . preg_quote($charName, '/') . '\b/i';
-
-                    // Check if text after the name already describes the same trait
-                    // to avoid stutter like "A man with cybernetic implant's cybernetic implant"
-                    if (preg_match($pattern, $action, $match, PREG_OFFSET_CAPTURE)) {
-                        $nameEnd = $match[0][1] + strlen($match[0][0]);
-                        $textAfter = strtolower(substr($action, $nameEnd, 80));
-                        $traitWords = $this->getCharacterTraitKeywords($char);
-
-                        // Count how many trait words appear right after the name
-                        $traitOverlap = 0;
-                        foreach ($traitWords as $tw) {
-                            if (str_contains($textAfter, $tw)) {
-                                $traitOverlap++;
-                            }
-                        }
-
-                        // If 2+ trait words overlap, use just the gender subject (e.g. "A man")
-                        // to avoid "A man with cybernetic implant's cybernetic implant"
-                        $replacement = ($traitOverlap >= 2) ? $this->getGenderSubject($char) : $brief;
-                    } else {
-                        $replacement = $brief;
+                    $subjectPronoun = match ($char['gender'] ?? 'unknown') {
+                        'male' => 'he',
+                        'female' => 'she',
+                        default => 'they',
+                    };
+                    $nameRegex = "/\b{$namePattern}\b/i";
+                    if (preg_match($nameRegex, $action)) {
+                        $action = preg_replace($nameRegex, $brief, $action, 1);
+                        // Remaining occurrences → subject pronoun
+                        $action = preg_replace($nameRegex, $subjectPronoun, $action);
                     }
 
-                    $action = preg_replace($pattern, $replacement, $action, 1);
                     break;
                 }
             }
@@ -572,22 +590,43 @@ PROMPT;
             default => 'A person',
         };
 
-        // Extract the most distinctive visual trait
+        // Extract the most distinctive visual trait and shorten it
         $desc = $char['description'] ?? '';
         $parts = array_map('trim', explode(',', $desc));
         foreach ($parts as $part) {
             if (preg_match('/\b(cybernetic|implant|scar|tattoo|visor|prosthetic|augmented|glowing|silver|chrome)\b/i', $part)) {
-                return $subject . ' with ' . strtolower(trim($part));
+                $short = $this->shortenTraitPhrase(strtolower(trim($part)));
+                return $subject . ' with ' . $short;
             }
         }
         // Fallback: use hair descriptor
         foreach ($parts as $part) {
             if (preg_match('/\b(hair|bald|shaved|dreadlocks|braids|mohawk)\b/i', $part)) {
-                return $subject . ' with ' . strtolower(trim($part));
+                $short = $this->shortenTraitPhrase(strtolower(trim($part)));
+                return $subject . ' with ' . $short;
             }
         }
 
         return $subject;
+    }
+
+    /**
+     * Shorten a trait phrase by removing positional words and limiting length.
+     * "cybernetic implant above right ear" → "cybernetic implant"
+     * "reflective visor pushed up on forehead" → "reflective visor"
+     */
+    protected function shortenTraitPhrase(string $trait): string
+    {
+        // Remove positional/contextual phrases: "above right ear", "pushed up on forehead", etc.
+        $trait = preg_replace('/\b(above|below|on|near|behind|across|around|over|under|pushed\s+up\s+on|attached\s+to)\b.*$/i', '', $trait);
+        $trait = trim($trait, ' ,.');
+
+        // Limit to 4 words max
+        $words = explode(' ', $trait);
+        if (count($words) > 4) {
+            $words = array_slice($words, 0, 4);
+        }
+        return trim(implode(' ', $words));
     }
 
     /**
