@@ -2031,16 +2031,8 @@
         background: rgba(124,58,237,0.08);
     }
     .utv-shots-flow-thumb {
-        @if(($aspectRatio ?? '9:16') === '16:9')
-        width: 100px;
-        height: 56px;
-        @elseif(($aspectRatio ?? '9:16') === '1:1')
-        width: 72px;
-        height: 72px;
-        @else
-        width: 56px;
-        height: 100px;
-        @endif
+        width: {{ match($aspectRatio ?? '9:16') { '16:9' => '100px', '1:1' => '72px', default => '56px' } }};
+        height: {{ match($aspectRatio ?? '9:16') { '16:9' => '56px', '1:1' => '72px', default => '100px' } }};
         border-radius: 6px;
         background: #1a1a2e;
         border: 2px solid #2a2a3e;
