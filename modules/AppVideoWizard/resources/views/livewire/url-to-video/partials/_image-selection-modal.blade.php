@@ -475,30 +475,22 @@
                             @endif
                         </div>
 
-                        {{-- Narration text --}}
+                        {{-- Narration text (truncated) --}}
                         @if(!empty($sceneText))
-                            <div class="mb-2" x-data="{ ntOpen: false }">
-                                <p class="mb-0" style="font-size: 0.75rem; color: var(--at-text-secondary, #5a6178); line-height: 1.5;"
-                                   :style="ntOpen ? '' : 'display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;'">
-                                    {{ $sceneText }}
-                                </p>
-                                @if(Str::length($sceneText) > 120)
-                                    <span @click="ntOpen = !ntOpen" style="cursor: pointer; font-size: 0.6rem; color: #94a0b8;" x-text="ntOpen ? 'Collapse' : 'Show all'"></span>
-                                @endif
-                            </div>
+                            <p class="mb-2" style="font-size: 0.75rem; color: var(--at-text-secondary, #5a6178); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                {{ $sceneText }}
+                            </p>
                         @endif
 
                         {{-- Image Prompt (editable) --}}
                         @if(!empty($visual['image_prompt']))
-                            <div class="mb-2" @click.stop x-data="{ ipOpen: false }">
+                            <div class="mb-2" @click.stop>
                                 <label class="d-flex align-items-center gap-1 mb-1" style="font-size: 0.68rem; color: #7c3aed; font-weight: 600;">
                                     <i class="fa-light fa-image"></i> {{ __('Image Prompt') }}
-                                    <span @click.stop="ipOpen = !ipOpen" style="cursor: pointer; font-weight: 400; font-size: 0.6rem; color: #94a0b8; margin-left: auto;" x-text="ipOpen ? 'Collapse' : 'Show all'"></span>
                                 </label>
                                 <div x-show="!editingImagePrompt['{{ $sceneId }}']"
                                      @click="editingImagePrompt['{{ $sceneId }}'] = true; $nextTick(() => $refs.imgPrompt_{{ $sceneIndex }}?.focus())"
-                                     class="utv-studio-prompt" style="font-size: 0.75rem; color: var(--at-text, #1a1a2e); line-height: 1.4; padding: 6px 8px; background: #f5f7fa; border-radius: 6px; border: 1px solid transparent; cursor: text; min-height: 32px;"
-                                     :style="ipOpen ? '' : 'display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;'"
+                                     class="utv-studio-prompt" style="font-size: 0.75rem; color: var(--at-text, #1a1a2e); line-height: 1.4; padding: 6px 8px; background: #f5f7fa; border-radius: 6px; border: 1px solid transparent; cursor: text; min-height: 32px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"
                                      title="{{ __('Click to edit') }}">
                                     {{ $visual['image_prompt'] }}
                                 </div>
@@ -514,19 +506,15 @@
                         @endif
 
                         {{-- Video Prompt (editable, always visible) --}}
-                        <div class="mb-2" @click.stop x-data="{ vpOpen: false }">
+                        <div class="mb-2" @click.stop>
                             <label class="d-flex align-items-center gap-1 mb-1" style="font-size: 0.68rem; color: #d97706; font-weight: 600;">
                                 <i class="fa-light fa-video"></i> {{ __('Video Prompt') }}
                                 <span style="font-size: 0.6rem; color: #94a0b8; font-weight: 400; margin-left: 2px;">Seedance 2.0</span>
-                                @if(!empty($visual['video_action']))
-                                    <span @click.stop="vpOpen = !vpOpen" style="cursor: pointer; font-weight: 400; font-size: 0.6rem; color: #94a0b8; margin-left: auto;" x-text="vpOpen ? 'Collapse' : 'Show all'"></span>
-                                @endif
                             </label>
                             @if(!empty($visual['video_action']))
                                 <div x-show="!editingVideoPrompt['{{ $sceneId }}']"
                                      @click="editingVideoPrompt['{{ $sceneId }}'] = true; $nextTick(() => $refs.vidPrompt_{{ $sceneIndex }}?.focus())"
-                                     class="utv-studio-prompt" style="font-size: 0.75rem; color: var(--at-text, #1a1a2e); line-height: 1.4; padding: 6px 8px; background: #f5f7fa; border-radius: 6px; border: 1px solid transparent; cursor: text; min-height: 28px;"
-                                     :style="vpOpen ? '' : 'display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;'"
+                                     class="utv-studio-prompt" style="font-size: 0.75rem; color: var(--at-text, #1a1a2e); line-height: 1.4; padding: 6px 8px; background: #f5f7fa; border-radius: 6px; border: 1px solid transparent; cursor: text; min-height: 28px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"
                                      title="{{ __('Click to edit') }}">
                                     {{ $visual['video_action'] }}
                                 </div>
