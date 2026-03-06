@@ -586,8 +586,7 @@ class UrlToVideoOrchestrator
 
             try {
                 $audioDuration = isset($scene['audio_duration']) ? (float) $scene['audio_duration'] : null;
-                $sceneType = $scene['scene_type'] ?? 'dialogue';
-                $clipDuration = $this->calculateClipDuration($audioDuration, $sceneType);
+                $clipDuration = $this->calculateClipDuration($audioDuration);
 
                 $animationOptions = [
                     'imageUrl' => $imageUrl,
@@ -932,124 +931,150 @@ class UrlToVideoOrchestrator
 
     /**
      * Build a Seedance video prompt for standard/creative mode scenes.
-     * Produces a 100-130 word flowing narrative that weaves setting, camera,
-     * subject action, environmental physics, and mood together.
+     * OPTIMIZED FOR IMAGE-TO-VIDEO: Focus on motion and camera, not scene re-description.
+     * Structure: Subject Motion + Camera Movement + Environmental Animation + Constraints.
      */
     protected function buildVideoPrompt(array $scene, string $styleInstruction, string $aspectRatio, ?array $styleConfig = null, ?array $filmTemplateConfig = null): string
     {
+        $parts = [];
+
+        // 1. CORE: Extract motion-focused content from video_action or direction
         $videoAction = trim($scene['video_action'] ?? '');
         $direction = trim($scene['direction'] ?? '');
+
+        $sourceText = !empty($videoAction) ? $videoAction : (!empty($direction) ? $direction : '');
+        if (empty($sourceText)) {
+            $narration = trim($scene['text'] ?? '');
+            if (!empty($narration)) {
+                $sourceText = strtok($narration, '.!?') ?: '';
+            }
+        }
+
+        if (empty($sourceText)) {
+            return $this->mapCameraToSeedance($scene['camera_motion'] ?? 'slow zoom in');
+        }
+
+        // Extract motion-focused content (strip static scene descriptions the image provides)
+        $motionText = $this->extractMotionFromDirection($sourceText);
+        if (!empty($motionText)) {
+            $parts[] = rtrim($motionText, '.');
+        } else {
+            // Fallback: use first 30 words of source
+            $words = explode(' ', $sourceText);
+            $parts[] = rtrim(implode(' ', array_slice($words, 0, 30)), '.');
+        }
+
+        // 2. CAMERA: Primary animation directive
         $cameraMotion = $scene['camera_motion'] ?? 'slow zoom in';
+        $parts[] = $this->mapCameraToSeedance($cameraMotion);
+
+        // 3. STYLE ANCHOR: Only if concise (not a tag list)
+        if ($styleConfig && !empty($styleConfig['videoAnchor'])) {
+            $anchor = $styleConfig['videoAnchor'];
+            // Only include if under 10 words (avoid tag lists)
+            if (str_word_count($anchor) <= 10) {
+                $parts[] = rtrim($anchor, '.');
+            }
+        }
+
+        // 4. ENVIRONMENTAL MOTION based on scene content
         $mood = strtolower(trim($scene['mood'] ?? ''));
-        $videoAnchor = ($styleConfig['videoAnchor'] ?? '');
-
-        $sourceText = !empty($videoAction) ? $videoAction : $direction;
-        if (empty($sourceText)) {
-            $sourceText = trim($scene['text'] ?? '');
+        $envMotion = $this->extractEnvironmentalMotion('', $mood, $sourceText);
+        if (!empty($envMotion)) {
+            $parts[] = $envMotion;
         }
 
-        if (empty($sourceText)) {
-            return $this->mapCameraToSeedance($cameraMotion);
+        // 5. STABILITY CONSTRAINT
+        $parts[] = 'Maintain temporal consistency, no warping';
+
+        // Assemble as flowing prose
+        $prompt = implode('. ', array_filter($parts)) . '.';
+
+        // Word limit: 80 words max
+        $words = explode(' ', $prompt);
+        if (count($words) > 80) {
+            $prompt = implode(' ', array_slice($words, 0, 80));
+            $prompt = rtrim($prompt, ', ') . '.';
         }
 
-        // Build flowing narrative in layers
-        $narrative = '';
-
-        // Layer 1: Scene setting opener
-        $narrative .= $this->extractSettingOpener($sourceText);
-
-        // Layer 2: First camera movement woven in
-        $cameraPhrase = $this->mapCameraToSeedance($cameraMotion);
-        $narrative .= ' ' . $cameraPhrase . '.';
-
-        // Layer 3: Remaining action content
-        $actionContent = $this->extractActionContent($sourceText);
-        if (!empty($actionContent)) {
-            $narrative .= ' ' . $actionContent;
-        }
-
-        // Layer 4: Environmental physics (rich detail)
-        $envDetail = $this->buildRichEnvironmentalDetail('', $mood, $sourceText, $videoAnchor);
-        if (!empty($envDetail)) {
-            $narrative .= ' ' . $envDetail;
-        }
-
-        // Layer 5: Second camera reference + mood closer
-        $narrative .= ' ' . $this->buildMoodCloser($mood, $cameraMotion);
-
-        // Enforce 100-130 word range and clean up
-        $narrative = $this->enforceWordRange($narrative, 100, 130);
+        // Clean up
+        $prompt = preg_replace('/\.\s*\./', '.', $prompt);
+        $prompt = preg_replace('/\s{2,}/', ' ', $prompt);
 
         if (class_exists(SeedancePromptService::class)) {
-            $narrative = SeedancePromptService::sanitize($narrative);
+            $prompt = SeedancePromptService::sanitize($prompt);
         }
 
-        return trim($narrative);
+        return trim($prompt);
     }
 
     /**
      * Build a Seedance video prompt for film mode scenes.
-     * Produces a 100-130 word flowing narrative paragraph that weaves setting, camera,
-     * subject action, environmental physics, and mood together.
+     * OPTIMIZED FOR IMAGE-TO-VIDEO: The first-frame image already provides the visual scene.
+     * This prompt tells Seedance what to ANIMATE — focus on motion, camera, and physics.
+     * Target: 60-80 words. Structure: Camera + Subject Motion + Environmental Animation + Constraints.
      */
     protected function buildFilmVideoPrompt(array $scene, ?array $styleConfig, array $filmTemplateConfig): string
     {
-        // 1. Gather all source material
         $videoAction = trim($scene['video_action'] ?? '');
         $direction = trim($scene['direction'] ?? '');
         $atmosphere = $filmTemplateConfig['atmosphere'] ?? '';
         $cameraMotion = $scene['camera_motion'] ?? 'slow zoom in';
         $mood = strtolower(trim($scene['mood'] ?? ''));
-        $overrides = $filmTemplateConfig['visual_overrides'] ?? [];
-        $videoAnchor = $overrides['videoAnchor'] ?? '';
 
-        // Source text = full video_action or direction (NOT stripped)
-        $sourceText = !empty($videoAction) ? $videoAction : $direction;
+        // Source text for motion extraction
+        $sourceText = !empty($videoAction) ? $videoAction : (!empty($direction) ? $direction : '');
         if (empty($sourceText)) {
-            $sourceText = trim($scene['text'] ?? '');
+            $narration = trim($scene['text'] ?? '');
+            $sourceText = !empty($narration) ? strtok($narration, '.!?') : '';
         }
 
-        if (empty($sourceText)) {
-            return $this->mapCameraToSeedance($cameraMotion);
-        }
+        $parts = [];
 
-        // 2. Build flowing narrative in layers
-        $narrative = '';
-
-        // Layer 1: Scene setting (the first 1-2 sentences as environment foundation)
-        $narrative .= $this->extractSettingOpener($sourceText);
-
-        // Layer 2: First camera movement woven in
+        // 1. CAMERA MOVEMENT (primary directive — this is what drives the animation)
         $cameraPhrase = $this->mapCameraToSeedance($cameraMotion);
-        $narrative .= ' ' . $cameraPhrase . '.';
+        $parts[] = $cameraPhrase;
 
-        // Layer 3: Subject action (remaining action content from source)
-        $actionContent = $this->extractActionContent($sourceText);
-        if (!empty($actionContent)) {
-            $narrative .= ' ' . $actionContent;
+        // 2. SUBJECT MOTION — extract action verbs and dynamic elements from direction
+        // Strip static scene descriptions (the image handles those), keep motion
+        $motionText = $this->extractMotionFromDirection($sourceText);
+        if (!empty($motionText)) {
+            $parts[] = $motionText;
         }
 
-        // Layer 4: Environmental physics (expanded — 3-4 rich cues)
-        $envDetail = $this->buildRichEnvironmentalDetail($atmosphere, $mood, $sourceText, $videoAnchor);
-        if (!empty($envDetail)) {
-            $narrative .= ' ' . $envDetail;
-        }
-
-        // Layer 5: Dialogue hint (if applicable)
-        if (!empty($scene['has_dialogue'])) {
+        // 3. DIALOGUE — single quotes for Seedance lip-sync
+        $hasDialogue = !empty($scene['has_dialogue']);
+        if ($hasDialogue) {
             $dialogueLine = $this->extractDialogueForSeedance($scene, $filmTemplateConfig);
             if (!empty($dialogueLine)) {
-                $narrative .= ' ' . $dialogueLine;
+                $parts[] = $dialogueLine;
             }
         }
 
-        // Layer 6: Second camera reference + mood closer
-        $narrative .= ' ' . $this->buildMoodCloser($mood, $cameraMotion);
+        // 4. ENVIRONMENTAL MOTION — wind, rain, particles, reflections from atmosphere
+        $envMotion = $this->extractEnvironmentalMotion($atmosphere, $mood, $sourceText);
+        if (!empty($envMotion)) {
+            $parts[] = $envMotion;
+        }
 
-        // Enforce 100-130 word range and clean up
-        $narrative = $this->enforceWordRange($narrative, 100, 130);
+        // 5. STABILITY CONSTRAINTS
+        $parts[] = 'Maintain temporal consistency, no warping';
 
-        // Sanitize for Seedance
+        // Assemble as flowing prose
+        $narrative = implode('. ', array_filter($parts)) . '.';
+
+        // Word limit: 80 words max (image-to-video sweet spot is 60-80)
+        $words = explode(' ', $narrative);
+        if (count($words) > 80) {
+            $narrative = implode(' ', array_slice($words, 0, 80));
+            $narrative = rtrim($narrative, ', ') . '.';
+        }
+
+        // Clean up
+        $narrative = preg_replace('/\.\s*\./', '.', $narrative);
+        $narrative = preg_replace('/\s{2,}/', ' ', $narrative);
+        $narrative = preg_replace('/,\s*,/', ',', $narrative);
+
         if (class_exists(SeedancePromptService::class)) {
             $narrative = SeedancePromptService::sanitize($narrative);
         }
@@ -1058,206 +1083,103 @@ class UrlToVideoOrchestrator
     }
 
     /**
-     * Extract the first 1-2 sentences from source text as the scene setting opener.
+     * Extract motion-focused content from a scene direction.
+     * Strips static scene descriptions (setting, colors, lighting) that the image already provides.
+     * Keeps action verbs, character movements, interactions, and dynamic elements.
      */
-    protected function extractSettingOpener(string $sourceText): string
+    protected function extractMotionFromDirection(string $direction): string
     {
-        if (empty($sourceText)) return '';
+        if (empty($direction)) return '';
 
-        $sentences = preg_split('/(?<=[.!?])\s+/', trim($sourceText), -1, PREG_SPLIT_NO_EMPTY);
+        $sentences = preg_split('/(?<=[.!?])\s+/', $direction, -1, PREG_SPLIT_NO_EMPTY);
+        $motionSentences = [];
 
-        if (count($sentences) <= 2) {
-            return rtrim(implode(' ', $sentences), '. ') . '.';
+        // Motion/action verbs that indicate something is MOVING
+        $motionPatterns = '/\b(walks?|runs?|moves?|turns?|enters?|exits?|opens?|closes?|grabs?|reaches?|pulls?|pushes?|lifts?|drops?|falls?|rises?|scans?|looks?|stares?|gazes?|glances?|speaks?|says?|whispers?|shouts?|nods?|shakes?|gestures?|points?|touches?|strikes?|fights?|chases?|follows?|leads?|drives?|rides?|flies?|jumps?|leaps?|climbs?|descends?|steps?|stands?|sits?|leans?|kneels?|confronts?|reveals?|hides?|emerges?|approaches?|retreats?|dodges?|blocks?|swings?|throws?|catches?|types?|taps?|clicks?|scrolls?|draws?|writes?|reads?|drinks?|eats?|smiles?|frowns?|cries?|laughs?|breathes?|sighs?|trembles?|shivers?|spins?|twists?|bends?|stretches?|reaches?|waves?|dances?|performs?|assembles?|builds?|breaks?|crashes?|explodes?|flickers?|pulses?|glows?|ripples?|flows?|streams?|pours?|drips?|sways?|flutters?|floats?|drifts?|surges?|erupts?|spreads?|shifts?|transitions?|transforms?|morphs?|fades?|appears?|vanishes?|activates?|deactivates?|ignites?|extinguishes?)\b/i';
+
+        foreach ($sentences as $sentence) {
+            $sentence = trim($sentence);
+            if (preg_match($motionPatterns, $sentence)) {
+                $motionSentences[] = $sentence;
+            }
         }
 
-        // Take first 2 sentences as the setting foundation
-        return rtrim(implode(' ', array_slice($sentences, 0, 2)), '. ') . '.';
+        // If we found motion sentences, use them (max 3 to keep it tight)
+        if (!empty($motionSentences)) {
+            $result = implode(' ', array_slice($motionSentences, 0, 3));
+        } else {
+            // Fallback: use the full direction but truncate
+            $words = explode(' ', $direction);
+            $result = implode(' ', array_slice($words, 0, 30));
+        }
+
+        // Trim to 50 words max (leave room for camera + env + constraints)
+        $words = explode(' ', $result);
+        if (count($words) > 50) {
+            $result = implode(' ', array_slice($words, 0, 50));
+        }
+
+        return rtrim(trim($result), '.');
     }
 
     /**
-     * Extract action content from source text (sentences after the setting opener).
+     * Extract environmental motion cues from atmosphere and mood.
+     * These tell Seedance what MOVES in the background/environment.
      */
-    protected function extractActionContent(string $sourceText): string
-    {
-        if (empty($sourceText)) return '';
-
-        $sentences = preg_split('/(?<=[.!?])\s+/', trim($sourceText), -1, PREG_SPLIT_NO_EMPTY);
-
-        if (count($sentences) <= 2) {
-            return ''; // All used by setting opener
-        }
-
-        // Return remaining sentences as the action content
-        return rtrim(implode(' ', array_slice($sentences, 2)), '. ') . '.';
-    }
-
-    /**
-     * Build rich environmental detail (3-4 cues) from atmosphere, mood, source text, and style anchor.
-     */
-    protected function buildRichEnvironmentalDetail(string $atmosphere, string $mood, string $sourceText, string $videoAnchor): string
+    protected function extractEnvironmentalMotion(string $atmosphere, string $mood, string $sourceText): string
     {
         $cues = [];
-        $combined = strtolower($atmosphere . ' ' . $sourceText . ' ' . $videoAnchor);
+        $combined = strtolower($atmosphere . ' ' . $sourceText);
 
-        // Rain/water — rich phrasing
+        // Rain/water
         if (preg_match('/\b(rain|wet|storm|drizzle|downpour)\b/', $combined)) {
-            $cues[] = 'Rain streaks diagonally through volumetric light beams, wet surfaces catching long shimmering reflections';
+            $cues[] = 'rain streaks through the frame, reflections shimmer on wet surfaces';
         }
         // Wind
         if (preg_match('/\b(wind|breeze|gust|blowing|billowing)\b/', $combined)) {
-            $cues[] = 'Wind tugs at clothing and hair, sending loose fabric rippling in slow arcs';
+            $cues[] = 'subtle wind movement on clothing and hair';
         }
         // Neon/lights
         if (preg_match('/\b(neon|holograph|flicker|glow|pulse|electric)\b/', $combined)) {
-            $cues[] = 'Neon signs flicker and pulse with shifting color, casting teal and orange pools of light across nearby surfaces';
+            $cues[] = 'neon lights flicker and pulse with subtle color shifts';
         }
         // Fire/flames
         if (preg_match('/\b(fire|flame|burn|ember|torch|candle)\b/', $combined)) {
-            $cues[] = 'Flames lick upward in dancing arcs, glowing embers drifting lazily into the darkness above';
+            $cues[] = 'flames dance and embers drift upward';
         }
         // Smoke/fog/mist
         if (preg_match('/\b(smoke|fog|mist|haze|steam|vapor)\b/', $combined)) {
-            $cues[] = 'Wisps of atmospheric haze curl and drift through the scene in lazy spirals';
+            $cues[] = 'atmospheric haze drifts slowly through the scene';
         }
         // Nature
         if (preg_match('/\b(forest|trees?|leaves?|grass|plant|foliage)\b/', $combined)) {
-            $cues[] = 'Foliage sways in a gentle rhythm, scattered leaves drifting slowly through shafts of light';
+            $cues[] = 'foliage sways gently in the breeze';
         }
         // Crowd/traffic
         if (preg_match('/\b(crowd|people|traffic|vehicles?|cars?|pedestrian)\b/', $combined)) {
-            $cues[] = 'Figures move through the background, their silhouettes blurring with distance and atmospheric depth';
+            $cues[] = 'background movement of passing figures';
         }
         // Particles/dust
         if (preg_match('/\b(dust|particle|debris|sand|snow|ash)\b/', $combined)) {
-            $cues[] = 'Tiny particles catch the light as they drift weightlessly through the air';
+            $cues[] = 'particles drift through the air';
         }
         // Water/ocean
         if (preg_match('/\b(ocean|sea|water|waves?|river|lake)\b/', $combined)) {
-            $cues[] = 'Water undulates with gentle rippling movement, light dancing across the liquid surface';
-        }
-        // City/urban
-        if (preg_match('/\b(city|urban|street|alley|rooftop|skyline|skyscraper|building)\b/', $combined)) {
-            $cues[] = 'Distant city lights twinkle through atmospheric haze, the urban landscape breathing with subtle motion';
-        }
-        // Tech/cyber
-        if (preg_match('/\b(cyber|tech|digital|hologram|screen|data|interface)\b/', $combined)) {
-            $cues[] = 'Digital readouts flicker with scrolling data, holographic displays casting a soft ambient glow';
+            $cues[] = 'water surface ripples with gentle movement';
         }
 
-        // Style anchor enrichment — weave videoAnchor terms into a natural cue
-        if (!empty($videoAnchor) && str_word_count($videoAnchor) <= 12) {
-            $anchorLower = strtolower($videoAnchor);
-            if (preg_match('/\b(teal|orange|amber|blue|cyan|magenta|gold|crimson|violet)\b/', $anchorLower, $colorMatch)) {
-                $color = $colorMatch[1];
-                $cues[] = ucfirst($color) . ' light spills across surfaces, tinting the atmosphere with a ' . $color . ' undertone';
-            }
-        }
-
-        // Return 3-4 cues max for rich detail
+        // Return max 2 cues to keep prompt tight
         if (empty($cues)) {
-            // Default environmental detail based on mood
+            // Default subtle motion based on mood
             return match ($mood) {
-                'tense', 'intense' => 'The air feels charged with barely contained energy, shadows shifting with subtle menace. Dust motes hang suspended in angled beams of harsh light.',
-                'calm', 'reflective' => 'Soft ambient light filters through the space, gentle atmospheric particles drifting weightlessly. The environment breathes with a quiet, meditative stillness.',
-                'dramatic', 'epic' => 'The atmosphere pulses with dramatic energy, light and shadow playing across every surface. Wind stirs the environment, carrying particles that catch the light.',
-                'mysterious' => 'Shadows pool in unexpected corners, atmospheric haze obscuring distant details. Faint light sources flicker at the edges of perception.',
-                'hopeful', 'warm' => 'Warm golden light suffuses the scene, dust motes floating lazily through sunbeams. A gentle warmth radiates through the atmosphere.',
-                default => 'Subtle ambient motion fills the environment, atmospheric particles drifting through gentle currents of air. Light plays softly across textures and surfaces.',
+                'tense', 'intense' => 'Subtle environmental tension with slight atmospheric movement',
+                'calm', 'reflective' => 'Gentle ambient motion, soft atmospheric drift',
+                'dramatic', 'epic' => 'Dynamic environmental energy with atmospheric particles',
+                default => 'Subtle ambient environmental motion',
             };
         }
 
-        return implode('. ', array_slice($cues, 0, 4)) . '.';
-    }
-
-    /**
-     * Build a mood-based closer with a second camera reference.
-     */
-    protected function buildMoodCloser(string $mood, string $cameraMotion): string
-    {
-        // Second camera reference — continuation phrasing
-        $cameraVerb = match (true) {
-            str_contains($cameraMotion, 'zoom in'), str_contains($cameraMotion, 'push') => 'continues its steady advance forward',
-            str_contains($cameraMotion, 'zoom out'), str_contains($cameraMotion, 'pull') => 'continues pulling back to reveal the wider scene',
-            str_contains($cameraMotion, 'pan left') => 'continues its smooth lateral drift to the left',
-            str_contains($cameraMotion, 'pan right') => 'continues its smooth lateral drift to the right',
-            str_contains($cameraMotion, 'tilt up'), str_contains($cameraMotion, 'rise') => 'continues its smooth upward ascent',
-            str_contains($cameraMotion, 'tilt down') => 'continues its slow downward gaze',
-            str_contains($cameraMotion, 'diagonal') => 'continues its floating diagonal path',
-            str_contains($cameraMotion, 'breathe'), str_contains($cameraMotion, 'settle') => 'holds with a gentle breathing motion',
-            default => 'continues its smooth, deliberate movement',
-        };
-
-        // Mood-based emotional closer
-        $moodPhrase = match ($mood) {
-            'tense', 'intense' => 'charged with barely contained energy',
-            'mysterious' => 'shrouded in enigma and quiet menace',
-            'calm', 'reflective' => 'suffused with a serene, contemplative stillness',
-            'dramatic', 'epic' => 'resonating with sweeping grandeur',
-            'hopeful', 'warm' => 'glowing with quiet optimism',
-            'intimate' => 'wrapped in a close, personal warmth',
-            'melancholic', 'sad' => 'heavy with unspoken sorrow',
-            'triumphant' => 'surging with victorious energy',
-            default => 'permeating the atmosphere with a tangible sense of presence',
-        };
-
-        return "The camera {$cameraVerb}, the scene conveying a feeling {$moodPhrase}.";
-    }
-
-    /**
-     * Enforce a word count range on the narrative.
-     * Under minimum: pad with atmospheric detail. Over maximum: trim middle while keeping opener + closer.
-     */
-    protected function enforceWordRange(string $text, int $min, int $max): string
-    {
-        // Clean up first
-        $text = preg_replace('/\.\s*\./', '.', $text);
-        $text = preg_replace('/,\s*,/', ',', $text);
-        $text = preg_replace('/\s{2,}/', ' ', trim($text));
-
-        $words = explode(' ', $text);
-        $count = count($words);
-
-        // Under minimum — pad with atmospheric filler
-        if ($count < $min) {
-            $padding = [
-                'Every surface holds a subtle interplay of light and texture.',
-                'The atmosphere carries a palpable weight, rich with sensory detail.',
-                'Small environmental details come alive with organic, naturalistic motion.',
-                'The interplay of foreground and background creates a layered sense of depth and scale.',
-            ];
-            $idx = 0;
-            while (count(explode(' ', $text)) < $min && $idx < count($padding)) {
-                // Insert padding before the last sentence (the mood closer)
-                $lastPeriod = strrpos($text, '. The camera');
-                if ($lastPeriod !== false) {
-                    $text = substr($text, 0, $lastPeriod) . '. ' . $padding[$idx] . substr($text, $lastPeriod);
-                } else {
-                    $text .= ' ' . $padding[$idx];
-                }
-                $idx++;
-            }
-        }
-
-        // Over maximum — trim from the middle, keeping opener + closer
-        $words = explode(' ', $text);
-        if (count($words) > $max) {
-            // Keep first 40 words and last 40 words, drop the middle
-            $keepStart = 40;
-            $keepEnd = 40;
-            if ($keepStart + $keepEnd >= $max) {
-                $keepStart = (int) floor($max * 0.5);
-                $keepEnd = $max - $keepStart;
-            }
-            $start = array_slice($words, 0, $keepStart);
-            $end = array_slice($words, -$keepEnd);
-            $text = implode(' ', $start) . '. ' . implode(' ', $end);
-        }
-
-        // Final cleanup
-        $text = preg_replace('/\.\s*\./', '.', $text);
-        $text = preg_replace('/\s{2,}/', ' ', trim($text));
-
-        return $text;
+        return ucfirst(implode(', ', array_slice($cues, 0, 2)));
     }
 
     protected function mapCameraToSeedance(string $cameraMotion): string
@@ -1284,23 +1206,25 @@ class UrlToVideoOrchestrator
         return $map[strtolower(trim($cameraMotion))] ?? 'The camera slowly pushes in';
     }
 
-    protected function calculateClipDuration(?float $audioDuration, string $sceneType = 'dialogue'): int
+    protected function calculateClipDuration(?float $audioDuration): int
     {
-        // Only tension/quick-cut scenes get 5 seconds; everything else defaults to 10
-        $isShort = in_array($sceneType, ['tension']);
-
         if ($audioDuration === null || $audioDuration <= 0) {
-            return $isShort ? 5 : 10;
+            return 8;
         }
 
         $withPadding = $audioDuration + 2.0;
+        $clamped = min(10, max(5, (int) ceil($withPadding)));
 
-        if ($isShort) {
-            return (int) min(5, ceil($withPadding));
+        $supported = [5, 6, 8, 10];
+        $snapped = 10;
+        foreach ($supported as $dur) {
+            if ($dur >= $clamped) {
+                $snapped = $dur;
+                break;
+            }
         }
 
-        // Long scenes: minimum 10 seconds, snap to 10
-        return (int) max(10, min(10, ceil($withPadding)));
+        return $snapped;
     }
 
     /**
