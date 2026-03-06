@@ -493,15 +493,13 @@ PROMPT;
      */
     protected function condensCharacterDescription(string $description): string
     {
-        // Split on commas and take up to 3 most visual traits (skip age/generic)
+        // Keep ALL visual traits (needed for character differentiation), skip only age
         $parts = array_map('trim', explode(',', $description));
         $visual = [];
         foreach ($parts as $part) {
-            // Skip age descriptors and generic body type
+            // Skip age descriptors only — keep body type as it helps differentiate
             if (preg_match('/^\b(late|early|mid)\s+\d+s?\b/i', $part)) continue;
-            if (preg_match('/^\b(tall|short|average|slim|athletic|stocky)\b$/i', $part)) continue;
             $visual[] = trim($part);
-            if (count($visual) >= 3) break;
         }
         return implode(', ', $visual) ?: $description;
     }
@@ -759,22 +757,22 @@ PROMPT;
             }
         }
 
-        // Inject character visual traits naturally
+        // Inject character visual traits — ALWAYS, with names, separated per character
         if (!empty($detectedChars)) {
-            $charDescriptions = [];
+            $charBlocks = [];
             foreach ($detectedChars as $charName) {
                 foreach ($characters as $char) {
                     if (strtolower($char['name']) === strtolower($charName)) {
-                        $charDescriptions[] = $this->condensCharacterDescription($char['description']);
+                        $desc = $this->condensCharacterDescription($char['description']);
+                        $charBlocks[] = strtoupper($char['name']) . ' — ' . $desc;
                         break;
                     }
                 }
             }
-            if (!empty($charDescriptions)) {
-                $charText = implode(', ', $charDescriptions);
-                if (!$this->alreadyContainsTerms($prompt, $charText)) {
-                    $prompt = rtrim($prompt, '. ') . '. Character: ' . $charText;
-                }
+            if (count($charBlocks) === 1) {
+                $prompt = rtrim($prompt, '. ') . '. Character: ' . $charBlocks[0];
+            } elseif (count($charBlocks) > 1) {
+                $prompt = rtrim($prompt, '. ') . '. Characters (each is a DIFFERENT person): ' . implode('. ', $charBlocks);
             }
         }
 
