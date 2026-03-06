@@ -628,8 +628,27 @@
                 @endphp
 
                 {{-- Phone frame preview --}}
-                <div class="mb-3" style="width: 100%; max-width: 280px;">
-                    <div class="utv-phone-frame" style="position: relative; width: 100%; padding-top: 177.78%; background: #0a0a0a; border-radius: 24px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+                @php
+                    // Dynamic aspect ratio for preview frame
+                    $previewAR = $aspectRatio ?? '9:16';
+                    $previewPadding = match($previewAR) {
+                        '16:9' => '56.25%',
+                        '1:1' => '100%',
+                        default => '177.78%', // 9:16
+                    };
+                    $previewMaxWidth = match($previewAR) {
+                        '16:9' => '480px',
+                        '1:1' => '340px',
+                        default => '280px', // 9:16
+                    };
+                    $previewBorderRadius = match($previewAR) {
+                        '16:9' => '12px',
+                        '1:1' => '16px',
+                        default => '24px', // 9:16 phone-style
+                    };
+                @endphp
+                <div class="mb-3" style="width: 100%; max-width: {{ $previewMaxWidth }};">
+                    <div class="utv-phone-frame" style="position: relative; width: 100%; padding-top: {{ $previewPadding }}; background: #0a0a0a; border-radius: {{ $previewBorderRadius }}; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
                         {{-- wire:loading overlays (instant client-side feedback) --}}
                         {{-- Use wire:loading.flex so Livewire controls display; inline display:flex would override the hide --}}
                         <div wire:loading.flex wire:target="generateSceneAIImage"
@@ -682,7 +701,7 @@
 
                 {{-- Scene info below phone --}}
                 @if(!empty($activeVisual))
-                    <div class="text-center mb-3" style="max-width: 280px;">
+                    <div class="text-center mb-3" style="max-width: {{ $previewMaxWidth }};">
                         <span class="badge" style="background: rgba(124,58,237,0.1); color: #7c3aed; font-size: 0.72rem;">
                             {{ __('Scene') }} {{ $activeIndex + 1 }}
                         </span>
@@ -705,7 +724,7 @@
                     }
                 @endphp
                 @if(!empty($activeImages))
-                    <div style="max-width: 280px; width: 100%;">
+                    <div style="max-width: {{ $previewMaxWidth }}; width: 100%;">
                         <label style="font-size: 0.7rem; color: var(--at-text-muted, #94a0b8); font-weight: 600; display: block; margin-bottom: 6px;">
                             {{ __('Generation History') }}
                         </label>
@@ -780,7 +799,7 @@
                         else $studioPendingCount++;
                     }
                 @endphp
-                <div class="mt-auto pt-3 text-center" style="max-width: 280px; width: 100%; font-size: 0.75rem; color: var(--at-text-muted, #94a0b8);">
+                <div class="mt-auto pt-3 text-center" style="max-width: {{ $previewMaxWidth }}; width: 100%; font-size: 0.75rem; color: var(--at-text-muted, #94a0b8);">
                     <span style="color: #22c55e;"><i class="fa-light fa-image me-1"></i>{{ $studioImageCount }}</span> {{ __('images') }}
                     <span class="mx-1">&middot;</span>
                     <span style="color: #22c55e;"><i class="fa-light fa-video me-1"></i>{{ $studioVideoCount }}</span> {{ __('videos') }}
@@ -2012,8 +2031,16 @@
         background: rgba(124,58,237,0.08);
     }
     .utv-shots-flow-thumb {
+        @if(($aspectRatio ?? '9:16') === '16:9')
+        width: 100px;
+        height: 56px;
+        @elseif(($aspectRatio ?? '9:16') === '1:1')
+        width: 72px;
+        height: 72px;
+        @else
         width: 56px;
         height: 100px;
+        @endif
         border-radius: 6px;
         background: #1a1a2e;
         border: 2px solid #2a2a3e;
