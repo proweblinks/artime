@@ -633,6 +633,8 @@ trait HasImageSelection
                     'characters_in_scene' => $visual['characters_in_scene'] ?? [],
                     'transition_type' => $visual['transition_type'] ?? 'fade',
                     'transition_duration' => (float) ($visual['transition_duration'] ?? 0.5),
+                    'location_hint' => $visual['location_hint'] ?? '',
+                    'scene_type' => $visual['scene_type'] ?? '',
                 ];
             }
 
@@ -648,6 +650,7 @@ trait HasImageSelection
                     'camera_motion' => $visual['camera_motion'] ?? 'slow zoom in',
                     'mood' => $visual['mood'] ?? 'dramatic',
                     'has_dialogue' => false,
+                    'location_hint' => $visual['location_hint'] ?? '',
                 ];
 
                 if ($isFilmMode) {

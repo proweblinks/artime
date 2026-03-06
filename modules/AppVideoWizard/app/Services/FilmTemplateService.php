@@ -245,8 +245,9 @@ PROMPT;
                 ? $currentLocation
                 : $locationHint;
 
-            // --- Shot framing (first instruction in image prompt) ---
-            $framing = $this->getShotFraming($sceneType, $i, $total, $dialogueCounter);
+            // --- Shot framing (skip if direction already has framing) ---
+            $directionHasFraming = $this->directionContainsFraming($direction);
+            $framing = $directionHasFraming ? '' : $this->getShotFraming($sceneType, $i, $total, $dialogueCounter);
             if ($sceneType === 'dialogue') {
                 $dialogueCounter++;
             }
@@ -361,6 +362,18 @@ PROMPT;
     }
 
     /**
+     * Check if the screenplay direction already contains shot framing keywords.
+     * If so, we skip prepending getShotFraming() to avoid contradictory instructions.
+     */
+    protected function directionContainsFraming(string $direction): bool
+    {
+        if (empty($direction)) return false;
+        // Check first ~80 chars for framing keywords (they're typically at the start)
+        $start = strtolower(substr($direction, 0, 80));
+        return (bool) preg_match('/\b(close-?up|closeup|wide\s+shot|medium\s+shot|pov\s+shot|tracking\s+shot|over-?the-?shoulder|two-?shot|detail\s+insert|dutch\s+angle|high\s+angle|low\s+angle|aerial\s+shot|establishing\s+shot|extreme\s+close|tight\s+shot)\b/i', $start);
+    }
+
+    /**
      * Extract indoor-safe prefix elements (lighting, color, bokeh) — skip outdoor elements.
      */
     protected function extractIndoorPrefix(string $fullPrefix): string
@@ -421,31 +434,37 @@ PROMPT;
     /**
      * Extract a brief location description from direction text.
      * E.g., "a sprawling, rain-slicked industrial dockyard at night" → "rain-slicked industrial dockyard at night"
+     * Stops at verbs/character actions — only captures the location noun phrase.
      */
     protected function extractLocationDescription(string $direction): string
     {
-        $lower = strtolower($direction);
+        $locationNouns = 'room|lab|terminal|warehouse|dock(?:yard)?|underground|tunnel|bunker|factory|office|apartment|chamber|headquarters|bar|club|shop|corridor|hallway|street|alley|rooftop|plaza|market|bridge|server\s+(?:room|farm)|basement|garage|elevator|stairwell|forest|ocean|mountain|field|penthouse|balcony|loft|hangar|arena|cathedral|temple|station|hospital|prison|cell|courtyard|garden|pier|wharf|harbor|shipyard';
 
-        // Try to extract a location phrase from common patterns
-        // Pattern: "a/an/the [adjectives] [location noun] [prepositional phrases]"
-        $locationNouns = 'room|lab|terminal|warehouse|dock(?:yard)?|underground|tunnel|bunker|factory|office|apartment|chamber|headquarters|bar|club|shop|corridor|hallway|street|alley|rooftop|plaza|market|bridge|server|basement|garage|elevator|stairwell|forest|ocean|mountain|field|penthouse|balcony|loft|hangar|arena|cathedral|temple|station|hospital|prison|cell|courtyard|garden|pier|wharf|harbor|shipyard';
+        // Strategy 1: Look for "Back in the [location]" or "inside the [location]" patterns
+        if (preg_match('/(?:back\s+in|inside|within|into)\s+(?:the\s+)?([a-z\-\s]*?\b(?:' . $locationNouns . ')\b)/i', $direction, $match)) {
+            return ucfirst(trim($match[1]));
+        }
 
-        if (preg_match('/(?:a|an|the|in|inside|within)?\s*([^,.]*?\b(?:' . $locationNouns . ')\b[^,.]{0,40})/i', $direction, $match)) {
+        // Strategy 2: Extract [adjectives] + location noun, stop BEFORE verbs/possessives
+        // Match: optional adjectives + location noun + optional short prepositional phrase (at night, with servers)
+        // Stop at: verbs (is, are, has, 's, comma), character names, or sentence boundaries
+        if (preg_match('/\b((?:(?:massive|corporate|underground|sterile|white|dark|cramped|transparent|quiet|dimly[\s-]lit|rain-slicked|industrial|sprawling|narrow|abandoned|broken)\s+)*(?:' . $locationNouns . ')(?:\s+(?:at\s+\w+|with\s+\w+|of\s+\w+))?)/i', $direction, $match)) {
             $desc = trim($match[1]);
-            // Clean up: remove leading articles
             $desc = preg_replace('/^(?:a|an|the)\s+/i', '', $desc);
-            // Cap at ~60 chars
-            if (strlen($desc) > 60) {
-                $desc = substr($desc, 0, 60);
-                $desc = preg_replace('/\s+\S*$/', '', $desc); // trim to last whole word
+            if (strlen($desc) > 50) {
+                $desc = substr($desc, 0, 50);
+                $desc = preg_replace('/\s+\S*$/', '', $desc);
             }
             return ucfirst($desc);
         }
 
-        // Fallback: take first 40 chars of direction
-        $short = substr($direction, 0, 40);
-        $short = preg_replace('/\s+\S*$/', '', $short);
-        return ucfirst(trim($short));
+        // Strategy 3: For "server room" compound nouns that don't match above
+        if (preg_match('/\b(server\s+room|server\s+farm|control\s+room|engine\s+room|war\s+room|board\s+room)\b/i', $direction, $match)) {
+            return ucfirst(trim($match[1]));
+        }
+
+        // Fallback: use the location type name from detectLocation() instead of raw text
+        return '';
     }
 
     /**
@@ -499,8 +518,31 @@ PROMPT;
             foreach ($characters as $char) {
                 if (strtolower($char['name']) === strtolower($charName)) {
                     $brief = $this->getCharacterVisualBrief($char);
-                    // Replace "REN" or "Ren" with brief descriptor (first occurrence only)
-                    $action = preg_replace('/\b' . preg_quote($charName, '/') . '\b/i', $brief, $action, 1);
+                    $pattern = '/\b' . preg_quote($charName, '/') . '\b/i';
+
+                    // Check if text after the name already describes the same trait
+                    // to avoid stutter like "A man with cybernetic implant's cybernetic implant"
+                    if (preg_match($pattern, $action, $match, PREG_OFFSET_CAPTURE)) {
+                        $nameEnd = $match[0][1] + strlen($match[0][0]);
+                        $textAfter = strtolower(substr($action, $nameEnd, 80));
+                        $traitWords = $this->getCharacterTraitKeywords($char);
+
+                        // Count how many trait words appear right after the name
+                        $traitOverlap = 0;
+                        foreach ($traitWords as $tw) {
+                            if (str_contains($textAfter, $tw)) {
+                                $traitOverlap++;
+                            }
+                        }
+
+                        // If 2+ trait words overlap, use just the gender subject (e.g. "A man")
+                        // to avoid "A man with cybernetic implant's cybernetic implant"
+                        $replacement = ($traitOverlap >= 2) ? $this->getGenderSubject($char) : $brief;
+                    } else {
+                        $replacement = $brief;
+                    }
+
+                    $action = preg_replace($pattern, $replacement, $action, 1);
                     break;
                 }
             }
@@ -544,6 +586,36 @@ PROMPT;
         }
 
         return $subject;
+    }
+
+    /**
+     * Get a simple gender-based subject for a character.
+     */
+    protected function getGenderSubject(array $char): string
+    {
+        return match ($char['gender'] ?? 'unknown') {
+            'male' => 'A man',
+            'female' => 'A woman',
+            default => 'A person',
+        };
+    }
+
+    /**
+     * Extract distinctive trait keywords from a character's description for stutter detection.
+     */
+    protected function getCharacterTraitKeywords(array $char): array
+    {
+        $desc = strtolower($char['description'] ?? '');
+        $keywords = [];
+        // Extract significant words (5+ chars, skip common words)
+        $skip = ['about', 'above', 'their', 'there', 'which', 'where', 'early', 'would'];
+        foreach (preg_split('/[\s,]+/', $desc) as $word) {
+            $word = trim($word, '.,;:!?');
+            if (strlen($word) >= 5 && !in_array($word, $skip)) {
+                $keywords[] = $word;
+            }
+        }
+        return $keywords;
     }
 
     /**
@@ -655,12 +727,16 @@ PROMPT;
         array $detectedChars,
         array $characters
     ): string {
-        // Start with framing as the shot instruction
+        // Start with framing as the shot instruction (empty if direction already has framing)
         $prompt = $framing;
 
         // Weave direction (the main visual description from the screenplay)
         if (!empty($direction)) {
-            $prompt .= '. ' . $direction;
+            if (!empty($prompt)) {
+                $prompt .= '. ' . $direction;
+            } else {
+                $prompt = $direction;
+            }
         }
 
         // Weave style prefix as atmospheric detail (2-3 key terms only, not the full prefix)

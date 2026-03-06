@@ -1017,6 +1017,10 @@ class UrlToVideoOrchestrator
         $mood = strtolower(trim($scene['mood'] ?? ''));
         $overrides = $filmTemplateConfig['visual_overrides'] ?? [];
         $videoAnchor = $overrides['videoAnchor'] ?? '';
+        $locationHint = $scene['location_hint'] ?? '';
+
+        // Determine if scene is interior (suppress outdoor environmental cues)
+        $isInterior = !empty($locationHint) && str_starts_with($locationHint, 'interior');
 
         // Source text = full video_action or direction (NOT stripped)
         $sourceText = !empty($videoAction) ? $videoAction : $direction;
@@ -1044,8 +1048,8 @@ class UrlToVideoOrchestrator
             $narrative .= ' ' . $actionContent;
         }
 
-        // Layer 4: Environmental physics (expanded — 3-4 rich cues)
-        $envDetail = $this->buildRichEnvironmentalDetail($atmosphere, $mood, $sourceText, $videoAnchor);
+        // Layer 4: Environmental physics (expanded — 3-4 rich cues, location-aware)
+        $envDetail = $this->buildRichEnvironmentalDetail($atmosphere, $mood, $sourceText, $videoAnchor, $isInterior);
         if (!empty($envDetail)) {
             $narrative .= ' ' . $envDetail;
         }
@@ -1109,76 +1113,127 @@ class UrlToVideoOrchestrator
     /**
      * Build rich environmental detail (3-4 cues) from atmosphere, mood, source text, and style anchor.
      */
-    public function buildRichEnvironmentalDetail(string $atmosphere, string $mood, string $sourceText, string $videoAnchor): string
+    public function buildRichEnvironmentalDetail(string $atmosphere, string $mood, string $sourceText, string $videoAnchor, bool $isInterior = false): string
     {
         $cues = [];
-        $combined = strtolower($atmosphere . ' ' . $sourceText . ' ' . $videoAnchor);
+        // For interior scenes, only scan the sourceText (scene direction) — NOT the template
+        // atmosphere/videoAnchor, which contain outdoor keywords like "rain", "neon", "streets"
+        $combined = $isInterior
+            ? strtolower($sourceText)
+            : strtolower($atmosphere . ' ' . $sourceText . ' ' . $videoAnchor);
 
-        // Rain/water — rich phrasing
-        if (preg_match('/\b(rain|wet|storm|drizzle|downpour)\b/', $combined)) {
-            $cues[] = 'Rain streaks diagonally through volumetric light beams, wet surfaces catching long shimmering reflections';
-        }
-        // Wind
-        if (preg_match('/\b(wind|breeze|gust|blowing|billowing)\b/', $combined)) {
-            $cues[] = 'Wind tugs at clothing and hair, sending loose fabric rippling in slow arcs';
-        }
-        // Neon/lights
-        if (preg_match('/\b(neon|holograph|flicker|glow|pulse|electric)\b/', $combined)) {
-            $cues[] = 'Neon signs flicker and pulse with shifting color, casting teal and orange pools of light across nearby surfaces';
-        }
-        // Fire/flames
-        if (preg_match('/\b(fire|flame|burn|ember|torch|candle)\b/', $combined)) {
-            $cues[] = 'Flames lick upward in dancing arcs, glowing embers drifting lazily into the darkness above';
-        }
-        // Smoke/fog/mist
-        if (preg_match('/\b(smoke|fog|mist|haze|steam|vapor)\b/', $combined)) {
-            $cues[] = 'Wisps of atmospheric haze curl and drift through the scene in lazy spirals';
-        }
-        // Nature
-        if (preg_match('/\b(forest|trees?|leaves?|grass|plant|foliage)\b/', $combined)) {
-            $cues[] = 'Foliage sways in a gentle rhythm, scattered leaves drifting slowly through shafts of light';
-        }
-        // Crowd/traffic
-        if (preg_match('/\b(crowd|people|traffic|vehicles?|cars?|pedestrian)\b/', $combined)) {
-            $cues[] = 'Figures move through the background, their silhouettes blurring with distance and atmospheric depth';
-        }
-        // Particles/dust
-        if (preg_match('/\b(dust|particle|debris|sand|snow|ash)\b/', $combined)) {
-            $cues[] = 'Tiny particles catch the light as they drift weightlessly through the air';
-        }
-        // Water/ocean
-        if (preg_match('/\b(ocean|sea|water|waves?|river|lake)\b/', $combined)) {
-            $cues[] = 'Water undulates with gentle rippling movement, light dancing across the liquid surface';
-        }
-        // City/urban
-        if (preg_match('/\b(city|urban|street|alley|rooftop|skyline|skyscraper|building)\b/', $combined)) {
-            $cues[] = 'Distant city lights twinkle through atmospheric haze, the urban landscape breathing with subtle motion';
-        }
-        // Tech/cyber
-        if (preg_match('/\b(cyber|tech|digital|hologram|screen|data|interface)\b/', $combined)) {
-            $cues[] = 'Digital readouts flicker with scrolling data, holographic displays casting a soft ambient glow';
-        }
+        if ($isInterior) {
+            // === INTERIOR environmental cues — indoor-appropriate only ===
 
-        // Style anchor enrichment — weave videoAnchor terms into a natural cue
-        if (!empty($videoAnchor) && str_word_count($videoAnchor) <= 12) {
-            $anchorLower = strtolower($videoAnchor);
-            if (preg_match('/\b(teal|orange|amber|blue|cyan|magenta|gold|crimson|violet)\b/', $anchorLower, $colorMatch)) {
-                $color = $colorMatch[1];
-                $cues[] = ucfirst($color) . ' light spills across surfaces, tinting the atmosphere with a ' . $color . ' undertone';
+            // Indoor tech/screens
+            if (preg_match('/\b(screen|monitor|terminal|holograph|display|interface|data|digital|server)\b/', $combined)) {
+                $cues[] = 'Screens and displays cast a flickering ambient glow, data readouts scrolling with soft luminescence';
             }
-        }
+            // Indoor lighting
+            if (preg_match('/\b(fluorescent|lamp|overhead|dim|lit|light|flicker)\b/', $combined)) {
+                $cues[] = 'Overhead lights hum faintly, casting pools of artificial light that leave deep shadows in corners';
+            }
+            // Machinery/industrial
+            if (preg_match('/\b(server|machine|engine|generator|wire|cable|rack|vent|pipe)\b/', $combined)) {
+                $cues[] = 'Machinery hums with a low resonant vibration, indicator lights blinking in rhythmic patterns';
+            }
+            // Steam/atmosphere
+            if (preg_match('/\b(steam|smoke|haze|fog|vapor|vent)\b/', $combined)) {
+                $cues[] = 'Wisps of steam curl from vents, drifting through the artificial light in lazy spirals';
+            }
+            // Sparks/electrical
+            if (preg_match('/\b(spark|electri|arc|surge|power|energy)\b/', $combined)) {
+                $cues[] = 'Electrical sparks dance briefly in the air, casting sharp fleeting shadows on nearby walls';
+            }
+            // Dust/particles in indoor space
+            if (preg_match('/\b(dust|particle|debris|ash)\b/', $combined)) {
+                $cues[] = 'Dust motes drift through shafts of artificial light, suspended weightlessly in the still air';
+            }
 
-        // Return 3-4 cues max for rich detail
-        if (empty($cues)) {
-            // Default environmental detail based on mood
-            return match ($mood) {
-                'tense', 'intense' => 'The air feels charged with barely contained energy, shadows shifting with subtle menace. Dust motes hang suspended in angled beams of harsh light.',
-                'calm', 'reflective' => 'Soft ambient light filters through the space, gentle atmospheric particles drifting weightlessly. The environment breathes with a quiet, meditative stillness.',
-                'dramatic', 'epic' => 'The atmosphere pulses with dramatic energy, light and shadow playing across every surface. Wind stirs the environment, carrying particles that catch the light.',
-                'mysterious' => 'Shadows pool in unexpected corners, atmospheric haze obscuring distant details. Faint light sources flicker at the edges of perception.',
-                'hopeful', 'warm' => 'Warm golden light suffuses the scene, dust motes floating lazily through sunbeams. A gentle warmth radiates through the atmosphere.',
-                default => 'Subtle ambient motion fills the environment, atmospheric particles drifting through gentle currents of air. Light plays softly across textures and surfaces.',
-            };
+            // Style anchor color enrichment still applies indoors
+            if (!empty($videoAnchor) && str_word_count($videoAnchor) <= 12) {
+                $anchorLower = strtolower($videoAnchor);
+                if (preg_match('/\b(teal|orange|amber|blue|cyan|magenta|gold|crimson|violet)\b/', $anchorLower, $colorMatch)) {
+                    $color = $colorMatch[1];
+                    $cues[] = ucfirst($color) . ' light spills across surfaces, tinting the interior with a ' . $color . ' undertone';
+                }
+            }
+
+            if (empty($cues)) {
+                return match ($mood) {
+                    'tense', 'intense' => 'The enclosed space feels charged with barely contained energy, shadows pooling in corners. Faint mechanical hums resonate through the walls.',
+                    'mysterious' => 'Shadows gather in the corners of the room, faint light sources flickering at the edges. The air hangs heavy and still.',
+                    'dramatic', 'epic' => 'The interior atmosphere pulses with dramatic tension, artificial light and deep shadow playing across every surface.',
+                    default => 'The enclosed space breathes with subtle ambient motion, artificial light casting soft gradients across walls and surfaces.',
+                };
+            }
+        } else {
+            // === EXTERIOR environmental cues — original behavior ===
+
+            // Rain/water
+            if (preg_match('/\b(rain|wet|storm|drizzle|downpour)\b/', $combined)) {
+                $cues[] = 'Rain streaks diagonally through volumetric light beams, wet surfaces catching long shimmering reflections';
+            }
+            // Wind
+            if (preg_match('/\b(wind|breeze|gust|blowing|billowing)\b/', $combined)) {
+                $cues[] = 'Wind tugs at clothing and hair, sending loose fabric rippling in slow arcs';
+            }
+            // Neon/lights
+            if (preg_match('/\b(neon|holograph|flicker|glow|pulse|electric)\b/', $combined)) {
+                $cues[] = 'Neon signs flicker and pulse with shifting color, casting teal and orange pools of light across nearby surfaces';
+            }
+            // Fire/flames
+            if (preg_match('/\b(fire|flame|burn|ember|torch|candle)\b/', $combined)) {
+                $cues[] = 'Flames lick upward in dancing arcs, glowing embers drifting lazily into the darkness above';
+            }
+            // Smoke/fog/mist
+            if (preg_match('/\b(smoke|fog|mist|haze|steam|vapor)\b/', $combined)) {
+                $cues[] = 'Wisps of atmospheric haze curl and drift through the scene in lazy spirals';
+            }
+            // Nature
+            if (preg_match('/\b(forest|trees?|leaves?|grass|plant|foliage)\b/', $combined)) {
+                $cues[] = 'Foliage sways in a gentle rhythm, scattered leaves drifting slowly through shafts of light';
+            }
+            // Crowd/traffic
+            if (preg_match('/\b(crowd|people|traffic|vehicles?|cars?|pedestrian)\b/', $combined)) {
+                $cues[] = 'Figures move through the background, their silhouettes blurring with distance and atmospheric depth';
+            }
+            // Particles/dust
+            if (preg_match('/\b(dust|particle|debris|sand|snow|ash)\b/', $combined)) {
+                $cues[] = 'Tiny particles catch the light as they drift weightlessly through the air';
+            }
+            // Water/ocean
+            if (preg_match('/\b(ocean|sea|water|waves?|river|lake)\b/', $combined)) {
+                $cues[] = 'Water undulates with gentle rippling movement, light dancing across the liquid surface';
+            }
+            // City/urban
+            if (preg_match('/\b(city|urban|street|alley|rooftop|skyline|skyscraper|building)\b/', $combined)) {
+                $cues[] = 'Distant city lights twinkle through atmospheric haze, the urban landscape breathing with subtle motion';
+            }
+            // Tech/cyber
+            if (preg_match('/\b(cyber|tech|digital|hologram|screen|data|interface)\b/', $combined)) {
+                $cues[] = 'Digital readouts flicker with scrolling data, holographic displays casting a soft ambient glow';
+            }
+
+            // Style anchor enrichment
+            if (!empty($videoAnchor) && str_word_count($videoAnchor) <= 12) {
+                $anchorLower = strtolower($videoAnchor);
+                if (preg_match('/\b(teal|orange|amber|blue|cyan|magenta|gold|crimson|violet)\b/', $anchorLower, $colorMatch)) {
+                    $color = $colorMatch[1];
+                    $cues[] = ucfirst($color) . ' light spills across surfaces, tinting the atmosphere with a ' . $color . ' undertone';
+                }
+            }
+
+            if (empty($cues)) {
+                return match ($mood) {
+                    'tense', 'intense' => 'The air feels charged with barely contained energy, shadows shifting with subtle menace. Dust motes hang suspended in angled beams of harsh light.',
+                    'calm', 'reflective' => 'Soft ambient light filters through the space, gentle atmospheric particles drifting weightlessly. The environment breathes with a quiet, meditative stillness.',
+                    'dramatic', 'epic' => 'The atmosphere pulses with dramatic energy, light and shadow playing across every surface. Wind stirs the environment, carrying particles that catch the light.',
+                    'mysterious' => 'Shadows pool in unexpected corners, atmospheric haze obscuring distant details. Faint light sources flicker at the edges of perception.',
+                    'hopeful', 'warm' => 'Warm golden light suffuses the scene, dust motes floating lazily through sunbeams. A gentle warmth radiates through the atmosphere.',
+                    default => 'Subtle ambient motion fills the environment, atmospheric particles drifting through gentle currents of air. Light plays softly across textures and surfaces.',
+                };
+            }
         }
 
         return implode('. ', array_slice($cues, 0, 4)) . '.';
