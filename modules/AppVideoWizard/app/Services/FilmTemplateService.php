@@ -259,6 +259,12 @@ PROMPT;
                 default => 0.5,
             };
 
+            // Add aspect ratio instruction for 16:9 film format
+            $templateAspect = $template['aspect_ratio'] ?? '16:9';
+            if ($templateAspect === '16:9') {
+                $imagePrompt .= '. MANDATORY: Compose in landscape 16:9 widescreen format with wide horizontal cinematic composition';
+            }
+
             $visualScript[] = [
                 'image_prompt' => trim($imagePrompt),
                 'video_action' => trim($videoAction),

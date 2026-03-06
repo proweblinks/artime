@@ -10,6 +10,7 @@ use Modules\AppVideoWizard\Services\AnimationService;
 use Modules\AppVideoWizard\Services\ImageGenerationService;
 use Modules\AppVideoWizard\Services\ImageSourceService;
 use Modules\AppVideoWizard\Services\SeedancePromptService;
+use Modules\AppVideoWizard\Services\FilmTemplateService;
 use Modules\AppVideoWizard\Services\StoryModeScriptService;
 use Modules\AdminCredits\Facades\Credit;
 
@@ -599,15 +600,23 @@ trait HasImageSelection
             $aspectRatio = $this->aspectRatio ?? '9:16';
             $teamId = session('current_team_id');
 
-            // Build style instruction from selected visual style + content brief
-            $brief = property_exists($this, 'storedContentBrief') ? ($this->storedContentBrief ?? []) : [];
-            $tone = $brief['tone'] ?? 'professional';
-            $style = self::VISUAL_STYLE_PRESETS[$this->selectedVisualStyle] ?? self::VISUAL_STYLE_PRESETS['cinematic'];
-            $styleInstruction = "{$style['imagePrefix']}. {$tone} tone. {$style['imageSuffix']}";
+            // Film mode: use FilmTemplateService for flowing image prompts with visual variety
+            $isFilmMode = !empty($this->filmMode) && !empty($this->filmTemplateConfig);
+            if ($isFilmMode) {
+                $filmService = new FilmTemplateService();
+                $visualScript = $filmService->buildFilmVisualScript($segments, $this->filmTemplateConfig);
+                $this->characterBible = [];
+            } else {
+                // Standard/Creative mode: generic visual script
+                $brief = property_exists($this, 'storedContentBrief') ? ($this->storedContentBrief ?? []) : [];
+                $tone = $brief['tone'] ?? 'professional';
+                $style = self::VISUAL_STYLE_PRESETS[$this->selectedVisualStyle] ?? self::VISUAL_STYLE_PRESETS['cinematic'];
+                $styleInstruction = "{$style['imagePrefix']}. {$tone} tone. {$style['imageSuffix']}";
 
-            $scriptService = new StoryModeScriptService();
-            $visualScript = $scriptService->buildVisualScript($segments, $styleInstruction, $aspectRatio, $teamId);
-            $this->characterBible = $scriptService->lastCharacterBible;
+                $scriptService = new StoryModeScriptService();
+                $visualScript = $scriptService->buildVisualScript($segments, $styleInstruction, $aspectRatio, $teamId);
+                $this->characterBible = $scriptService->lastCharacterBible;
+            }
 
             // Map results to sceneId keys
             $this->sceneVisualScript = [];

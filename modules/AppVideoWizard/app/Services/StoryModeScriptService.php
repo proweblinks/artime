@@ -757,7 +757,7 @@ PROMPT;
             $wordsPerMinute = 140;
             $segmentDuration = $dialogueWords > 0
                 ? round(($dialogueWords / $wordsPerMinute) * 60, 1)
-                : 4.0; // Visual-only scenes get a base duration
+                : 8.0; // Visual-only scenes: 8s base to use Seedance's 10s capacity
 
             $isVisualOnly = $dialogueWords === 0;
 
