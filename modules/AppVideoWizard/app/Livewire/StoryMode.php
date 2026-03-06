@@ -30,6 +30,7 @@ class StoryMode extends Component
     public string $voiceProvider = '';
     public string $videoResolution = '480p';
     public string $videoQuality = 'pro';
+    public string $imageModel = 'nanobanana2';
     public $attachedFile = null;
 
     // Transcript editing
@@ -59,6 +60,7 @@ class StoryMode extends Component
     public function mount($sharedProject = null)
     {
         $this->aspectRatio = get_option('story_mode_default_aspect', '9:16');
+        $this->imageModel = get_option('story_mode_image_model', 'nanobanana2');
 
         if ($sharedProject) {
             $this->sharedProjectId = $sharedProject->id;
@@ -266,6 +268,7 @@ class StoryMode extends Component
                     'ai_engine' => get_option('story_mode_ai_engine', 'gemini'),
                     'video_resolution' => $this->videoResolution,
                     'video_quality' => $this->videoQuality,
+                    'image_model' => $this->imageModel,
                     'image_source' => !empty($this->selectedSceneImages) ? 'real_images' : 'ai',
                     'attached_file' => $this->attachedFile
                         ? $this->attachedFile->store('story-mode/attachments', 'public')

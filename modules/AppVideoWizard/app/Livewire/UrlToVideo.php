@@ -30,6 +30,7 @@ class UrlToVideo extends Component
     public string $voiceProvider = '';
     public string $videoResolution = '480p';
     public string $videoQuality = 'pro';
+    public string $imageModel = 'nanobanana2';
     public int $videoDuration = 60;
     public string $narrativeStyle = 'hook_reveal';
 
@@ -83,6 +84,7 @@ class UrlToVideo extends Component
     public function mount($sharedProject = null)
     {
         $this->aspectRatio = get_option('story_mode_default_aspect', '9:16');
+        $this->imageModel = get_option('story_mode_image_model', 'nanobanana2');
 
         if ($sharedProject) {
             $this->sharedProjectId = $sharedProject->id;
@@ -671,6 +673,7 @@ class UrlToVideo extends Component
                 'ai_engine' => get_option('story_mode_ai_engine', 'gemini'),
                 'video_resolution' => $this->videoResolution,
                 'video_quality' => $this->videoQuality,
+                'image_model' => $this->imageModel,
                 'video_duration_target' => $this->videoDuration,
                 'narrative_style' => $this->filmMode ? 'film' : ($this->creativeMode ? 'creative' : $this->narrativeStyle),
                 'image_source' => $imageSource,

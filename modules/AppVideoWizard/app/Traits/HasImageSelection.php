@@ -797,7 +797,7 @@ trait HasImageSelection
             ]);
 
             $sceneIndex = (int) str_replace('scene_', '', $sceneId);
-            $imageModel = get_option('story_mode_image_model', 'nanobanana2');
+            $imageModel = $this->imageModel ?? get_option('story_mode_image_model', 'nanobanana2');
 
             $sceneData = [
                 'id' => $sceneId,

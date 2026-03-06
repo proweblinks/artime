@@ -195,6 +195,7 @@ class StoryModeScriptService
     {
         $engine = get_option('story_mode_ai_engine', 'gemini');
         $model = get_option('story_mode_ai_model', 'gemini-2.5-flash');
+        $effectiveTeamId = $teamId ?? auth()->user()?->team_id ?? 0;
 
         $segmentTexts = [];
         foreach ($segments as $i => $segment) {
@@ -212,6 +213,401 @@ class StoryModeScriptService
             default => 'landscape 16:9 widescreen',
         };
 
+        // ── Phase 1: Director's Treatment ──
+        $treatment = $this->phase1DirectorsTreatment(
+            $allSegments, count($segments), $engine, $model, $effectiveTeamId
+        );
+
+        if ($treatment === null) {
+            Log::warning('StoryModeScriptService: Phase 1 failed, falling back to legacy single-batch');
+            return $this->legacySingleBatchVisualScript(
+                $segments, $allSegments, $styleInstruction, $styleContext,
+                $aspectRatio, $aspectRatioLabel, $engine, $model, $effectiveTeamId
+            );
+        }
+
+        // Store character bible (same contract as legacy path)
+        $characterBible = $treatment['character_bible'] ?? [];
+        $this->lastCharacterBible = $characterBible;
+
+        $charLookup = [];
+        foreach ($characterBible as $char) {
+            $charLookup[$char['id']] = $char;
+        }
+
+        Log::info('StoryModeScriptService: Phase 1 Director\'s Treatment completed', [
+            'characters' => count($characterBible),
+            'locations' => count($treatment['location_bible'] ?? []),
+            'scene_beats' => count($treatment['scene_beats'] ?? []),
+        ]);
+
+        // ── Phase 2: Windowed Visual Direction ──
+        $windowSize = 4;
+        $allVisuals = [];       // indexed by segment position
+        $previousScenes = [];   // last 2 completed scenes for continuity
+
+        $aspectFraming = $this->buildAspectRatioFraming($aspectRatio, $aspectRatioLabel);
+
+        for ($windowStart = 0; $windowStart < count($segments); $windowStart += $windowSize) {
+            $windowSegments = array_slice($segments, $windowStart, $windowSize);
+            $windowBeats = array_slice($treatment['scene_beats'] ?? [], $windowStart, $windowSize);
+            $isLastWindow = ($windowStart + $windowSize) >= count($segments);
+
+            $windowResult = $this->phase2WindowVisualDirection(
+                $treatment, $windowSegments, $windowBeats,
+                $windowStart, $previousScenes, $styleContext,
+                $aspectRatioLabel, $isLastWindow,
+                $engine, $model, $effectiveTeamId
+            );
+
+            if ($windowResult !== null) {
+                foreach ($windowResult as $idx => $visual) {
+                    $allVisuals[$windowStart + $idx] = $visual;
+                }
+
+                // Update continuity context: keep last 2 completed scenes
+                $windowCount = count($windowResult);
+                if ($windowCount >= 2) {
+                    $previousScenes = array_slice($windowResult, -2);
+                } elseif ($windowCount === 1) {
+                    $previousScenes = array_merge(
+                        count($previousScenes) > 0 ? [end($previousScenes)] : [],
+                        $windowResult
+                    );
+                }
+
+                Log::info('StoryModeScriptService: Phase 2 window completed', [
+                    'window_start' => $windowStart + 1,
+                    'scenes_in_window' => $windowCount,
+                ]);
+            } else {
+                // Window failed — use Phase 1 beats for enhanced fallback
+                Log::warning('StoryModeScriptService: Phase 2 window failed, using enhanced fallback', [
+                    'window_start' => $windowStart + 1,
+                    'window_size' => count($windowSegments),
+                ]);
+
+                foreach ($windowSegments as $idx => $seg) {
+                    $beat = $windowBeats[$idx] ?? [];
+                    $fallbackText = $this->stripDialogueFromText($seg['text']);
+                    $allVisuals[$windowStart + $idx] = [
+                        'image_prompt' => "A cinematic scene depicting: {$fallbackText}. No text or subtitles.",
+                        'video_action' => '',
+                        'characters_in_scene' => $beat['characters'] ?? [],
+                        'camera_motion' => $beat['camera_hint'] ?? 'slow zoom in',
+                        'mood' => $beat['mood_hint'] ?? 'professional',
+                        'voice_emotion' => 'neutral',
+                        'transition_type' => 'fade',
+                        'transition_duration' => 0.5,
+                    ];
+                }
+            }
+        }
+
+        // ── Post-processing: same as legacy path ──
+        $result = [];
+        foreach ($segments as $i => $segment) {
+            $visual = $allVisuals[$i] ?? [];
+            $fallbackText = $this->stripDialogueFromText($segment['text']);
+            $imagePrompt = $visual['image_prompt'] ?? "A visual scene depicting: {$fallbackText}. No text or subtitles.";
+            $charsInScene = $visual['characters_in_scene'] ?? [];
+
+            // Inject character descriptions from bible into the image prompt
+            $imagePrompt = $this->injectCharacterDescriptions($imagePrompt, $charsInScene, $charLookup);
+
+            // Append aspect ratio framing
+            $imagePrompt .= "\n\n" . $aspectFraming;
+
+            // Fallback: generate video_action from narration if AI omitted it
+            $videoAction = $visual['video_action'] ?? '';
+            if (empty(trim($videoAction))) {
+                $videoAction = $this->generateFallbackVideoAction($segment['text'], $visual['image_prompt'] ?? '', $visual['mood'] ?? 'professional');
+                Log::info("StoryModeScriptService: Generated fallback video_action for scene {$i}");
+            }
+
+            $result[] = array_merge($segment, [
+                'image_prompt' => $imagePrompt,
+                'video_action' => $videoAction,
+                'characters_in_scene' => $charsInScene,
+                'camera_motion' => $visual['camera_motion'] ?? 'slow zoom in',
+                'mood' => $visual['mood'] ?? 'professional',
+                'voice_emotion' => $visual['voice_emotion'] ?? 'neutral',
+                'transition_type' => $visual['transition_type'] ?? 'fade',
+                'transition_duration' => (float) ($visual['transition_duration'] ?? 0.5),
+            ]);
+        }
+
+        Log::info('StoryModeScriptService: Two-phase visual script completed', [
+            'total_scenes' => count($result),
+            'phase1' => 'success',
+            'phase2_windows' => (int) ceil(count($segments) / $windowSize),
+        ]);
+
+        return $result;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    //  Phase 1: Director's Treatment
+    //  One AI call to plan the visual story arc across ALL segments.
+    // ─────────────────────────────────────────────────────────────────────
+
+    protected function phase1DirectorsTreatment(
+        string $allSegments, int $segmentCount,
+        string $engine, string $model, int $teamId
+    ): ?array {
+        $prompt = <<<PROMPT
+You are a cinematic director planning a visual story. Read ALL narration segments below and create a comprehensive Director's Treatment that will guide per-scene image/video generation.
+
+NARRATION SEGMENTS:
+{$allSegments}
+
+Your treatment must include:
+
+1. **visual_tone**: The overall visual identity for this video — describe the color palette (warm/cool/muted/saturated), lighting style (natural/dramatic/neon/soft), film reference if applicable (e.g. "Blade Runner neon noir", "Wes Anderson pastel symmetry"), recurring visual motifs, and era/texture (modern clean, vintage grain, futuristic sleek).
+
+2. **character_bible**: Array of every recurring character or named subject. For each:
+   - "id": short_snake_case identifier
+   - "name": display name
+   - "description": detailed visual identity — age, gender, build, skin tone, hair color/style, eye color, facial features, clothing, accessories, distinguishing marks
+   - "appears_in": array of segment numbers (1-indexed) where they appear
+
+3. **location_bible**: Array of every distinct location. For each:
+   - "id": short_snake_case identifier
+   - "name": location name
+   - "description": detailed visual description — architecture, lighting, color temperature, textures, atmosphere, time of day, weather
+   - "appears_in": array of segment numbers where this location is used
+
+4. **scene_beats**: One entry per segment (exactly {$segmentCount} entries). For each:
+   - "segment_index": 1-indexed segment number
+   - "visual_summary": What the CAMERA SEES during this segment (1-2 sentences). CRITICAL: For dialogue-only segments like spoken lines, describe the VISUAL ACTION — body language, spatial relationships, environment details, character positions — NOT the dialogue itself. The camera cannot record words, only images.
+   - "location_id": which location from location_bible
+   - "characters": array of character IDs present
+   - "mood_hint": suggested mood (calm, dramatic, energetic, tense, mysterious, epic, playful, nostalgic, professional, horror, intimate, hopeful)
+   - "camera_hint": suggested camera motion (slow zoom in, slow zoom out, dramatic zoom in, pan left, pan right, tilt up, tilt down, push to subject, rise and reveal, diagonal drift, breathe)
+   - "continuity_note": what connects this scene to the next (shared character, location transition, emotional shift, visual motif)
+
+CRITICAL RULES:
+- The visual_summary must describe what is VISUALLY HAPPENING, never repeat dialogue
+- If a segment is pure dialogue like "It's a cage.", describe the speaker's body language, the environment they're in, their spatial relationship to others
+- Ensure continuity_notes create a coherent visual flow from scene to scene
+- If there are no recurring characters (e.g. landscapes, abstract), return empty character_bible
+- Every segment must have a scene_beat — no gaps
+
+Respond ONLY with valid JSON:
+{
+  "visual_tone": "...",
+  "character_bible": [...],
+  "location_bible": [...],
+  "scene_beats": [...]
+}
+
+Output ONLY valid JSON, no markdown.
+PROMPT;
+
+        try {
+            $response = AI::processWithOverride(
+                "You are a cinematic director. Respond only with valid JSON.\n\n{$prompt}",
+                $engine,
+                $model,
+                'text',
+                [
+                    'temperature' => 0.5,
+                    'max_tokens' => 4000,
+                ],
+                $teamId
+            );
+
+            if (!empty($response['error'])) {
+                Log::error('StoryModeScriptService: Phase 1 AI error', ['error' => $response['error']]);
+                return null;
+            }
+
+            $content = $response['data'][0] ?? '';
+            $parsed = $this->parseJsonResponse($content);
+
+            if (!is_array($parsed) || empty($parsed['scene_beats'])) {
+                Log::error('StoryModeScriptService: Phase 1 parse failed or missing scene_beats');
+                return null;
+            }
+
+            return $parsed;
+        } catch (\Exception $e) {
+            Log::error('StoryModeScriptService: Phase 1 exception', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    //  Phase 2: Windowed Visual Direction
+    //  One AI call per window of ~4 scenes, with continuity from previous.
+    // ─────────────────────────────────────────────────────────────────────
+
+    protected function phase2WindowVisualDirection(
+        array $treatment, array $windowSegments, array $windowBeats,
+        int $windowStart, array $previousScenes, string $styleContext,
+        string $aspectRatioLabel, bool $isLastWindow,
+        string $engine, string $model, int $teamId
+    ): ?array {
+        // Build treatment context header
+        $visualTone = $treatment['visual_tone'] ?? 'cinematic';
+        $locationDescs = '';
+        foreach ($treatment['location_bible'] ?? [] as $loc) {
+            $locationDescs .= "- {$loc['name']} ({$loc['id']}): {$loc['description']}\n";
+        }
+        $charDescs = '';
+        foreach ($treatment['character_bible'] ?? [] as $char) {
+            $charDescs .= "- {$char['name']} ({$char['id']}): {$char['description']}\n";
+        }
+
+        // Build continuity context from previous 2 scenes
+        $continuityBlock = '';
+        if (!empty($previousScenes)) {
+            $continuityBlock = "\n## PREVIOUS SCENES (for continuity — read-only, do NOT regenerate):\n";
+            foreach ($previousScenes as $idx => $prev) {
+                $prevNum = $windowStart - count($previousScenes) + $idx + 1;
+                $continuityBlock .= "Scene {$prevNum}: image_prompt=\"" . ($prev['image_prompt'] ?? '') . "\", "
+                    . "camera=\"" . ($prev['camera_motion'] ?? '') . "\", "
+                    . "mood=\"" . ($prev['mood'] ?? '') . "\", "
+                    . "transition=\"" . ($prev['transition_type'] ?? '') . "\"\n";
+            }
+        }
+
+        // Build current window segments with their Phase 1 beats
+        $windowBlock = '';
+        foreach ($windowSegments as $idx => $seg) {
+            $segNum = $windowStart + $idx + 1;
+            $beat = $windowBeats[$idx] ?? [];
+            $windowBlock .= "Segment {$segNum}: \"{$seg['text']}\"\n";
+            if (!empty($beat)) {
+                $windowBlock .= "  Director's beat: visual_summary=\"" . ($beat['visual_summary'] ?? '') . "\", "
+                    . "location=\"" . ($beat['location_id'] ?? '') . "\", "
+                    . "mood_hint=\"" . ($beat['mood_hint'] ?? '') . "\", "
+                    . "camera_hint=\"" . ($beat['camera_hint'] ?? '') . "\", "
+                    . "continuity=\"" . ($beat['continuity_note'] ?? '') . "\"\n";
+            }
+        }
+
+        $lastSceneNote = $isLastWindow
+            ? "\n- The LAST scene in this batch is the FINAL scene of the entire video. Use \"fade\" transition and a conclusive mood."
+            : '';
+
+        $prompt = <<<PROMPT
+You are a cinematic director generating detailed per-scene visual direction for AI image and video generation.
+
+## DIRECTOR'S TREATMENT (overall vision for the video):
+Visual tone: {$visualTone}
+
+Locations:
+{$locationDescs}
+Characters:
+{$charDescs}{$continuityBlock}
+
+## SCENES TO DIRECT (generate full direction for each):
+{$windowBlock}
+{$styleContext}
+
+For EACH scene above, output ALL 8 mandatory fields:
+
+1. **image_prompt**: Detailed image generation prompt (1-3 sentences) — subject, setting, lighting, mood, composition, camera perspective. CRITICAL: Compose for {$aspectRatioLabel} format. Never describe text, subtitles, or written words — purely visual.
+2. **video_action** (MANDATORY): Rich Seedance 2.0 scene description (2-4 sentences of flowing prose).
+   Structure: Setting with atmosphere → Primary action with explicit physical motion → Environmental response.
+   RULES: Active present-tense verbs ONLY. BANNED: "goes", "moves", "starts", "begins", "is".
+   Include physical details and atmospheric texture. Do NOT describe clothing, facial expressions, camera, or style.
+   GOOD: "Inside a vast server room bathed in cool blue-purple neon, data streams flow as visible threads of light converging onto a central glowing AI core. The core pulses steadily brighter as each data thread arrives, casting shifting geometric shadows across glass floor panels."
+   BAD: "The data flows to the AI core" — too vague, no setting, no atmosphere.
+3. **characters_in_scene**: Array of character IDs from the bible
+4. **camera_motion**: Pick ONE: "slow zoom in", "slow zoom out", "dramatic zoom in", "pan left", "pan right", "pan left slow", "pan right slow", "tilt up", "tilt down", "zoom in pan right", "zoom out pan left", "diagonal drift", "push to subject", "rise and reveal", "settle in", "breathe"
+5. **mood**: Pick ONE: calm, dramatic, energetic, tense, mysterious, epic, playful, nostalgic, professional, horror, intimate, hopeful
+6. **voice_emotion**: Pick ONE: neutral, dramatic, funny, excited, calm, mysterious, sad, confident, urgent, contemplative, storytelling, whisper
+7. **transition_type**: FFmpeg xfade transition. Match mood: calm→"fade"/"dissolve", dramatic→"fadeblack"/"radial", energetic→"wipeleft"/"pixelize", tense→"hblur"/"distance", mysterious→"dissolve"/"fadegrays".
+8. **transition_duration**: 0.3 (energetic), 0.5 (normal), 0.8 (calm), 1.0 (dramatic){$lastSceneNote}
+
+CONTINUITY RULES:
+- Never use the same camera_motion as the immediately previous scene
+- Never use the same transition_type for more than 2 consecutive scenes
+- Match voice_emotion to each scene's content, NOT a single global mood
+- Use the Director's beats as creative seeds but add richer visual detail
+
+Respond ONLY with a JSON object:
+{
+  "scenes": [
+    {
+      "segment_index": <number>,
+      "image_prompt": "...",
+      "video_action": "...",
+      "characters_in_scene": [],
+      "camera_motion": "...",
+      "mood": "...",
+      "voice_emotion": "...",
+      "transition_type": "...",
+      "transition_duration": 0.5
+    }
+  ]
+}
+
+Output ONLY valid JSON, no markdown.
+PROMPT;
+
+        try {
+            $response = AI::processWithOverride(
+                "You are a cinematic director. Respond only with valid JSON.\n\n{$prompt}",
+                $engine,
+                $model,
+                'text',
+                [
+                    'temperature' => 0.6,
+                    'max_tokens' => 4000,
+                ],
+                $teamId
+            );
+
+            if (!empty($response['error'])) {
+                Log::error('StoryModeScriptService: Phase 2 window AI error', [
+                    'window_start' => $windowStart + 1,
+                    'error' => $response['error'],
+                ]);
+                return null;
+            }
+
+            $content = $response['data'][0] ?? '';
+            $parsed = $this->parseJsonResponse($content);
+
+            if (!is_array($parsed)) {
+                Log::error('StoryModeScriptService: Phase 2 window parse failed', [
+                    'window_start' => $windowStart + 1,
+                ]);
+                return null;
+            }
+
+            // Extract scenes array (handle both {scenes:[...]} and flat [...] formats)
+            $scenes = $parsed['scenes'] ?? $parsed;
+            if (!is_array($scenes) || empty($scenes)) {
+                Log::error('StoryModeScriptService: Phase 2 window returned no scenes', [
+                    'window_start' => $windowStart + 1,
+                ]);
+                return null;
+            }
+
+            return array_values($scenes);
+        } catch (\Exception $e) {
+            Log::error('StoryModeScriptService: Phase 2 window exception', [
+                'window_start' => $windowStart + 1,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    //  Legacy single-batch visual script (fallback if Phase 1 fails)
+    //  Exact behavior of the original buildVisualScript() — zero changes.
+    // ─────────────────────────────────────────────────────────────────────
+
+    protected function legacySingleBatchVisualScript(
+        array $segments, string $allSegments, string $styleInstruction,
+        string $styleContext, string $aspectRatio, string $aspectRatioLabel,
+        string $engine, string $model, int $teamId
+    ): array {
         $prompt = <<<PROMPT
 You are a cinematic director creating a visual and emotional script for a narrated video.
 
@@ -319,8 +715,6 @@ PROMPT;
         try {
             $fullPrompt = "You are a cinematic director. Respond only with valid JSON.\n\n{$prompt}";
 
-            $effectiveTeamId = $teamId ?? auth()->user()?->team_id ?? 0;
-
             $response = AI::processWithOverride(
                 $fullPrompt,
                 $engine,
@@ -330,7 +724,7 @@ PROMPT;
                     'temperature' => 0.6,
                     'max_tokens' => 8000,
                 ],
-                $effectiveTeamId
+                $teamId
             );
 
             if (!empty($response['error'])) {
@@ -349,33 +743,27 @@ PROMPT;
             $visualScript = [];
 
             if (isset($parsed['character_bible']) && isset($parsed['scenes'])) {
-                // New format
                 $characterBible = $parsed['character_bible'] ?? [];
                 $visualScript = $parsed['scenes'] ?? [];
 
-                Log::info('StoryModeScriptService: Character bible extracted', [
+                Log::info('StoryModeScriptService: [Legacy] Character bible extracted', [
                     'characters' => count($characterBible),
                     'names' => array_column($characterBible, 'name'),
                 ]);
             } else {
-                // Legacy flat array format — no character bible
                 $visualScript = $parsed;
-
-                Log::info('StoryModeScriptService: Legacy flat array format (no character bible)');
+                Log::info('StoryModeScriptService: [Legacy] Flat array format (no character bible)');
             }
 
             $this->lastCharacterBible = $characterBible;
 
-            // Build a lookup: charId => description from the bible
             $charLookup = [];
             foreach ($characterBible as $char) {
                 $charLookup[$char['id']] = $char;
             }
 
-            // Aspect ratio framing instruction
             $aspectFraming = $this->buildAspectRatioFraming($aspectRatio, $aspectRatioLabel);
 
-            // Log field presence for debugging
             $fieldsPresent = [];
             foreach ($visualScript as $idx => $vs) {
                 $fieldsPresent[$idx] = [
@@ -384,12 +772,11 @@ PROMPT;
                     'video_action_length' => strlen($vs['video_action'] ?? ''),
                 ];
             }
-            Log::info('StoryModeScriptService: AI response field analysis', [
+            Log::info('StoryModeScriptService: [Legacy] AI response field analysis', [
                 'total_scenes' => count($visualScript),
                 'fields' => $fieldsPresent,
             ]);
 
-            // Merge visual script data back into segments
             $result = [];
             foreach ($segments as $i => $segment) {
                 $visual = $visualScript[$i] ?? [];
@@ -397,17 +784,13 @@ PROMPT;
                 $imagePrompt = $visual['image_prompt'] ?? "A visual scene depicting: {$fallbackText}. No text or subtitles.";
                 $charsInScene = $visual['characters_in_scene'] ?? [];
 
-                // Inject character descriptions from bible into the image prompt
                 $imagePrompt = $this->injectCharacterDescriptions($imagePrompt, $charsInScene, $charLookup);
-
-                // Append aspect ratio framing
                 $imagePrompt .= "\n\n" . $aspectFraming;
 
-                // Fallback: generate video_action from narration if AI omitted it
                 $videoAction = $visual['video_action'] ?? '';
                 if (empty(trim($videoAction))) {
                     $videoAction = $this->generateFallbackVideoAction($segment['text'], $visual['image_prompt'] ?? '', $visual['mood'] ?? 'professional');
-                    Log::info("StoryModeScriptService: Generated fallback video_action for scene {$i}");
+                    Log::info("StoryModeScriptService: [Legacy] Generated fallback video_action for scene {$i}");
                 }
 
                 $result[] = array_merge($segment, [
@@ -424,14 +807,13 @@ PROMPT;
 
             return $result;
         } catch (\Exception $e) {
-            Log::error('StoryModeScriptService: Visual script generation failed', [
+            Log::error('StoryModeScriptService: [Legacy] Visual script generation failed', [
                 'error' => $e->getMessage(),
             ]);
 
             $this->lastCharacterBible = [];
             $aspectFraming = $this->buildAspectRatioFraming($aspectRatio, $aspectRatioLabel ?? 'portrait 9:16 vertical');
 
-            // Fallback: create basic image prompts from narration with default creative metadata
             return array_map(function ($segment) use ($styleInstruction, $aspectFraming) {
                 $stylePrefix = $styleInstruction ? "{$styleInstruction}. " : '';
                 $fallbackText = $this->stripDialogueFromText($segment['text']);

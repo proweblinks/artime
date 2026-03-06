@@ -59,6 +59,9 @@
                  aspectRatio: @js($aspectRatio),
                  resolution: @js($videoResolution),
                  quality: @js($videoQuality),
+                 imageModel: @js($imageModel),
+                 imageModelNames: { nanobanana2: 'NanoBanana 2', nanobanana: 'NanoBanana', hidream: 'HiDream' },
+                 imageModelCosts: { nanobanana2: '3t', nanobanana: '1t', hidream: '2t' },
                  showSettings: false,
                  placeholders: [
                      '{{ __("Paste a YouTube link or article URL to create a video...") }}',
@@ -96,6 +99,11 @@
                  cycleQuality() {
                      this.quality = this.quality === 'pro' ? 'fast' : 'pro';
                      $wire.set('videoQuality', this.quality);
+                 },
+                 cycleImageModel() {
+                     const cycle = { nanobanana2: 'nanobanana', nanobanana: 'hidream', hidream: 'nanobanana2' };
+                     this.imageModel = cycle[this.imageModel] || 'nanobanana2';
+                     $wire.set('imageModel', this.imageModel);
                  }
              }">
                 <textarea
@@ -252,7 +260,7 @@
                                  x-transition:leave-start="opacity-100"
                                  x-transition:leave-end="opacity-0"
                                  class="utv-settings-popover">
-                                <div class="utv-settings-label">{{ __('Settings') }}</div>
+                                <div class="utv-settings-label">{{ __('Video') }}</div>
 
                                 <button @click="cycleAspect()" type="button" class="utv-settings-row">
                                     <span class="d-flex align-items-center gap-2">
@@ -283,6 +291,20 @@
                                     </span>
                                     <span class="utv-settings-value">
                                         <span x-text="quality.charAt(0).toUpperCase() + quality.slice(1)"></span>
+                                        <i class="fa-light fa-chevron-right" style="font-size: 0.65rem; opacity: 0.4;"></i>
+                                    </span>
+                                </button>
+
+                                <div style="border-top: 1px solid #eef1f5; margin: 4px 0;"></div>
+                                <div class="utv-settings-label">{{ __('Image') }}</div>
+
+                                <button @click="cycleImageModel()" type="button" class="utv-settings-row">
+                                    <span class="d-flex align-items-center gap-2">
+                                        <i class="fa-light fa-image utv-settings-icon"></i>
+                                        {{ __('AI Model') }}
+                                    </span>
+                                    <span class="utv-settings-value">
+                                        <span x-text="imageModelNames[imageModel] + ' ' + imageModelCosts[imageModel]"></span>
                                         <i class="fa-light fa-chevron-right" style="font-size: 0.65rem; opacity: 0.4;"></i>
                                     </span>
                                 </button>
