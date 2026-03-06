@@ -370,7 +370,7 @@ PROMPT;
         if (empty($direction)) return false;
         // Check first ~80 chars for framing keywords (they're typically at the start)
         $start = strtolower(substr($direction, 0, 80));
-        return (bool) preg_match('/\b(close-?up|closeup|wide\s+shot|medium\s+shot|pov\s+shot|tracking\s+shot|over-?the-?shoulder|two-?shot|detail\s+insert|dutch\s+angle|high\s+angle|low\s+angle|aerial\s+shot|establishing\s+shot|extreme\s+close|tight\s+shot)\b/i', $start);
+        return (bool) preg_match('/\b(close[\s-]?up|wide\s+shot|medium\s+shot|pov\s+shot|tracking\s+shot|over[\s-]?the[\s-]?shoulder|two[\s-]?shot|detail\s+insert|dutch\s+angle|high\s+angle|low\s+angle|aerial\s+shot|establishing\s+shot|extreme\s+close|tight\s+shot)\b/i', $start);
     }
 
     /**
@@ -415,8 +415,12 @@ PROMPT;
         if (preg_match('/\b(warehouse|dock|underground|tunnel|bunker|factory|basement|garage|sewers?)\b/', $lower)) {
             return 'interior_industrial';
         }
-        // Interior generic
-        if (preg_match('/\b(inside|interior|indoors|bar|club|shop|store|elevator|corridor|hallway|stairwell)\b/', $lower)) {
+        // Interior generic (note: "bar" excluded — too ambiguous with "progress bar", "scroll bar")
+        if (preg_match('/\b(inside|interior|indoors|nightclub|club|shop|store|elevator|corridor|hallway|stairwell|lobby|foyer|lounge|restroom|bathroom|kitchen|bedroom|cellar|attic)\b/', $lower)) {
+            return 'interior_generic';
+        }
+        // "bar" as location only when preceded by location context
+        if (preg_match('/\b(?:the|a|dark|crowded|smoky|neon|dive)\s+bar\b/', $lower)) {
             return 'interior_generic';
         }
         // Exterior urban
@@ -438,17 +442,22 @@ PROMPT;
      */
     protected function extractLocationDescription(string $direction): string
     {
-        $locationNouns = 'room|lab|terminal|warehouse|dock(?:yard)?|underground|tunnel|bunker|factory|office|apartment|chamber|headquarters|bar|club|shop|corridor|hallway|street|alley|rooftop|plaza|market|bridge|server\s+(?:room|farm)|basement|garage|elevator|stairwell|forest|ocean|mountain|field|penthouse|balcony|loft|hangar|arena|cathedral|temple|station|hospital|prison|cell|courtyard|garden|pier|wharf|harbor|shipyard';
+        // Location nouns for extraction — excludes ambiguous words that appear as body parts
+        // or metaphors (temple=body part, forest=digital forest, field=data field, bar=progress bar, cell=battery cell)
+        $locationNouns = 'room|lab|warehouse|dock(?:yard)?|underground|tunnel|bunker|factory|office|apartment|chamber|headquarters|club|shop|corridor|hallway|street|alley|rooftop|plaza|market|bridge|server\s+(?:room|farm)|basement|garage|elevator|stairwell|penthouse|balcony|loft|hangar|arena|cathedral|station|hospital|prison|courtyard|garden|pier|wharf|harbor|shipyard';
 
-        // Strategy 1: Look for "Back in the [location]" or "inside the [location]" patterns
+        // Strategy 1: Compound location nouns (highest priority, most specific)
+        if (preg_match('/\b(server\s+(?:room|farm)|control\s+room|engine\s+room|war\s+room|board\s+room|data\s+(?:vault|center|hub)|comms?\s+(?:post|station|tower))\b/i', $direction, $match)) {
+            return ucfirst(trim($match[1]));
+        }
+
+        // Strategy 2: Look for "Back in the [location]" or "inside the [location]" patterns
         if (preg_match('/(?:back\s+in|inside|within|into)\s+(?:the\s+)?([a-z\-\s]*?\b(?:' . $locationNouns . ')\b)/i', $direction, $match)) {
             return ucfirst(trim($match[1]));
         }
 
-        // Strategy 2: Extract [adjectives] + location noun, stop BEFORE verbs/possessives
-        // Match: optional adjectives + location noun + optional short prepositional phrase (at night, with servers)
-        // Stop at: verbs (is, are, has, 's, comma), character names, or sentence boundaries
-        if (preg_match('/\b((?:(?:massive|corporate|underground|sterile|white|dark|cramped|transparent|quiet|dimly[\s-]lit|rain-slicked|industrial|sprawling|narrow|abandoned|broken)\s+)*(?:' . $locationNouns . ')(?:\s+(?:at\s+\w+|with\s+\w+|of\s+\w+))?)/i', $direction, $match)) {
+        // Strategy 3: Extract [adjectives] + location noun, stop BEFORE verbs/possessives
+        if (preg_match('/\b((?:(?:massive|corporate|underground|sterile|white|dark|cramped|transparent|quiet|dimly[\s-]lit|rain-slicked|industrial|sprawling|narrow|abandoned|broken|cavernous|humming)\s+)*(?:' . $locationNouns . ')(?:\s+(?:at\s+\w+|with\s+\w+|of\s+\w+))?)/i', $direction, $match)) {
             $desc = trim($match[1]);
             $desc = preg_replace('/^(?:a|an|the)\s+/i', '', $desc);
             if (strlen($desc) > 50) {
@@ -456,11 +465,6 @@ PROMPT;
                 $desc = preg_replace('/\s+\S*$/', '', $desc);
             }
             return ucfirst($desc);
-        }
-
-        // Strategy 3: For "server room" compound nouns that don't match above
-        if (preg_match('/\b(server\s+room|server\s+farm|control\s+room|engine\s+room|war\s+room|board\s+room)\b/i', $direction, $match)) {
-            return ucfirst(trim($match[1]));
         }
 
         // Fallback: use the location type name from detectLocation() instead of raw text
