@@ -700,11 +700,13 @@ PROMPT;
 
             if (($i + 1) % $sentencesPerSegment === 0 || $i === count($sentences) - 1) {
                 $segmentWords = str_word_count($currentSegment);
-                $segmentDuration = round(($segmentWords / $wordsPerMinute) * 60, 1);
+                $rawDuration = round(($segmentWords / $wordsPerMinute) * 60, 1);
+                // Snap to Seedance native durations: 5s or 10s
+                $segmentDuration = $rawDuration <= 7.5 ? 5.0 : 10.0;
 
                 $segments[] = [
                     'text' => $currentSegment,
-                    'estimated_duration' => max(3, $segmentDuration),
+                    'estimated_duration' => $segmentDuration,
                 ];
                 $currentSegment = '';
             }
@@ -755,16 +757,21 @@ PROMPT;
 
             $dialogueWords = str_word_count(trim($dialogueText));
             $wordsPerMinute = 140;
-            $segmentDuration = $dialogueWords > 0
-                ? round(($dialogueWords / $wordsPerMinute) * 60, 1)
-                : 8.0; // Visual-only scenes: 8s base to use Seedance's 10s capacity
-
             $isVisualOnly = $dialogueWords === 0;
+
+            if ($isVisualOnly) {
+                // Visual-only scenes: 10s to maximize Seedance capacity
+                $segmentDuration = 10.0;
+            } else {
+                // Dialogue scenes: calculate from word count, snap to Seedance native [5, 10]
+                $rawDuration = round(($dialogueWords / $wordsPerMinute) * 60, 1);
+                $segmentDuration = $rawDuration <= 7.5 ? 5.0 : 10.0;
+            }
 
             $segments[] = [
                 'text' => $body ?: "[Scene: {$direction}]",
                 'direction' => $direction,
-                'estimated_duration' => max(3, $segmentDuration),
+                'estimated_duration' => $segmentDuration,
                 'is_visual_only' => $isVisualOnly,
             ];
         }
