@@ -135,6 +135,9 @@ IMPORTANT RULES:
 - Vary scene lengths — some quick cuts (1-2 lines), some longer beats (4-6 lines)
 - Include purely visual scenes with no dialogue (just [Scene: direction]) for establishing shots
 - End with a strong final image or line
+- Each [Scene: ...] direction must describe a VISUALLY DISTINCT composition — vary the camera angle, distance, environment detail, and subject positioning. Never repeat similar framing or setting descriptions across consecutive scenes.
+- Alternate between: establishing wide shots, intimate close-ups, over-the-shoulder angles, high angle overviews, low angle dramatic shots, detail inserts (hands, objects, screens).
+- Vary locations within the story world — don't set multiple consecutive scenes in the same spot. Move between rooms, areas, or vantage points.
 
 Respond with ONLY a JSON object:
 {{
@@ -225,38 +228,10 @@ PROMPT;
             $isExterior = in_array($locationHint, ['exterior_urban', 'exterior_natural', 'exterior_unknown']);
             $smartPrefix = $isExterior ? $outdoorPrefix : $indoorPrefix;
 
-            // --- Image prompt (NanoBanana2 handles long prompts well) ---
-            $imagePromptParts = [];
-            $imagePromptParts[] = $framing;
-            if ($smartPrefix) {
-                $imagePromptParts[] = $smartPrefix;
-            }
-            if ($direction) {
-                $imagePromptParts[] = $direction;
-            }
-            if ($imageSuffix) {
-                $imagePromptParts[] = $imageSuffix;
-            }
-
-            // Concise character identity: name + 2-3 key visual traits
-            if (!empty($detectedChars)) {
-                $charTraits = [];
-                foreach ($detectedChars as $charName) {
-                    foreach ($characters as $char) {
-                        if (strtolower($char['name']) === strtolower($charName)) {
-                            $charTraits[] = $char['name'] . ' — ' . $this->condensCharacterDescription($char['description']);
-                            break;
-                        }
-                    }
-                }
-                if (!empty($charTraits)) {
-                    $imagePromptParts[] = 'Characters: ' . implode('; ', $charTraits);
-                }
-            }
-
-            $imagePrompt = implode('. ', array_filter(array_map('trim', $imagePromptParts)));
-            // Clean double periods
-            $imagePrompt = preg_replace('/\.\s*\./', '.', $imagePrompt);
+            // --- Image prompt: flowing narrative format ---
+            $imagePrompt = $this->buildFlowingImagePrompt(
+                $framing, $direction, $smartPrefix, $imageSuffix, $detectedChars, $characters
+            );
 
             // --- Video action (for Seedance: 30-100 words, detailed scene description) ---
             $videoAction = $this->buildConciseVideoAction($direction, $detectedChars, $characters, $isVisualOnly);
@@ -307,12 +282,34 @@ PROMPT;
     protected function getShotFraming(string $sceneType, int $index, int $total, int $dialogueCounter): string
     {
         return match ($sceneType) {
-            'establishing' => 'Wide establishing shot',
-            'action' => 'Dynamic medium shot',
-            'tension' => 'Close-up',
-            'closing' => ($index >= $total - 1) ? 'Close-up' : 'Wide shot',
-            'dialogue' => ($dialogueCounter % 2 === 0) ? 'Medium shot' : 'Over-the-shoulder shot',
-            default => 'Medium shot',
+            'establishing' => match ($index % 3) {
+                0 => 'Wide establishing shot from high angle',
+                1 => 'Sweeping wide shot at eye level',
+                2 => 'Low angle wide shot looking up',
+            },
+            'action' => match ($index % 4) {
+                0 => 'Dynamic medium shot',
+                1 => 'Low angle action shot',
+                2 => 'Tight tracking shot',
+                3 => 'Dutch angle medium shot',
+            },
+            'tension' => match ($index % 3) {
+                0 => 'Extreme close-up',
+                1 => 'Close-up with shallow depth of field',
+                2 => 'Tight medium close-up',
+            },
+            'closing' => ($index >= $total - 1) ? 'Intimate close-up' : 'Wide pullback shot',
+            'dialogue' => match ($dialogueCounter % 4) {
+                0 => 'Medium shot',
+                1 => 'Over-the-shoulder shot',
+                2 => 'Two-shot medium',
+                3 => 'Close-up reaction shot',
+            },
+            default => match ($index % 3) {
+                0 => 'Medium shot',
+                1 => 'Medium close-up',
+                2 => 'Wide medium shot',
+            },
         };
     }
 
@@ -552,5 +549,112 @@ PROMPT;
     protected function getCharacterNameList(array $template): string
     {
         return implode(', ', array_map(fn ($c) => strtoupper($c['name']), $template['characters']));
+    }
+
+    /**
+     * Build a flowing image prompt instead of period-joined fragments.
+     * Framing leads into scene direction with style elements woven in naturally.
+     */
+    protected function buildFlowingImagePrompt(
+        string $framing,
+        string $direction,
+        string $smartPrefix,
+        string $imageSuffix,
+        array $detectedChars,
+        array $characters
+    ): string {
+        // Start with framing as the shot instruction
+        $prompt = $framing;
+
+        // Weave direction (the main visual description from the screenplay)
+        if (!empty($direction)) {
+            $prompt .= '. ' . $direction;
+        }
+
+        // Weave style prefix as atmospheric detail (2-3 key terms only, not the full prefix)
+        if (!empty($smartPrefix)) {
+            $keyTerms = $this->extractKeyStyleTerms($smartPrefix, 3);
+            if (!empty($keyTerms) && !$this->alreadyContainsTerms($prompt, $keyTerms)) {
+                $prompt = rtrim($prompt, '. ') . ', ' . strtolower($keyTerms);
+            }
+        }
+
+        // Weave suffix as a closing atmospheric clause
+        if (!empty($imageSuffix)) {
+            $keySuffix = $this->extractKeyStyleTerms($imageSuffix, 2);
+            if (!empty($keySuffix) && !$this->alreadyContainsTerms($prompt, $keySuffix)) {
+                $prompt = rtrim($prompt, '. ') . ', ' . strtolower($keySuffix);
+            }
+        }
+
+        // Inject character visual traits naturally
+        if (!empty($detectedChars)) {
+            $charDescriptions = [];
+            foreach ($detectedChars as $charName) {
+                foreach ($characters as $char) {
+                    if (strtolower($char['name']) === strtolower($charName)) {
+                        $charDescriptions[] = $this->condensCharacterDescription($char['description']);
+                        break;
+                    }
+                }
+            }
+            if (!empty($charDescriptions)) {
+                $charText = implode(', ', $charDescriptions);
+                if (!$this->alreadyContainsTerms($prompt, $charText)) {
+                    $prompt = rtrim($prompt, '. ') . '. Character: ' . $charText;
+                }
+            }
+        }
+
+        // Anti-text instruction
+        $prompt .= '. No text, subtitles, or captions';
+
+        // Clean up
+        $prompt = preg_replace('/\.\s*\./', '.', $prompt);
+        $prompt = preg_replace('/\s{2,}/', ' ', $prompt);
+
+        return trim($prompt);
+    }
+
+    /**
+     * Extract N key style terms from a prefix string, skipping generic ones.
+     */
+    protected function extractKeyStyleTerms(string $prefix, int $maxTerms): string
+    {
+        if (empty($prefix)) return '';
+        $parts = array_map('trim', explode(',', $prefix));
+        $generic = ['cinematic', 'professional', 'high quality', 'detailed', 'realistic'];
+        $filtered = [];
+        foreach ($parts as $part) {
+            $lower = strtolower($part);
+            $isGeneric = false;
+            foreach ($generic as $g) {
+                if (str_contains($lower, $g)) { $isGeneric = true; break; }
+            }
+            if (!$isGeneric && !empty(trim($part))) {
+                $filtered[] = trim($part);
+            }
+            if (count($filtered) >= $maxTerms) break;
+        }
+        if (empty($filtered)) {
+            $filtered = array_slice($parts, 0, $maxTerms);
+        }
+        return implode(', ', $filtered);
+    }
+
+    /**
+     * Check if the prompt already contains key terms (avoid duplication).
+     */
+    protected function alreadyContainsTerms(string $prompt, string $terms): bool
+    {
+        $checkWords = explode(' ', strtolower($terms));
+        $promptLower = strtolower($prompt);
+        $matches = 0;
+        foreach ($checkWords as $word) {
+            if (strlen($word) > 4 && str_contains($promptLower, $word)) {
+                $matches++;
+            }
+        }
+        return $matches >= 2;
     }
 }

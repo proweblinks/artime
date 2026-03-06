@@ -224,7 +224,7 @@ For each, provide a detailed visual identity sheet so the character looks IDENTI
 ## PHASE 2 — PER-SCENE DIRECTION
 For each narration segment, output detailed creative direction. EVERY field is MANDATORY — do NOT skip any field:
 
-1. **image_prompt**: Detailed image generation prompt (1-3 sentences) with subject, setting, lighting, mood, composition, camera perspective. CRITICAL: All images will be generated in {$aspectRatioLabel} format — compose every scene accordingly. For portrait (9:16): use vertical compositions, tall framing, subjects centered vertically, close-up or medium shots, avoid wide panoramas. For landscape (16:9): use wide horizontal compositions, cinematic widescreen framing. For square (1:1): use centered balanced compositions.{$styleContext}
+1. **image_prompt**: Detailed image generation prompt (1-3 sentences) with subject, setting, lighting, mood, composition, camera perspective. CRITICAL: All images will be generated in {$aspectRatioLabel} format — compose every scene accordingly. For portrait (9:16): use vertical compositions, tall framing, subjects centered vertically, close-up or medium shots, avoid wide panoramas. For landscape (16:9): use wide horizontal compositions, cinematic widescreen framing. For square (1:1): use centered balanced compositions.{$styleContext} Never describe text, subtitles, captions, title cards, or written words — the image must be purely visual with zero text elements.
 2. **video_action** (MANDATORY — DO NOT SKIP): A RICH scene description for Seedance 2.0 AI video generation (2-4 sentences of flowing prose). This is the MOST IMPORTANT field — video quality depends entirely on this text.
 
    Structure as natural flowing narrative following Seedance 2.0 format (Subject → Action → Camera → Style):
@@ -393,7 +393,8 @@ PROMPT;
             $result = [];
             foreach ($segments as $i => $segment) {
                 $visual = $visualScript[$i] ?? [];
-                $imagePrompt = $visual['image_prompt'] ?? "A visual scene depicting: {$segment['text']}";
+                $fallbackText = $this->stripDialogueFromText($segment['text']);
+                $imagePrompt = $visual['image_prompt'] ?? "A visual scene depicting: {$fallbackText}. No text or subtitles.";
                 $charsInScene = $visual['characters_in_scene'] ?? [];
 
                 // Inject character descriptions from bible into the image prompt
@@ -433,7 +434,8 @@ PROMPT;
             // Fallback: create basic image prompts from narration with default creative metadata
             return array_map(function ($segment) use ($styleInstruction, $aspectFraming) {
                 $stylePrefix = $styleInstruction ? "{$styleInstruction}. " : '';
-                $imagePrompt = "{$stylePrefix}A cinematic scene depicting: {$segment['text']}";
+                $fallbackText = $this->stripDialogueFromText($segment['text']);
+                $imagePrompt = "{$stylePrefix}A cinematic scene depicting: {$fallbackText}. No text or subtitles.";
                 return array_merge($segment, [
                     'image_prompt' => "{$imagePrompt}\n\n{$aspectFraming}",
                     'video_action' => $this->generateFallbackVideoAction($segment['text'], $imagePrompt, 'professional'),
@@ -1029,5 +1031,20 @@ PROMPT;
         }
 
         return $result;
+    }
+
+    /**
+     * Strip dialogue patterns from text so fallback image prompts don't contain spoken words.
+     * Removes "CHARACTER: dialogue" patterns and quoted dialogue.
+     */
+    protected function stripDialogueFromText(string $text): string
+    {
+        // Remove "CHARACTER: dialogue" patterns
+        $cleaned = preg_replace('/[A-Z][A-Z\s]+:\s*[^.!?\n]+[.!?\n]?/', '', $text);
+        // Remove quoted dialogue
+        $cleaned = preg_replace('/["\'].*?["\']/', '', $cleaned);
+        // Clean up whitespace
+        $cleaned = preg_replace('/\s{2,}/', ' ', trim($cleaned));
+        return !empty($cleaned) ? $cleaned : $text;
     }
 }
