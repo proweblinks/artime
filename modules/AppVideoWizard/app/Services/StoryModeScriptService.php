@@ -235,6 +235,23 @@ class StoryModeScriptService
             $charLookup[$char['id']] = $char;
         }
 
+        // Build location lookup from Phase 1
+        $locationLookup = [];
+        if (!empty($treatment['location_bible'])) {
+            foreach ($treatment['location_bible'] as $loc) {
+                $locationLookup[$loc['id']] = $loc;
+            }
+        }
+
+        // Build scene-to-location map from Phase 1 beats
+        $sceneLocationMap = [];
+        if (!empty($treatment['scene_beats'])) {
+            foreach ($treatment['scene_beats'] as $beat) {
+                $idx = ($beat['segment_index'] ?? 0) - 1;
+                $sceneLocationMap[$idx] = $beat['location_id'] ?? '';
+            }
+        }
+
         Log::info('StoryModeScriptService: Phase 1 Director\'s Treatment completed', [
             'characters' => count($characterBible),
             'locations' => count($treatment['location_bible'] ?? []),
@@ -315,6 +332,14 @@ class StoryModeScriptService
             // Inject character descriptions from bible into the image prompt
             $imagePrompt = $this->injectCharacterDescriptions($imagePrompt, $charsInScene, $charLookup);
 
+            // Prefer Phase 2 location_id over Phase 1 beat mapping
+            if (!empty($visual['location_id'])) {
+                $sceneLocationMap[$i] = $visual['location_id'];
+            }
+
+            // Inject location context from Phase 1
+            $imagePrompt = $this->injectLocationContext($imagePrompt, $i, $sceneLocationMap, $locationLookup);
+
             // Append aspect ratio framing
             $imagePrompt .= "\n\n" . $aspectFraming;
 
@@ -374,7 +399,8 @@ Your treatment must include:
 3. **location_bible**: Array of every distinct location. For each:
    - "id": short_snake_case identifier
    - "name": location name
-   - "description": detailed visual description — architecture, lighting, color temperature, textures, atmosphere, time of day, weather
+   - "type": "INTERIOR" or "EXTERIOR"
+   - "description": detailed visual description — MUST start with INTERIOR or EXTERIOR, then architecture, walls/ceiling/floor or terrain/sky, lighting source (natural/artificial/neon), color temperature, textures, atmosphere, time of day, weather, key props or furniture
    - "appears_in": array of segment numbers where this location is used
 
 4. **scene_beats**: One entry per segment (exactly {$segmentCount} entries). For each:
@@ -506,7 +532,7 @@ Characters:
 {$windowBlock}
 {$styleContext}
 
-For EACH scene above, output ALL 8 mandatory fields:
+For EACH scene above, output ALL 9 mandatory fields:
 
 1. **image_prompt**: Detailed image generation prompt (1-3 sentences) — subject, setting, lighting, mood, composition, camera perspective. CRITICAL: Compose for {$aspectRatioLabel} format. Never describe text, subtitles, or written words — purely visual.
 2. **video_action** (MANDATORY): Rich Seedance 2.0 scene description (2-4 sentences of flowing prose).
@@ -520,7 +546,15 @@ For EACH scene above, output ALL 8 mandatory fields:
 5. **mood**: Pick ONE: calm, dramatic, energetic, tense, mysterious, epic, playful, nostalgic, professional, horror, intimate, hopeful
 6. **voice_emotion**: Pick ONE: neutral, dramatic, funny, excited, calm, mysterious, sad, confident, urgent, contemplative, storytelling, whisper
 7. **transition_type**: FFmpeg xfade transition. Match mood: calm→"fade"/"dissolve", dramatic→"fadeblack"/"radial", energetic→"wipeleft"/"pixelize", tense→"hblur"/"distance", mysterious→"dissolve"/"fadegrays".
-8. **transition_duration**: 0.3 (energetic), 0.5 (normal), 0.8 (calm), 1.0 (dramatic){$lastSceneNote}
+8. **transition_duration**: 0.3 (energetic), 0.5 (normal), 0.8 (calm), 1.0 (dramatic)
+9. **location_id**: The location_id from the Director's beat for this scene. MUST match the beat's location.{$lastSceneNote}
+
+LOCATION ACCURACY (CRITICAL — most common failure):
+- Every image_prompt MUST begin with the location setting. Use the location_id from the Director's beat and reference that location's description.
+- INTERIOR scenes: Describe walls, ceiling, floor, furniture, artificial lighting. Do NOT show outdoor sky, streets, or neon signs visible from outside.
+- EXTERIOR scenes: Describe sky, buildings, streets, weather.
+- If a scene takes place in "underground_data_hub", the image_prompt must show an underground room with servers/terminals — NEVER a street.
+- The style instruction (e.g., "blade runner aesthetic") applies to the MOOD of the image, NOT the location. An interior server room should look like a blade runner SERVER ROOM, not a blade runner STREET.
 
 CONTINUITY RULES:
 - Never use the same camera_motion as the immediately previous scene
@@ -540,7 +574,8 @@ Respond ONLY with a JSON object:
       "mood": "...",
       "voice_emotion": "...",
       "transition_type": "...",
-      "transition_duration": 0.5
+      "transition_duration": 0.5,
+      "location_id": "..."
     }
   ]
 }
@@ -680,6 +715,11 @@ IMPORTANT RULES:
 - The first scene should grab attention (energetic camera, confident voice)
 - The last scene should feel conclusive (slow camera, calm/storytelling voice)
 - If there are no recurring characters (e.g. landscapes, abstract content), return an empty character_bible array
+
+LOCATION ACCURACY: Every image_prompt must explicitly describe the physical setting.
+For INTERIOR scenes: describe the room, walls, ceiling, lighting source, furniture.
+For EXTERIOR scenes: describe the sky, buildings, weather, terrain.
+Never default to outdoor neon streets — match the actual scene location.
 
 NARRATION SEGMENTS:
 {$allSegments}
@@ -906,6 +946,43 @@ PROMPT;
         }
 
         return $imagePrompt . "\n\nCHARACTER VISUAL IDENTITY (maintain exact appearance):\n" . implode("\n", $descriptions);
+    }
+
+    /**
+     * Inject location context from Phase 1 location_bible into the image prompt.
+     * Prepends a SETTING prefix and appends a LOCATION SETTING constraint block.
+     */
+    protected function injectLocationContext(
+        string $imagePrompt,
+        int $sceneIndex,
+        array $sceneLocationMap,
+        array $locationLookup
+    ): string {
+        $locationId = $sceneLocationMap[$sceneIndex] ?? '';
+        if (empty($locationId) || !isset($locationLookup[$locationId])) {
+            return $imagePrompt;
+        }
+
+        $loc = $locationLookup[$locationId];
+        $locType = strtoupper($loc['type'] ?? 'INTERIOR');
+        $locName = $loc['name'] ?? $locationId;
+        $locDesc = $loc['description'] ?? '';
+
+        // Build location prefix
+        $prefix = "SETTING: {$locType} — {$locName}.";
+        if (!empty($locDesc)) {
+            // Take first 1-2 key sentences from the location description
+            $sentences = preg_split('/(?<=[.!?])\s+/', trim($locDesc), 3);
+            $shortDesc = implode(' ', array_slice($sentences, 0, 2));
+            $prefix .= " {$shortDesc}";
+        }
+
+        // Also append as a constraint block (like character identity)
+        $constraint = "\n\nLOCATION SETTING (maintain consistent environment):\n"
+            . "{$locType}: {$locName} — {$locDesc}\n"
+            . "Do NOT show elements from other locations.";
+
+        return $prefix . "\n" . $imagePrompt . $constraint;
     }
 
     /**
