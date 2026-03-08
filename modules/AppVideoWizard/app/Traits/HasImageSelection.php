@@ -769,7 +769,19 @@ trait HasImageSelection
             $imageUrl = $this->getSceneImageUrl($sceneId);
             if ($imageUrl) {
                 try {
-                    $imageContent = $this->fetchUrlContent($imageUrl);
+                    $imageContent = @file_get_contents($imageUrl);
+                    if ($imageContent === false) {
+                        // Fallback to cURL
+                        $ch = curl_init($imageUrl);
+                        curl_setopt_array($ch, [
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_FOLLOWLOCATION => true,
+                            CURLOPT_TIMEOUT => 15,
+                            CURLOPT_SSL_VERIFYPEER => false,
+                        ]);
+                        $imageContent = curl_exec($ch);
+                        curl_close($ch);
+                    }
                     if ($imageContent !== false && strlen($imageContent) > 100) {
                         $imageBase64 = base64_encode($imageContent);
                         $finfo = new \finfo(FILEINFO_MIME_TYPE);
@@ -786,8 +798,9 @@ trait HasImageSelection
             $atmosphere = $this->filmTemplateConfig['atmosphere'] ?? $mood;
             $systemInstruction = $this->buildVideoPromptSystemInstruction($characters, $atmosphere, $clipDuration, $targetWords);
 
-            // Build user prompt
-            $userPrompt = "Write a Seedance video prompt for this scene.\n\n";
+            // Build user prompt (include system instruction inline since GeminiService doesn't support system_instruction)
+            $userPrompt = $systemInstruction . "\n\n---\n\n";
+            $userPrompt .= "Write a Seedance video prompt for this scene.\n\n";
             $userPrompt .= "SCENE CONTEXT:\n";
             if (!empty($locationHint)) $userPrompt .= "- Location: {$locationHint}\n";
             if (!empty($sceneType)) $userPrompt .= "- Scene type: {$sceneType}\n";
@@ -806,40 +819,33 @@ trait HasImageSelection
             $userPrompt .= "\nWrite the prompt now. Single paragraph, {$targetWords} words, present tense.";
 
             // Call Gemini 2.5 Flash
-            $options = [
-                'max_tokens' => 300,
-                'system_instruction' => $systemInstruction,
-            ];
-
-            $category = 'text';
-            if ($imageBase64) {
-                $category = 'vision';
-                $options['image_base64'] = $imageBase64;
-                $options['mimeType'] = $mimeType;
-            }
-
-            $response = \AI::processWithOverride(
-                $userPrompt,
-                'gemini',
-                'gemini-2.5-flash-preview-05-20',
-                $category,
-                $options,
-                $teamId
-            );
-
-            // Extract text from response
             $generatedPrompt = '';
-            if (!empty($response['data'])) {
-                if ($category === 'vision') {
-                    // Vision response: candidates[0].content.parts[0].text
-                    $generatedPrompt = $response['data']['candidates'][0]['content']['parts'][0]['text'] ?? '';
-                } else {
-                    // Text response: data[0]
-                    $generatedPrompt = is_array($response['data']) ? ($response['data'][0] ?? '') : (string) $response['data'];
+            if ($imageBase64) {
+                // Vision mode: use GeminiService::analyzeImageWithPrompt directly (respects model override)
+                $gemini = app(\App\Services\GeminiService::class);
+                $visionResult = $gemini->analyzeImageWithPrompt($imageBase64, $userPrompt, [
+                    'model' => 'gemini-2.5-flash',
+                    'mimeType' => $mimeType,
+                    'temperature' => 0.7,
+                    'maxOutputTokens' => 400,
+                ]);
+                if (!empty($visionResult['success']) && !empty($visionResult['text'])) {
+                    $generatedPrompt = trim($visionResult['text']);
+                }
+            } else {
+                // Text-only fallback
+                $response = \AI::processWithOverride(
+                    $userPrompt,
+                    'gemini',
+                    'gemini-2.5-flash',
+                    'text',
+                    ['max_tokens' => 300],
+                    $teamId
+                );
+                if (!empty($response['data'])) {
+                    $generatedPrompt = is_array($response['data']) ? trim($response['data'][0] ?? '') : trim((string) $response['data']);
                 }
             }
-
-            $generatedPrompt = trim($generatedPrompt);
 
             // Sanitize via SeedancePromptService
             if (!empty($generatedPrompt) && class_exists(SeedancePromptService::class)) {
