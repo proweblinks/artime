@@ -701,7 +701,7 @@
                 {{-- Phone frame preview --}}
                 @php
                     // Dynamic aspect ratio for preview frame
-                    $previewAR = $aspectRatio ?? '9:16';
+                    $previewAR = $imageAspectRatio ?? '9:16';
                     $previewPadding = match($previewAR) {
                         '16:9' => '56.25%',
                         '1:1' => '100%',
@@ -1483,13 +1483,17 @@
             {{-- Image & Video Settings --}}
             <div class="d-flex align-items-center flex-wrap gap-3 mb-3 p-3" style="background: #f5f7fa; border-radius: 10px;"
                  x-data="{
-                     aspectRatio: @js($aspectRatio),
+                     imageAspectRatio: @js($imageAspectRatio),
+                     videoAspectRatio: @js($videoAspectRatio),
                      imageModel: @js($imageModel),
                      resolution: @js($videoResolution),
                      quality: @js($videoQuality),
                      init() {
-                         this.$watch('aspectRatio', (val) => {
-                             $wire.set('aspectRatio', val);
+                         this.$watch('imageAspectRatio', (val) => {
+                             $wire.set('imageAspectRatio', val);
+                         });
+                         this.$watch('videoAspectRatio', (val) => {
+                             $wire.set('videoAspectRatio', val);
                          });
                          this.$watch('imageModel', (val) => {
                              $wire.set('imageModel', val);
@@ -1507,9 +1511,20 @@
                      }
                  }">
                 <div class="d-flex align-items-center gap-2">
-                    <i class="fa-light fa-aspect-ratio" style="font-size: 0.85rem; color: var(--at-text-muted, #94a0b8);"></i>
-                    <small style="white-space: nowrap; color: var(--at-text-muted, #94a0b8);">{{ __('Ratio') }}</small>
-                    <select x-model="aspectRatio"
+                    <i class="fa-light fa-crop-simple" style="font-size: 0.85rem; color: var(--at-text-muted, #94a0b8);"></i>
+                    <small style="white-space: nowrap; color: var(--at-text-muted, #94a0b8);">{{ __('Img Ratio') }}</small>
+                    <select x-model="imageAspectRatio"
+                            class="form-select form-select-sm border-0"
+                            style="background: #ffffff; border-radius: 6px; font-size: 0.8rem; width: auto; padding: 4px 28px 4px 10px; color: var(--at-text, #1a1a2e);">
+                        <option value="9:16">9:16</option>
+                        <option value="16:9">16:9</option>
+                        <option value="1:1">1:1</option>
+                    </select>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fa-light fa-crop-simple" style="font-size: 0.85rem; color: var(--at-text-muted, #94a0b8);"></i>
+                    <small style="white-space: nowrap; color: var(--at-text-muted, #94a0b8);">{{ __('Vid Ratio') }}</small>
+                    <select x-model="videoAspectRatio"
                             class="form-select form-select-sm border-0"
                             style="background: #ffffff; border-radius: 6px; font-size: 0.8rem; width: auto; padding: 4px 28px 4px 10px; color: var(--at-text, #1a1a2e);">
                         <option value="9:16">9:16</option>
@@ -2132,8 +2147,8 @@
         background: rgba(124,58,237,0.08);
     }
     .utv-shots-flow-thumb {
-        width: {{ match($aspectRatio ?? '9:16') { '16:9' => '100px', '1:1' => '72px', default => '56px' } }};
-        height: {{ match($aspectRatio ?? '9:16') { '16:9' => '56px', '1:1' => '72px', default => '100px' } }};
+        width: {{ match($imageAspectRatio ?? '9:16') { '16:9' => '100px', '1:1' => '72px', default => '56px' } }};
+        height: {{ match($imageAspectRatio ?? '9:16') { '16:9' => '56px', '1:1' => '72px', default => '100px' } }};
         border-radius: 6px;
         background: #1a1a2e;
         border: 2px solid #2a2a3e;
