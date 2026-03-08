@@ -66,14 +66,15 @@ class ScreenplayImportService
     public function parseHtml(string $html): array
     {
         $dom = new DOMDocument();
-        @$dom->loadHTML(mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8'), LIBXML_NOERROR);
+        // Prepend XML encoding declaration to preserve UTF-8 characters (em-dashes, etc.)
+        @$dom->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NOERROR);
         $xpath = new DOMXPath($dom);
 
         // Extract title from <title> tag or .main-title element
         $title = 'Untitled';
         $titleNode = $xpath->query('//title')->item(0);
         if ($titleNode) {
-            $raw = trim($titleNode->textContent);
+            $raw = trim($this->utf8($titleNode->textContent));
             // Strip suffixes like " — A Screenplay"
             $title = preg_replace('/\s*[—–-]\s*A\s+Screenplay.*/i', '', $raw) ?: $raw;
         }
@@ -98,7 +99,7 @@ class ScreenplayImportService
                 }
 
                 $classes = $child->getAttribute('class') ?? '';
-                $text = trim($child->textContent);
+                $text = trim($this->utf8($child->textContent));
 
                 if (empty($text)) {
                     continue;
@@ -618,6 +619,14 @@ class ScreenplayImportService
     // ──────────────────────────────────────────────────
 
     /**
+     * Ensure a string is valid UTF-8 (strip invalid bytes).
+     */
+    private function utf8(string $text): string
+    {
+        return mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+    }
+
+    /**
      * Check if an element has a specific CSS class.
      */
     private function hasClass(string $classList, string $className): bool
@@ -633,7 +642,7 @@ class ScreenplayImportService
         $text = '';
         foreach ($node->childNodes as $child) {
             if ($child->nodeType === XML_TEXT_NODE) {
-                $text .= $child->textContent;
+                $text .= $this->utf8($child->textContent);
             } elseif ($child->nodeType === XML_ELEMENT_NODE) {
                 $classes = $child->getAttribute('class') ?? '';
                 // Skip fight-impact text (e.g. "MOTION — SUDDEN — TOTAL")
