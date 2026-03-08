@@ -836,6 +836,14 @@ trait HasImageSelection
                     'temperature' => 0.8,
                     'maxOutputTokens' => 800,
                 ]);
+                Log::debug('[VideoPrompt] Raw vision response', [
+                    'scene' => $sceneId,
+                    'success' => $visionResult['success'] ?? false,
+                    'text_length' => strlen($visionResult['text'] ?? ''),
+                    'text_words' => str_word_count($visionResult['text'] ?? ''),
+                    'raw_text' => $visionResult['text'] ?? '(empty)',
+                    'error' => $visionResult['error'] ?? null,
+                ]);
                 if (!empty($visionResult['success']) && !empty($visionResult['text'])) {
                     $generatedPrompt = trim($visionResult['text']);
                 } else {
@@ -851,6 +859,14 @@ trait HasImageSelection
                 $textResult = $gemini->generateText($userPrompt, 800, 1, 'text', [
                     'model' => 'gemini-2.5-flash',
                     'temperature' => 0.8,
+                ]);
+                Log::debug('[VideoPrompt] Raw text response', [
+                    'scene' => $sceneId,
+                    'data_type' => gettype($textResult['data'] ?? null),
+                    'data_count' => is_array($textResult['data'] ?? null) ? count($textResult['data']) : 'n/a',
+                    'first_item_length' => is_array($textResult['data'] ?? null) ? strlen($textResult['data'][0] ?? '') : strlen((string)($textResult['data'] ?? '')),
+                    'first_item_words' => is_array($textResult['data'] ?? null) ? str_word_count($textResult['data'][0] ?? '') : str_word_count((string)($textResult['data'] ?? '')),
+                    'raw_preview' => substr(is_array($textResult['data'] ?? null) ? ($textResult['data'][0] ?? '') : (string)($textResult['data'] ?? ''), 0, 500),
                 ]);
                 if (!empty($textResult['data'])) {
                     $generatedPrompt = is_array($textResult['data'])
