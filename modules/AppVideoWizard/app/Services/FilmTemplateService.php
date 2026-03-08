@@ -595,25 +595,25 @@ PROMPT;
                     $namePattern = preg_quote($charName, '/');
                     $upperName = strtoupper($charName);
 
-                    // Step 1: Normalize possessives (NAME's → NAME's with standard apostrophe)
-                    $action = preg_replace("/\b{$namePattern}[\x{0027}\x{2018}\x{2019}\x{02BC}]s\b/iu", "{$upperName}'s", $action);
+                    // Step 1: Protect possessives from name regex by replacing with placeholder
+                    $possPlaceholder = "##POSS_{$upperName}##";
+                    $action = preg_replace("/\b{$namePattern}[\x{0027}\x{2018}\x{2019}\x{02BC}]s\b/iu", $possPlaceholder, $action);
 
                     // Step 2: Build tagged name for first mention
                     $nameRegex = "/\b{$namePattern}\b/i";
                     $visualTag = $this->getCompactVisualTag($char);
-                    $taggedName = $upperName . (!empty($visualTag) ? " ({$visualTag})" : '');
+                    $taggedName = $upperName . (!empty($visualTag) ? ", {$visualTag}," : '');
 
                     // Step 3: Use placeholder to prevent double-replacement
-                    // First mention → tagged name, subsequent → just NAME
                     if (preg_match($nameRegex, $action)) {
-                        // Replace first occurrence with unique placeholder
-                        $placeholder = "##CHAR_{$upperName}##";
-                        $action = preg_replace($nameRegex, $placeholder, $action, 1);
-                        // Replace remaining occurrences with just the name
+                        $charPlaceholder = "##CHAR_{$upperName}##";
+                        $action = preg_replace($nameRegex, $charPlaceholder, $action, 1);
                         $action = preg_replace($nameRegex, $upperName, $action);
-                        // Swap placeholder back to tagged name
-                        $action = str_replace($placeholder, $taggedName, $action);
+                        $action = str_replace($charPlaceholder, $taggedName, $action);
                     }
+
+                    // Step 4: Restore possessives as "NAME's"
+                    $action = str_replace($possPlaceholder, "{$upperName}'s", $action);
 
                     break;
                 }
@@ -667,13 +667,8 @@ PROMPT;
 
             // Determine emotion from spoken text
             $emotion = $this->detectDialogueEmotion($spokenText);
-            if ($matchedChar) {
-                $tag = $this->getCompactVisualTag($matchedChar);
-                $name = strtoupper(trim($matchedChar['name']));
-                $brief = !empty($tag) ? "{$name} ({$tag})" : $name;
-            } else {
-                $brief = 'a person';
-            }
+            // Use just the character NAME — visual tag is already in the main action text
+            $brief = $matchedChar ? strtoupper(trim($matchedChar['name'])) : $speakerName;
             $hints[] = "{$brief} speaks {$emotion}";
 
             if (count($hints) >= 2) break; // Max 2 speakers for video clarity
@@ -750,14 +745,24 @@ PROMPT;
 
         foreach ($parts as $part) {
             $lower = strtolower(trim($part));
-            // Skip age/generic descriptors like "Late 20s", "early 30s"
+            // Skip age descriptors like "Late 20s", "early 30s"
             if (preg_match('/^\s*(late|early|mid)?\s*\d+s?\s*$/i', $lower)) continue;
-            if (preg_match('/^\s*(sharp|angular|athletic|tall|short|slim|stocky)\s/i', $lower)) continue;
+            // Skip generic body descriptors UNLESS they contain a visual trait keyword
+            if (preg_match('/^\s*(sharp|angular|athletic|tall|slim|stocky)\s/i', $lower)
+                && !preg_match('/\b(hair|implant|scar|tattoo|visor)\b/i', $lower)) {
+                continue;
+            }
             // Keep distinctive visual traits (hair, implants, clothing, accessories)
             if (preg_match('/\b(hair|implant|scar|tattoo|visor|jacket|suit|bodysuit|dress|armor|hood|cloak|prosthetic|augmented|chrome|glowing)\b/i', $lower)) {
-                // Shorten positional phrases
+                // Remove positional/contextual phrases
                 $lower = preg_replace('/\b(above|below|on|near|behind|across|around|over|under|pushed\s+up\s+on|attached\s+to)\b.*$/i', '', $lower);
-                $tags[] = trim($lower);
+                $lower = trim($lower);
+                // Limit to 3 words max per tag
+                $tagWords = explode(' ', $lower);
+                if (count($tagWords) > 3) {
+                    $lower = implode(' ', array_slice($tagWords, 0, 3));
+                }
+                $tags[] = $lower;
                 if (count($tags) >= 2) break;
             }
         }
