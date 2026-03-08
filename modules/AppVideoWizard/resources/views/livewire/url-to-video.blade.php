@@ -117,7 +117,7 @@
                 ></textarea>
 
                 {{-- Script Import Loading --}}
-                <div wire:loading wire:target="scriptFile" class="d-flex align-items-center gap-2 px-3 pb-2" style="display: none;">
+                <div wire:loading wire:target="scriptFile" class="px-3 pb-2">
                     <div class="d-flex align-items-center gap-2 px-3 py-2" style="background: #f5f7fa; border-radius: 10px; font-size: 0.82rem; color: #5a6178;">
                         <i class="fa-light fa-spinner-third fa-spin" style="color: #f59e0b;"></i>
                         <span>{{ __('Importing screenplay...') }}</span>
