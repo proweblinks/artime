@@ -56,10 +56,10 @@
         <div class="utv-input-card mb-4"
              x-data="{
                  promptText: @js($prompt),
-                 aspectRatio: @js($aspectRatio),
+                 aspectRatio: $wire.entangle('aspectRatio'),
                  resolution: @js($videoResolution),
                  quality: @js($videoQuality),
-                 imageModel: @js($imageModel),
+                 imageModel: $wire.entangle('imageModel'),
                  imageModelNames: { nanobanana2: 'NanoBanana 2', nanobanana: 'NanoBanana', hidream: 'HiDream' },
                  imageModelCosts: { nanobanana2: '3t', nanobanana: '1t', hidream: '2t' },
                  showSettings: false,
