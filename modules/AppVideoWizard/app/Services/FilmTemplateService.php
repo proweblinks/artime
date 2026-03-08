@@ -137,7 +137,8 @@ IMPORTANT RULES:
 - End with a strong final image or line
 - Each [Scene: ...] direction must describe a VISUALLY DISTINCT composition — vary the camera angle, distance, environment detail, and subject positioning. Never repeat similar framing or setting descriptions across consecutive scenes.
 - Alternate between: establishing wide shots, intimate close-ups, over-the-shoulder angles, high angle overviews, low angle dramatic shots, detail inserts (hands, objects, screens).
-- Vary locations within the story world — don't set multiple consecutive scenes in the same spot. Move between rooms, areas, or vantage points.
+- LOCATION CONTINUITY: During dialogue sequences, stay in the same location. Vary shots by changing camera angles, distances, and details — NOT by jumping to a different place. If an external event happens (explosion, power surge, earthquake), show its EFFECTS inside the current location (lights flicker, screens glitch, walls shake) rather than cutting to an exterior shot. Only change location when the story genuinely transitions to a new place, and commit to the new location for at least 3-4 scenes.
+- Move between rooms, areas, or vantage points WITHIN the current setting for visual variety. A tech lab has multiple angles: the console, the doorway, the overhead view, the screens, the character's hands.
 
 Respond with ONLY a JSON object:
 {{
@@ -336,6 +337,11 @@ PROMPT;
         // (unless scene N explicitly indicates solitude)
         $visualScript = $this->applyCharacterCarryForward($visualScript, $characters, $scenes);
 
+        // V5: Location continuity — fix single-scene location jumps (ping-pong pattern)
+        // If scene N-1 and N+1 share a location but N is different, N is a jarring cutaway.
+        // Override N's location to match surrounding scenes and fix image prompt.
+        $visualScript = $this->applyLocationContinuity($visualScript, $scenes);
+
         return $visualScript;
     }
 
@@ -376,6 +382,139 @@ PROMPT;
                 if (($inPrev && $inNext) || ($inPrev && $sameLocationAsPrev)) {
                     $visualScript[$i]['characters_in_scene'][] = $charName;
                 }
+            }
+        }
+
+        return $visualScript;
+    }
+
+    /**
+     * V5: Fix single-scene location jumps (ping-pong pattern).
+     *
+     * Detects scenes where location[N] differs from both location[N-1] and location[N+1],
+     * but location[N-1] == location[N+1] (the scene "pops out" and comes right back).
+     * Overrides scene N's location to match surrounding scenes and rewrites the image prompt
+     * SETTING prefix accordingly.
+     *
+     * Example: interior_tech → exterior_urban → interior_tech becomes interior_tech throughout.
+     * This prevents jarring 1-scene cutaways mid-dialogue (like cutting outside to show a power
+     * surge when the characters are inside).
+     */
+    protected function applyLocationContinuity(array $visualScript, array $scenes): array
+    {
+        $total = count($visualScript);
+        if ($total < 3) return $visualScript;
+
+        for ($i = 1; $i < $total - 1; $i++) {
+            $locPrev = $visualScript[$i - 1]['location_hint'];
+            $locCurr = $visualScript[$i]['location_hint'];
+            $locNext = $visualScript[$i + 1]['location_hint'];
+
+            // Ping-pong detection: current differs from both neighbors, and neighbors match
+            if ($locCurr !== $locPrev && $locCurr !== $locNext && $locPrev === $locNext) {
+                $correctedLocation = $locPrev;
+
+                // Rewrite location_hint
+                $visualScript[$i]['location_hint'] = $correctedLocation;
+
+                // Determine if corrected location is interior or exterior
+                $isExterior = in_array($correctedLocation, ['exterior_urban', 'exterior_natural', 'exterior_unknown']);
+                $locationType = $isExterior ? 'EXTERIOR' : 'INTERIOR';
+                $locationName = $this->getLocationTypeName($correctedLocation);
+
+                // Use the previous scene's location description for consistency
+                // Extract it from the previous scene's SETTING line
+                $prevPrompt = $visualScript[$i - 1]['image_prompt'] ?? '';
+                $prevLocDesc = $locationName;
+                if (preg_match('/^SETTING:\s*(?:INTERIOR|EXTERIOR)\s*—\s*([^.]+)/', $prevPrompt, $m)) {
+                    $prevLocDesc = trim($m[1]);
+                }
+
+                // Rewrite the SETTING prefix in the image prompt
+                $imagePrompt = $visualScript[$i]['image_prompt'];
+                $imagePrompt = preg_replace(
+                    '/^SETTING:\s*(?:INTERIOR|EXTERIOR)\s*—\s*[^.]+\.\s*/',
+                    "SETTING: {$locationType} — {$prevLocDesc}. ",
+                    $imagePrompt
+                );
+
+                // Fix interior/exterior constraints
+                if (!$isExterior) {
+                    // Remove any outdoor-specific descriptions and add interior constraint
+                    if (!str_contains($imagePrompt, 'INTERIOR scene')) {
+                        // Remove old exterior-based constraint if any
+                        $imagePrompt = preg_replace('/\.\s*INTERIOR scene —[^.]*/', '', $imagePrompt);
+                        // Add interior constraint before the MANDATORY line
+                        $imagePrompt = preg_replace(
+                            '/(\.\s*MANDATORY:)/',
+                            '. INTERIOR scene — show walls, ceiling, indoor lighting. Do NOT show outdoor sky, city skyline, or open air$1',
+                            $imagePrompt
+                        );
+                    }
+                } else {
+                    // Remove interior constraints if changing to exterior
+                    $imagePrompt = preg_replace('/\.\s*INTERIOR scene —[^.]*/', '', $imagePrompt);
+                }
+
+                $visualScript[$i]['image_prompt'] = $imagePrompt;
+
+                \Log::info('[LocationContinuity] Fixed ping-pong jump', [
+                    'scene' => $i,
+                    'was' => $locCurr,
+                    'corrected_to' => $correctedLocation,
+                    'prev' => $locPrev,
+                    'next' => $locNext,
+                ]);
+            }
+        }
+
+        // Second pass: detect short exterior runs (2 scenes) sandwiched between same interior
+        // e.g., interior → exterior → exterior → interior (same interior)
+        for ($i = 1; $i < $total - 2; $i++) {
+            $loc0 = $visualScript[$i - 1]['location_hint'];
+            $loc1 = $visualScript[$i]['location_hint'];
+            $loc2 = $visualScript[$i + 1]['location_hint'];
+            $loc3 = $visualScript[$i + 2]['location_hint'];
+
+            // Two-scene island: scenes i and i+1 differ from surrounding scenes which match
+            if ($loc1 === $loc2 && $loc1 !== $loc0 && $loc1 !== $loc3 && $loc0 === $loc3) {
+                $correctedLocation = $loc0;
+                $isExterior = in_array($correctedLocation, ['exterior_urban', 'exterior_natural', 'exterior_unknown']);
+                $locationType = $isExterior ? 'EXTERIOR' : 'INTERIOR';
+                $locationName = $this->getLocationTypeName($correctedLocation);
+
+                $prevPrompt = $visualScript[$i - 1]['image_prompt'] ?? '';
+                $prevLocDesc = $locationName;
+                if (preg_match('/^SETTING:\s*(?:INTERIOR|EXTERIOR)\s*—\s*([^.]+)/', $prevPrompt, $m)) {
+                    $prevLocDesc = trim($m[1]);
+                }
+
+                // Fix both scenes
+                foreach ([$i, $i + 1] as $idx) {
+                    $visualScript[$idx]['location_hint'] = $correctedLocation;
+                    $imagePrompt = $visualScript[$idx]['image_prompt'];
+                    $imagePrompt = preg_replace(
+                        '/^SETTING:\s*(?:INTERIOR|EXTERIOR)\s*—\s*[^.]+\.\s*/',
+                        "SETTING: {$locationType} — {$prevLocDesc}. ",
+                        $imagePrompt
+                    );
+                    if (!$isExterior && !str_contains($imagePrompt, 'INTERIOR scene')) {
+                        $imagePrompt = preg_replace(
+                            '/(\.\s*MANDATORY:)/',
+                            '. INTERIOR scene — show walls, ceiling, indoor lighting. Do NOT show outdoor sky, city skyline, or open air$1',
+                            $imagePrompt
+                        );
+                    }
+                    $visualScript[$idx]['image_prompt'] = $imagePrompt;
+                }
+
+                \Log::info('[LocationContinuity] Fixed 2-scene island', [
+                    'scenes' => [$i, $i + 1],
+                    'was' => $loc1,
+                    'corrected_to' => $correctedLocation,
+                ]);
+
+                $i++; // Skip the second scene of the pair (already fixed)
             }
         }
 
