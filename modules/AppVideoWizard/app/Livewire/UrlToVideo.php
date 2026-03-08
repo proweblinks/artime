@@ -26,7 +26,8 @@ class UrlToVideo extends Component
     public string $sourceUrl = '';
     public string $detectedSourceType = '';
     public array $extractedPreview = [];
-    public string $aspectRatio = '9:16';
+    public string $imageAspectRatio = '9:16';
+    public string $videoAspectRatio = '9:16';
     public string $selectedVoice = 'auto';
     public string $voiceProvider = '';
     public string $videoResolution = '480p';
@@ -88,7 +89,9 @@ class UrlToVideo extends Component
 
     public function mount($sharedProject = null)
     {
-        $this->aspectRatio = get_option('story_mode_default_aspect', '9:16');
+        $defaultAspect = get_option('story_mode_default_aspect', '9:16');
+        $this->imageAspectRatio = $defaultAspect;
+        $this->videoAspectRatio = $defaultAspect;
         $this->imageModel = get_option('story_mode_image_model', 'nanobanana2');
 
         if ($sharedProject) {
@@ -151,7 +154,7 @@ class UrlToVideo extends Component
             $fileType = in_array($ext, ['html', 'htm']) ? 'html' : 'text';
 
             $importer = new ScreenplayImportService();
-            $result = $importer->import($content, $fileType, $this->aspectRatio);
+            $result = $importer->import($content, $fileType, $this->imageAspectRatio);
 
             // Set film mode with synthetic template
             $this->filmMode = true;
@@ -716,7 +719,9 @@ class UrlToVideo extends Component
             'source_type' => $sourceType,
             'extracted_content' => $this->storedExtractedContent ?: null,
             'content_brief' => $this->storedContentBrief ?: null,
-            'aspect_ratio' => $this->aspectRatio,
+            'aspect_ratio' => $this->videoAspectRatio,
+            'image_aspect_ratio' => $this->imageAspectRatio,
+            'video_aspect_ratio' => $this->videoAspectRatio,
             'voice_id' => $this->selectedVoice !== 'auto' ? $this->selectedVoice : null,
             'voice_provider' => $this->voiceProvider ?: null,
             'transcript' => $this->editableTranscript,
@@ -828,7 +833,9 @@ class UrlToVideo extends Component
         $this->filmTemplateConfig = $template;
         $this->filmMode = true;
         $this->creativeMode = false;
-        $this->aspectRatio = $template['aspect_ratio'] ?? '16:9';
+        $templateAspect = $template['aspect_ratio'] ?? '16:9';
+        $this->imageAspectRatio = $templateAspect;
+        $this->videoAspectRatio = $templateAspect;
         $this->videoDuration = $template['duration_default'] ?? 120;
         $this->selectedVisualStyle = $template['visual_style'] ?? 'cyberpunk';
 
@@ -963,7 +970,8 @@ class UrlToVideo extends Component
         $this->editableTranscript = $project->transcript;
         $this->transcriptWordCount = $project->transcript_word_count ?? str_word_count($project->transcript ?? '');
         $this->generatedTitle = $project->title;
-        $this->aspectRatio = $project->aspect_ratio ?? '9:16';
+        $this->imageAspectRatio = $project->image_aspect_ratio ?? $project->aspect_ratio ?? '9:16';
+        $this->videoAspectRatio = $project->video_aspect_ratio ?? $project->aspect_ratio ?? '9:16';
         $this->selectedVoice = $project->voice_id ?? 'auto';
         $this->voiceProvider = $project->voice_provider ?? '';
         $this->storedExtractedContent = $project->extracted_content ?? [];

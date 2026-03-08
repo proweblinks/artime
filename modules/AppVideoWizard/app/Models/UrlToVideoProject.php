@@ -25,6 +25,8 @@ class UrlToVideoProject extends Model
         'extracted_content',
         'content_brief',
         'aspect_ratio',
+        'image_aspect_ratio',
+        'video_aspect_ratio',
         'voice_id',
         'voice_provider',
         'transcript',

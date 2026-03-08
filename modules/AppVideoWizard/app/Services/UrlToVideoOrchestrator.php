@@ -132,7 +132,7 @@ class UrlToVideoOrchestrator
             return;
         }
 
-        $aspectRatio = $project->aspect_ratio ?? '9:16';
+        $aspectRatio = $project->image_aspect_ratio ?? $project->aspect_ratio ?? '9:16';
         $metadata = $project->metadata ?? [];
         $isFilmMode = !empty($metadata['film_mode']);
 
@@ -712,7 +712,7 @@ PROMPT;
         $metadata = $project->metadata ?? [];
         $styleInstruction = $metadata['style_instruction'] ?? '';
         $styleConfig = $metadata['visual_style_config'] ?? null;
-        $aspectRatio = $project->aspect_ratio ?? '9:16';
+        $aspectRatio = $project->video_aspect_ratio ?? $project->aspect_ratio ?? '9:16';
         $imageUrls = array_map(fn($s) => $s['image_url'] ?? null, $scenes);
         $filmTemplateConfig = !empty($metadata['film_mode']) ? ($metadata['film_template_config'] ?? null) : null;
         $isFilmMode = !empty($metadata['film_mode']);
@@ -877,7 +877,7 @@ PROMPT;
             $crossfadeDuration = 1.0;
         }
 
-        $aspectRatio = $project->aspect_ratio ?? '9:16';
+        $aspectRatio = $project->video_aspect_ratio ?? $project->aspect_ratio ?? '9:16';
         $resMap = [
             '9:16' => ['width' => 1080, 'height' => 1920],
             '16:9' => ['width' => 1920, 'height' => 1080],
@@ -1757,7 +1757,7 @@ PROMPT;
             'team_id' => $project->team_id,
             'name' => "[UrlToVideo] {$project->title}",
             'status' => 'processing',
-            'aspect_ratio' => $project->aspect_ratio ?? '9:16',
+            'aspect_ratio' => $project->video_aspect_ratio ?? $project->aspect_ratio ?? '9:16',
             'platform' => 'multi-platform',
         ]);
     }

@@ -56,7 +56,8 @@
         <div class="utv-input-card mb-4"
              x-data="{
                  promptText: @js($prompt),
-                 aspectRatio: $wire.entangle('aspectRatio'),
+                 imageAspectRatio: $wire.entangle('imageAspectRatio'),
+                 videoAspectRatio: $wire.entangle('videoAspectRatio'),
                  resolution: @js($videoResolution),
                  quality: @js($videoQuality),
                  imageModel: $wire.entangle('imageModel'),
@@ -82,10 +83,15 @@
                          this.placeholderIdx = (this.placeholderIdx + 1) % this.placeholders.length;
                      }, 4000);
                  },
-                 cycleAspect() {
+                 cycleImageAspect() {
                      const cycle = { '9:16': '16:9', '16:9': '1:1', '1:1': '9:16' };
-                     this.aspectRatio = cycle[this.aspectRatio] || '9:16';
-                     $wire.set('aspectRatio', this.aspectRatio);
+                     this.imageAspectRatio = cycle[this.imageAspectRatio] || '9:16';
+                     $wire.set('imageAspectRatio', this.imageAspectRatio);
+                 },
+                 cycleVideoAspect() {
+                     const cycle = { '9:16': '16:9', '16:9': '1:1', '1:1': '9:16' };
+                     this.videoAspectRatio = cycle[this.videoAspectRatio] || '9:16';
+                     $wire.set('videoAspectRatio', this.videoAspectRatio);
                  },
                  cycleResolution() {
                      if (this.quality === 'fast') {
@@ -283,19 +289,18 @@
                                  x-transition:leave-start="opacity-100"
                                  x-transition:leave-end="opacity-0"
                                  class="utv-settings-popover">
-                                <button @click="cycleAspect()" type="button" class="utv-settings-row">
+                                <div class="utv-settings-label">{{ __('Image') }}</div>
+
+                                <button @click="cycleImageAspect()" type="button" class="utv-settings-row">
                                     <span class="d-flex align-items-center gap-2">
                                         <i class="fa-light fa-crop-simple utv-settings-icon"></i>
                                         {{ __('Aspect Ratio') }}
                                     </span>
                                     <span class="utv-settings-value">
-                                        <span x-text="aspectRatio"></span>
+                                        <span x-text="imageAspectRatio"></span>
                                         <i class="fa-light fa-chevron-right" style="font-size: 0.65rem; opacity: 0.4;"></i>
                                     </span>
                                 </button>
-
-                                <div style="border-top: 1px solid #eef1f5; margin: 4px 0;"></div>
-                                <div class="utv-settings-label">{{ __('Image') }}</div>
 
                                 <button @click="cycleImageModel()" type="button" class="utv-settings-row">
                                     <span class="d-flex align-items-center gap-2">
@@ -310,6 +315,17 @@
 
                                 <div style="border-top: 1px solid #eef1f5; margin: 4px 0;"></div>
                                 <div class="utv-settings-label">{{ __('Video') }}</div>
+
+                                <button @click="cycleVideoAspect()" type="button" class="utv-settings-row">
+                                    <span class="d-flex align-items-center gap-2">
+                                        <i class="fa-light fa-crop-simple utv-settings-icon"></i>
+                                        {{ __('Aspect Ratio') }}
+                                    </span>
+                                    <span class="utv-settings-value">
+                                        <span x-text="videoAspectRatio"></span>
+                                        <i class="fa-light fa-chevron-right" style="font-size: 0.65rem; opacity: 0.4;"></i>
+                                    </span>
+                                </button>
 
                                 <button @click="cycleResolution()" type="button" class="utv-settings-row">
                                     <span class="d-flex align-items-center gap-2">
