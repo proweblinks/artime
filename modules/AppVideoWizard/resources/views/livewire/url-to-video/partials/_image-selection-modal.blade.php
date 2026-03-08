@@ -1421,12 +1421,20 @@
 
         {{-- Footer --}}
         <div class="card-footer border-0 p-4 pt-2" style="background: transparent;">
-            {{-- Video Settings --}}
-            <div class="d-flex align-items-center gap-3 mb-3 p-3" style="background: #f5f7fa; border-radius: 10px;"
+            {{-- Image & Video Settings --}}
+            <div class="d-flex align-items-center flex-wrap gap-3 mb-3 p-3" style="background: #f5f7fa; border-radius: 10px;"
                  x-data="{
+                     aspectRatio: @js($aspectRatio),
+                     imageModel: @js($imageModel),
                      resolution: @js($videoResolution),
                      quality: @js($videoQuality),
                      init() {
+                         this.$watch('aspectRatio', (val) => {
+                             $wire.set('aspectRatio', val);
+                         });
+                         this.$watch('imageModel', (val) => {
+                             $wire.set('imageModel', val);
+                         });
                          this.$watch('quality', (val) => {
                              if (val === 'fast' && this.resolution === '480p') {
                                  this.resolution = '720p';
@@ -1439,7 +1447,29 @@
                          });
                      }
                  }">
-                <div class="d-flex align-items-center gap-2 flex-grow-1">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fa-light fa-aspect-ratio" style="font-size: 0.85rem; color: var(--at-text-muted, #94a0b8);"></i>
+                    <small style="white-space: nowrap; color: var(--at-text-muted, #94a0b8);">{{ __('Ratio') }}</small>
+                    <select x-model="aspectRatio"
+                            class="form-select form-select-sm border-0"
+                            style="background: #ffffff; border-radius: 6px; font-size: 0.8rem; width: auto; padding: 4px 28px 4px 10px; color: var(--at-text, #1a1a2e);">
+                        <option value="9:16">9:16</option>
+                        <option value="16:9">16:9</option>
+                        <option value="1:1">1:1</option>
+                    </select>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fa-light fa-image" style="font-size: 0.85rem; color: var(--at-text-muted, #94a0b8);"></i>
+                    <small style="white-space: nowrap; color: var(--at-text-muted, #94a0b8);">{{ __('Image') }}</small>
+                    <select x-model="imageModel"
+                            class="form-select form-select-sm border-0"
+                            style="background: #ffffff; border-radius: 6px; font-size: 0.8rem; width: auto; padding: 4px 28px 4px 10px; color: var(--at-text, #1a1a2e);">
+                        <option value="nanobanana2">NanoBanana 2</option>
+                        <option value="nanobanana">NanoBanana</option>
+                        <option value="hidream">HiDream</option>
+                    </select>
+                </div>
+                <div class="d-flex align-items-center gap-2">
                     <i class="fa-light fa-film" style="font-size: 0.85rem; color: var(--at-text-muted, #94a0b8);"></i>
                     <small style="white-space: nowrap; color: var(--at-text-muted, #94a0b8);">{{ __('Resolution') }}</small>
                     <select x-model="resolution"
@@ -1450,7 +1480,7 @@
                         <option value="1080p">1080p</option>
                     </select>
                 </div>
-                <div class="d-flex align-items-center gap-2 flex-grow-1">
+                <div class="d-flex align-items-center gap-2">
                     <i class="fa-light fa-gauge-high" style="font-size: 0.85rem; color: var(--at-text-muted, #94a0b8);"></i>
                     <small style="white-space: nowrap; color: var(--at-text-muted, #94a0b8);">{{ __('Quality') }}</small>
                     <select x-model="quality"
