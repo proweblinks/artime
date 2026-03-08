@@ -1079,12 +1079,17 @@ PROMPT;
                 $parts = array_map('trim', explode(',', $desc));
                 foreach ($parts as $part) {
                     if (preg_match('/\b(cybernetic|implant|scar|tattoo|visor|prosthetic|augmented|glowing|silver|chrome)\b/i', $part)) {
-                        return $subject . ' with ' . strtolower(trim($part));
+                        $trait = strtolower(trim($part));
+                        // Remove positional phrases: "above right ear", "on forehead", etc.
+                        $trait = preg_replace('/\b(above|below|on|near|behind|across|around|over|under|pushed\s+up\s+on|attached\s+to)\b.*$/i', '', $trait);
+                        return $subject . ' with ' . trim($trait);
                     }
                 }
                 foreach ($parts as $part) {
                     if (preg_match('/\b(hair|bald|shaved|dreadlocks|braids|mohawk)\b/i', $part)) {
-                        return $subject . ' with ' . strtolower(trim($part));
+                        $trait = strtolower(trim($part));
+                        $trait = preg_replace('/\b(above|below|on|near|behind|across|around|over|under|pushed\s+up\s+on|attached\s+to)\b.*$/i', '', $trait);
+                        return $subject . ' with ' . trim($trait);
                     }
                 }
                 return $subject;
@@ -1267,15 +1272,20 @@ PROMPT;
         }
 
         // 4. Dialogue action (physical speaking description if applicable)
-        if (!empty($scene['has_dialogue'])) {
+        // Skip if buildConciseVideoAction() already appended a dialogue hint ("speaks firmly/urgently/...")
+        if (!empty($scene['has_dialogue']) && !preg_match('/speaks\s+\w+ly\b/', $narrative)) {
             $dialogueAction = $this->buildDialogueAction($scene, $filmTemplateConfig);
             if (!empty($dialogueAction)) {
                 $narrative .= ' ' . $dialogueAction;
             }
         }
 
-        // Enforce 70-100 word range (lean, action-focused)
-        $narrative = $this->enforceWordRange($narrative, 70, 100);
+        // Trim to max 100 words — NO minimum padding (short action prompts are fine for Seedance)
+        $words = explode(' ', trim($narrative));
+        if (count($words) > 100) {
+            $narrative = implode(' ', array_slice($words, 0, 100));
+            $narrative = rtrim($narrative, ' ,;') . '.';
+        }
 
         if (class_exists(SeedancePromptService::class)) {
             $narrative = SeedancePromptService::sanitize($narrative);

@@ -600,7 +600,8 @@ PROMPT;
                         'female' => 'her',
                         default => 'their',
                     };
-                    $action = preg_replace("/\b{$namePattern}['']s\b/i", $pronoun, $action);
+                    // Match all common apostrophe variants: ' (ASCII), ' ' (curly), ʼ (modifier letter)
+                    $action = preg_replace("/\b{$namePattern}[\x{0027}\x{2018}\x{2019}\x{02BC}]s\b/iu", $pronoun, $action);
 
                     // Step 2: Replace first remaining name with visual brief
                     $brief = $this->getCharacterVisualBrief($char);
