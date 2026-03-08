@@ -1188,36 +1188,51 @@ PROMPT;
 
         // Map mood to physical speaking manner
         $mannerMap = [
-            'tense' => 'leans forward, speaking with urgency, jaw tight',
-            'dramatic' => 'speaks with intensity, gesturing emphatically',
-            'mysterious' => 'speaks in low tones, barely moving their lips',
+            'tense' => 'leans forward urgently',
+            'dramatic' => 'speaks with intensity',
+            'mysterious' => 'speaks in low tones',
             'intimate' => 'speaks softly, leaning close',
-            'calm' => 'speaks evenly, relaxed posture',
-            'intense' => 'speaks forcefully, body tense',
+            'calm' => 'speaks evenly',
+            'intense' => 'speaks forcefully',
             'reflective' => 'speaks thoughtfully, gaze distant',
-            'hopeful' => 'speaks warmly, expression brightening',
+            'hopeful' => 'speaks warmly',
         ];
-        $manner = $mannerMap[$mood] ?? 'speaks, lips moving clearly';
+        $defaultManner = $mannerMap[$mood] ?? 'speaks firmly';
 
-        // Parse dialogue lines to identify speakers
-        $speakers = [];
+        // Parse dialogue lines — extract speaker + actual words
+        $dialogueParts = [];
         foreach (preg_split('/\n+/', trim($text)) as $line) {
-            if (preg_match('/^([A-Z][A-Z0-9_\s]+):\s*(.+)$/s', trim($line), $m)) {
-                $name = trim($m[1]);
-                if (!in_array($name, $speakers)) $speakers[] = $name;
+            if (!preg_match('/^([A-Z][A-Z0-9_\s]+):\s*(.+)$/s', trim($line), $m)) continue;
+
+            $speakerName = trim($m[1]);
+            $spokenText = trim($m[2], '" ');
+            if (empty($spokenText)) continue;
+
+            // Truncate long lines to first sentence, max 15 words
+            $firstSentence = preg_split('/(?<=[.!?])\s+/', $spokenText, 2, PREG_SPLIT_NO_EMPTY);
+            $speech = $firstSentence[0] ?? $spokenText;
+            $words = explode(' ', $speech);
+            if (count($words) > 15) {
+                $speech = implode(' ', array_slice($words, 0, 15)) . '...';
             }
+
+            $dialogueParts[] = [
+                'name' => $speakerName,
+                'speech' => trim($speech),
+            ];
+
+            if (count($dialogueParts) >= 2) break; // Max 2 speakers for video clarity
         }
 
-        if (count($speakers) === 0) return '';
+        if (empty($dialogueParts)) return '';
 
-        if (count($speakers) === 1) {
-            $brief = $this->getCharacterBriefFromConfig($speakers[0], $characters);
-            return "{$brief} {$manner}.";
-        } else {
-            $brief1 = $this->getCharacterBriefFromConfig($speakers[0], $characters);
-            $brief2 = $this->getCharacterBriefFromConfig($speakers[1], $characters);
-            return "{$brief1} and {$brief2} face each other, exchanging words with visible emotion.";
+        // Build dialogue with actual quoted speech + physical delivery
+        $parts = [];
+        foreach ($dialogueParts as $dp) {
+            $parts[] = "{$dp['name']} {$defaultManner}: '{$dp['speech']}'";
         }
+
+        return implode(' ', $parts);
     }
 
     /**
@@ -1314,9 +1329,10 @@ PROMPT;
         $cameraPhrase = $this->mapCameraToSeedance($cameraMotion);
         $sentences = preg_split('/(?<=[.!?])(?<!\bINT\.)(?<!\bEXT\.)\s+/', $narrative, 3, PREG_SPLIT_NO_EMPTY);
         if (count($sentences) >= 2 && count(explode(' ', trim($sentences[0]))) >= 4) {
-            $narrative = $sentences[0] . '. ' . $cameraPhrase . '. ' . implode(' ', array_slice($sentences, 1));
+            $first = rtrim($sentences[0], '.!? ');
+            $narrative = $first . '. ' . $cameraPhrase . '. ' . implode(' ', array_slice($sentences, 1));
         } else {
-            $narrative .= ' ' . $cameraPhrase . '.';
+            $narrative = rtrim($narrative, '.!? ') . '. ' . $cameraPhrase . '.';
         }
 
         // 3. Dynamic elements only (things that MOVE, not static environment)
@@ -1325,9 +1341,9 @@ PROMPT;
             $narrative .= ' ' . $dynamicCues;
         }
 
-        // 4. Dialogue action (physical speaking description if applicable)
-        // Skip if buildConciseVideoAction() already appended a dialogue hint ("speaks firmly/urgently/...")
-        if (!empty($scene['has_dialogue']) && !preg_match('/speaks\s+\w+ly\b/', $narrative)) {
+        // 4. Dialogue action with actual quoted speech for lip-sync
+        // Skip if buildConciseVideoAction() already appended dialogue cues (contains quoted speech)
+        if (!empty($scene['has_dialogue']) && !preg_match("/'.+?'/", $narrative)) {
             $dialogueAction = $this->buildDialogueAction($scene, $filmTemplateConfig);
             if (!empty($dialogueAction)) {
                 $narrative .= ' ' . $dialogueAction;

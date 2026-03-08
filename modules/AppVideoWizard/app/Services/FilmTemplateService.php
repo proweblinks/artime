@@ -588,15 +588,8 @@ PROMPT;
         // Replace character names with NAME (visual tag) on first mention,
         // then just NAME for subsequent mentions. Seedance needs names, not pronouns.
         // e.g. "REN, dark hair, cybernetic implant, leans forward... REN pulls out..."
+        // Quoted dialogue is PRESERVED — Seedance uses it for lip-sync and speech generation.
         $action = $direction;
-
-        // Strip embedded quoted dialogue — Seedance needs physical actions, not spoken words
-        // e.g. 'grabs his arm: "Stick to the plan!"' → 'grabs his arm'
-        $action = preg_replace('/"[^"]*"/u', '', $action);
-        $action = preg_replace("/[\x{201C}][^\x{201D}]*[\x{201D}]/u", '', $action);
-        $action = preg_replace('/\s{2,}/', ' ', $action);
-        $action = rtrim(trim($action), ':');
-        if (empty(trim($action))) return '';
 
         foreach ($detectedChars as $charName) {
             foreach ($characters as $char) {
@@ -635,8 +628,8 @@ PROMPT;
             $action = preg_replace('/\.\s+' . preg_quote($upperName, '/') . '\s*\.?\s*$/', '.', $action);
         }
 
-        // Append dialogue emotional context for Seedance lip-sync
-        // Converts "REN: We need to move now." into "he speaks urgently"
+        // Append dialogue with actual quoted speech for Seedance lip-sync
+        // "REN: We need to move now." → "REN leans forward urgently: 'We need to move now.'"
         if (!$isVisualOnly && !empty(trim($dialogueText))) {
             $dialogueHint = $this->buildDialogueHint($dialogueText, $detectedChars, $characters);
             if (!empty($dialogueHint)) {
@@ -654,9 +647,9 @@ PROMPT;
     }
 
     /**
-     * Build a concise dialogue hint for video prompts.
-     * Converts screenplay dialogue lines into visual/emotional descriptors.
-     * "REN: We need to move now." → "A man with cybernetic implant speaks urgently"
+     * Build dialogue cues for video prompts with actual spoken words.
+     * Includes quoted speech + physical delivery manner for Seedance lip-sync.
+     * "REN: We need to move now." → "REN leans forward urgently: 'We need to move now.'"
      */
     protected function buildDialogueHint(string $dialogueText, array $detectedChars, array $characters): string
     {
@@ -680,32 +673,52 @@ PROMPT;
                 }
             }
 
-            // Determine emotion from spoken text
-            $emotion = $this->detectDialogueEmotion($spokenText);
-            // Use just the character NAME — visual tag is already in the main action text
-            $brief = $matchedChar ? strtoupper(trim($matchedChar['name'])) : $speakerName;
-            $hints[] = "{$brief} speaks {$emotion}";
+            $name = $matchedChar ? strtoupper(trim($matchedChar['name'])) : $speakerName;
+            $manner = $this->getDialogueManner($spokenText);
+
+            // Truncate long dialogue to first sentence (max ~15 words for prompt economy)
+            $speech = $this->truncateDialogue($spokenText, 15);
+
+            $hints[] = "{$name} {$manner}: '{$speech}'";
 
             if (count($hints) >= 2) break; // Max 2 speakers for video clarity
         }
 
-        return implode(', while ', $hints);
+        return implode(' ', $hints);
     }
 
     /**
-     * Detect emotional tone from spoken dialogue text.
+     * Get physical speaking manner from dialogue emotion.
+     * Returns a physical action description, not just an adverb.
      */
-    protected function detectDialogueEmotion(string $text): string
+    protected function getDialogueManner(string $text): string
     {
         $lower = strtolower($text);
-        if (preg_match('/[!]{2,}|damn|hell|stop|enough/', $lower)) return 'forcefully';
-        if (preg_match('/\?.*\?|what|who|why|how/', $lower)) return 'questioningly';
-        if (preg_match('/please|help|need|must|hurry/', $lower)) return 'urgently';
-        if (preg_match('/remember|once|long ago|used to/', $lower)) return 'reflectively';
-        if (preg_match('/trust|together|promise|believe/', $lower)) return 'earnestly';
-        if (preg_match('/quiet|whisper|careful|listen/', $lower)) return 'softly';
-        if (preg_match('/never|betray|lie|deceive/', $lower)) return 'fiercely';
-        return 'firmly';
+        if (preg_match('/[!]{2,}|damn|hell|stop|enough/', $lower)) return 'speaks forcefully, jaw clenched';
+        if (preg_match('/\?.*\?|what|who|why|how/', $lower)) return 'tilts head, asking';
+        if (preg_match('/please|help|need|must|hurry/', $lower)) return 'leans forward urgently';
+        if (preg_match('/remember|once|long ago|used to/', $lower)) return 'speaks reflectively, gaze distant';
+        if (preg_match('/trust|together|promise|believe/', $lower)) return 'speaks earnestly, holding eye contact';
+        if (preg_match('/quiet|whisper|careful|listen/', $lower)) return 'speaks softly, leaning close';
+        if (preg_match('/never|betray|lie|deceive/', $lower)) return 'speaks fiercely, eyes narrowing';
+        return 'speaks firmly';
+    }
+
+    /**
+     * Truncate dialogue to first sentence, max N words.
+     */
+    protected function truncateDialogue(string $text, int $maxWords = 15): string
+    {
+        // Take first sentence only
+        $firstSentence = preg_split('/(?<=[.!?])\s+/', trim($text), 2, PREG_SPLIT_NO_EMPTY);
+        $speech = $firstSentence[0] ?? $text;
+
+        $words = explode(' ', $speech);
+        if (count($words) > $maxWords) {
+            $speech = implode(' ', array_slice($words, 0, $maxWords)) . '...';
+        }
+
+        return trim($speech);
     }
 
     /**
