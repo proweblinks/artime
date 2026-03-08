@@ -55,6 +55,10 @@ class UrlToVideoOrchestrator
             $this->stepGenerateImages($project);
             if ($this->isCancelled($project)) return;
 
+            // Step 3.5: AI Video Prompt Refinement — Film mode only (image-aware)
+            $this->stepRefineVideoPrompts($project);
+            if ($this->isCancelled($project)) return;
+
             // Step 4: Generate Video Clips (70-85%)
             $this->stepGenerateVideoClips($project);
             if ($this->isCancelled($project)) return;
@@ -173,12 +177,9 @@ class UrlToVideoOrchestrator
                 $scene['transition_type'] = $scene['transition_type'] ?? $visual['transition_type'] ?? 'fadeblack';
                 $scene['transition_duration'] = (float) ($scene['transition_duration'] ?? $visual['transition_duration'] ?? 0.5);
 
-                // Pre-build rich 100+ word Seedance video prompt and store in video_action
-                // so the AI Studio displays the full narrative (not just raw direction)
-                $richVideoPrompt = $this->buildFilmVideoPrompt($scene, $styleConfig, $templateConfig);
-                if (!empty($richVideoPrompt)) {
-                    $scene['video_action'] = $richVideoPrompt;
-                }
+                // Film mode: keep raw video_action from buildConciseVideoAction() for readable
+                // AI Studio display. Full Seedance prompt is built at video generation time
+                // (or by stepRefineVideoPrompts AI refinement step).
 
                 $updatedScenes[] = $scene;
             }
@@ -192,7 +193,7 @@ class UrlToVideoOrchestrator
                 ]),
             ]);
 
-            Log::info('UrlToVideoOrchestrator: Film visual script built with rich video prompts', [
+            Log::info('UrlToVideoOrchestrator: Film visual script built (raw video actions preserved)', [
                 'project_id' => $project->id,
                 'scenes' => count($updatedScenes),
             ]);
@@ -558,6 +559,148 @@ class UrlToVideoOrchestrator
     }
 
     /**
+     * Step 3.5: AI-powered video prompt refinement (Film mode only).
+     * Uses Gemini 2.5 Flash vision to analyze each generated image and write
+     * a focused action-only Seedance prompt (70-100 words).
+     * Called AFTER stepGenerateImages(), BEFORE stepGenerateVideoClips().
+     */
+    protected function stepRefineVideoPrompts(UrlToVideoProject $project): void
+    {
+        $scenes = $project->scenes ?? [];
+        $metadata = $project->metadata ?? [];
+
+        if (empty($metadata['film_mode'])) return; // Only for Film mode
+
+        $templateConfig = $metadata['film_template_config'] ?? [];
+        $teamId = $project->team_id ?? 0;
+
+        Log::info("[UrlToVideo:{$project->id}] Starting video prompt refinement for " . count($scenes) . " scenes");
+
+        $systemPrompt = $this->getVideoPromptSystemPrompt($templateConfig);
+        $previousPrompt = '';
+
+        foreach ($scenes as $i => &$scene) {
+            $imageUrl = $scene['image_url'] ?? null;
+            if (empty($imageUrl)) continue;
+
+            $direction = $scene['direction'] ?? '';
+            $cameraMotion = $scene['camera_motion'] ?? 'slow zoom in';
+            $mood = $scene['mood'] ?? '';
+            $hasDialogue = !empty($scene['has_dialogue']);
+            $dialogueText = $hasDialogue ? ($scene['text'] ?? '') : '';
+
+            $cameraPhrase = $this->mapCameraToSeedance($cameraMotion);
+
+            $userPrompt = "Scene direction: {$direction}\n"
+                . "Camera: {$cameraPhrase}\n"
+                . "Mood: {$mood}\n";
+
+            if ($hasDialogue) {
+                $userPrompt .= "Dialogue in this scene:\n{$dialogueText}\n";
+            }
+
+            if (!empty($previousPrompt)) {
+                $userPrompt .= "\nPrevious scene's video prompt (for continuity):\n{$previousPrompt}\n";
+            }
+
+            $userPrompt .= "\nWrite the video animation prompt for this image.";
+
+            try {
+                $imageContent = @file_get_contents($imageUrl);
+                if (empty($imageContent)) {
+                    Log::warning("[UrlToVideo:{$project->id}] Could not download image for scene {$i}");
+                    continue;
+                }
+                $imageBase64 = base64_encode($imageContent);
+
+                $response = \AI::processWithOverride(
+                    $systemPrompt . "\n\n" . $userPrompt,
+                    'gemini',
+                    'gemini-2.5-flash-preview-05-20',
+                    'vision',
+                    [
+                        'image_base64' => $imageBase64,
+                        'mimeType' => 'image/png',
+                        'max_tokens' => 200,
+                    ],
+                    $teamId
+                );
+
+                // Gemini vision returns raw API body in data — extract text from candidates
+                $refined = '';
+                if (!empty($response['data']['candidates'][0]['content']['parts'][0]['text'])) {
+                    $refined = trim($response['data']['candidates'][0]['content']['parts'][0]['text']);
+                } elseif (!empty($response['data'][0]) && is_string($response['data'][0])) {
+                    $refined = trim($response['data'][0]);
+                }
+
+                if (!empty($refined) && str_word_count($refined) >= 30) {
+                    // Sanitize for Seedance
+                    if (class_exists(SeedancePromptService::class)) {
+                        $refined = SeedancePromptService::sanitize($refined);
+                    }
+                    $scene['video_action'] = $refined;
+                    $scene['refined_prompt'] = true;
+                    $previousPrompt = $refined;
+                    Log::info("[UrlToVideo:{$project->id}] Refined video prompt for scene {$i}: " . str_word_count($refined) . " words");
+                }
+            } catch (\Throwable $e) {
+                Log::warning("[UrlToVideo:{$project->id}] Video prompt refinement failed for scene {$i}: " . $e->getMessage());
+                // Fall through — stepGenerateVideoClips will use deterministic buildFilmVideoPrompt
+            }
+        }
+        unset($scene); // Break reference
+
+        $project->update(['scenes' => $scenes]);
+
+        Log::info("[UrlToVideo:{$project->id}] Video prompt refinement complete");
+    }
+
+    /**
+     * System prompt for AI video prompt refinement.
+     * Includes character bible and atmosphere context from the film template.
+     */
+    protected function getVideoPromptSystemPrompt(array $filmTemplateConfig): string
+    {
+        $characters = $filmTemplateConfig['characters'] ?? [];
+        $atmosphere = $filmTemplateConfig['atmosphere'] ?? '';
+
+        $charBlock = "CHARACTER BIBLE:\n";
+        foreach ($characters as $char) {
+            $name = strtoupper($char['name'] ?? '');
+            $gender = $char['gender'] ?? 'unknown';
+            $appearance = $char['description'] ?? '';
+            $charBlock .= "- {$name} ({$gender}): {$appearance}\n";
+        }
+
+        return <<<PROMPT
+You are a Seedance video prompt writer. You see a still image that will be animated into an 8-second video clip.
+
+{$charBlock}
+STORY ATMOSPHERE: {$atmosphere}
+
+Write a 70-100 word prompt. Structure: subject (by name) + actions + camera movements + dialogue/sound cues.
+
+RULES:
+- Use character NAMES (REN, KIRA) — not "the man" or "the woman". On first mention add a brief visual tag: "REN, the dark-haired man with a cybernetic implant" — then just "REN" after.
+- Do NOT describe static environment (buildings, walls, furniture) — the model already sees these.
+- Focus on: character actions, gestures, facial expressions, body movement, physical interactions.
+- Describe dynamic elements: rain falling, smoke drifting, lights flickering.
+- Weave camera direction naturally into the action.
+- For dialogue scenes: INCLUDE the actual spoken words as quoted speech. Describe HOW they speak (leaning forward urgently, responding coolly) alongside WHAT they say.
+- Single flowing paragraph, present tense.
+- NO style tags, NO shot type labels (no "CLOSE UP -", "WIDE SHOT -").
+- Output ONLY the prompt text. No preamble, no explanation.
+
+GOOD (visual): "REN leans close to the holographic display, fingers dancing across the keyboard. The camera slowly pushes toward his face. His cybernetic implant pulses blue. He pauses mid-keystroke, brow furrowing as something unexpected flashes on screen."
+
+GOOD (dialogue): "REN slides into the booth across from KIRA. The camera holds in a medium two-shot. He leans forward urgently: 'I know what NEXUS really is.' KIRA sets her glass down, locking eyes: 'So do I. That's why I found you.' He sits back processing. She tilts her head: 'I'm asking you to wake up.' Smoke drifts between them."
+
+BAD: "CLOSE UP of a cyberpunk interior with neon lights and servers. Rain streaks through volumetric light beams. Neon signs flicker and pulse. The camera slowly pushes in closer, the scene conveying a feeling of mystery."
+PROMPT;
+    }
+
+    /**
      * Step 4: Generate video clips from images.
      */
     protected function stepGenerateVideoClips(UrlToVideoProject $project): void
@@ -604,17 +747,25 @@ class UrlToVideoOrchestrator
                 $sceneType = $scene['scene_type'] ?? 'dialogue';
                 $clipDuration = $this->calculateClipDuration($audioDuration, $sceneType);
 
+                // Use AI-refined prompt if available, otherwise build deterministically
+                if (!empty($scene['refined_prompt'])) {
+                    $videoPrompt = $scene['video_action'];
+                } elseif ($filmTemplateConfig) {
+                    $videoPrompt = $this->buildFilmVideoPrompt($scene, $styleConfig, $filmTemplateConfig);
+                } else {
+                    $videoPrompt = $this->buildVideoPrompt($scene, $styleInstruction, $aspectRatio, $styleConfig, null);
+                }
+
                 $animationOptions = [
                     'imageUrl' => $imageUrl,
-                    'prompt' => $filmTemplateConfig
-                        ? $this->buildFilmVideoPrompt($scene, $styleConfig, $filmTemplateConfig)
-                        : $this->buildVideoPrompt($scene, $styleInstruction, $aspectRatio, $styleConfig, null),
+                    'prompt' => $videoPrompt,
                     'duration' => $clipDuration,
                     'sceneIndex' => $i,
                     'resolution' => $project->metadata['video_resolution'] ?? '480p',
                     'variant' => $project->metadata['video_quality'] ?? 'pro',
                     'generate_audio' => $isFilmMode,
                     'anti_speech' => !$isFilmMode,
+                    'has_dialogue' => !empty($scene['has_dialogue']),
                 ];
 
                 if ($i < count($scenes) - 1 && !empty($imageUrls[$i + 1])) {
@@ -943,6 +1094,84 @@ class UrlToVideoOrchestrator
     }
 
     /**
+     * Extract only DYNAMIC elements from source text — things that visually MOVE in the video.
+     * Replaces buildRichEnvironmentalDetail() for Film mode. Does NOT describe static architecture.
+     */
+    protected function extractDynamicCues(string $sourceText): string
+    {
+        $cues = [];
+        $text = strtolower($sourceText);
+
+        if (preg_match('/\b(rain|drizzle|downpour)\b/', $text)) {
+            $cues[] = 'Rain continues to fall';
+        }
+        if (preg_match('/\b(smoke|steam|vapor)\b/', $text)) {
+            $cues[] = 'Smoke drifts lazily through the air';
+        }
+        if (preg_match('/\b(wind|breeze|blowing)\b/', $text)) {
+            $cues[] = 'Wind tugs at clothing and hair';
+        }
+        if (preg_match('/\b(flicker|pulse|glow)\b/', $text)) {
+            $cues[] = 'Lights flicker and pulse';
+        }
+        if (preg_match('/\b(snow|snowfall)\b/', $text)) {
+            $cues[] = 'Snowflakes drift slowly through the air';
+        }
+        if (preg_match('/\b(fire|flame|ember)\b/', $text)) {
+            $cues[] = 'Flames dance and flicker';
+        }
+
+        // Limit to 2 cues max to stay concise
+        return implode('. ', array_slice($cues, 0, 2));
+    }
+
+    /**
+     * Build physical speaking description for dialogue scenes.
+     * Maps mood to body language and identifies speakers from screenplay text.
+     */
+    protected function buildDialogueAction(array $scene, array $filmTemplateConfig): string
+    {
+        $text = $scene['text'] ?? '';
+        if (empty(trim($text))) return '';
+
+        $characters = $filmTemplateConfig['characters'] ?? [];
+        $mood = strtolower($scene['mood'] ?? '');
+
+        // Map mood to physical speaking manner
+        $mannerMap = [
+            'tense' => 'leans forward, speaking with urgency, jaw tight',
+            'dramatic' => 'speaks with intensity, gesturing emphatically',
+            'mysterious' => 'speaks in low tones, barely moving their lips',
+            'intimate' => 'speaks softly, leaning close',
+            'calm' => 'speaks evenly, relaxed posture',
+            'intense' => 'speaks forcefully, body tense',
+            'reflective' => 'speaks thoughtfully, gaze distant',
+            'hopeful' => 'speaks warmly, expression brightening',
+        ];
+        $manner = $mannerMap[$mood] ?? 'speaks, lips moving clearly';
+
+        // Parse dialogue lines to identify speakers
+        $speakers = [];
+        foreach (preg_split('/\n+/', trim($text)) as $line) {
+            if (preg_match('/^([A-Z][A-Z0-9_\s]+):\s*(.+)$/s', trim($line), $m)) {
+                $name = trim($m[1]);
+                if (!in_array($name, $speakers)) $speakers[] = $name;
+            }
+        }
+
+        if (count($speakers) === 0) return '';
+
+        if (count($speakers) === 1) {
+            $brief = $this->getCharacterBriefFromConfig($speakers[0], $characters);
+            return "{$brief} {$manner}.";
+        } else {
+            $brief1 = $this->getCharacterBriefFromConfig($speakers[0], $characters);
+            $brief2 = $this->getCharacterBriefFromConfig($speakers[1], $characters);
+            return "{$brief1} and {$brief2} face each other, exchanging words with visible emotion.";
+        }
+    }
+
+    /**
      * Build a Seedance video prompt for standard/creative mode scenes.
      * Produces a 100-130 word flowing narrative that weaves setting, camera,
      * subject action, environmental physics, and mood together.
@@ -1001,71 +1230,53 @@ class UrlToVideoOrchestrator
 
     /**
      * Build a Seedance video prompt for film mode scenes.
-     * Produces a 100-130 word flowing narrative paragraph that weaves setting, camera,
-     * subject action, environmental physics, and mood together.
+     * Lean 70-100 word action-focused prompt: character actions + camera + dynamic elements + dialogue.
+     * Does NOT describe static environment (buildings, walls, furniture) — Seedance already sees the image.
      */
     public function buildFilmVideoPrompt(array $scene, ?array $styleConfig, array $filmTemplateConfig): string
     {
-        // 1. Gather all source material
         $videoAction = trim($scene['video_action'] ?? '');
         $direction = trim($scene['direction'] ?? '');
-        $atmosphere = $filmTemplateConfig['atmosphere'] ?? '';
         $cameraMotion = $scene['camera_motion'] ?? 'slow zoom in';
-        $mood = strtolower(trim($scene['mood'] ?? ''));
-        $overrides = $filmTemplateConfig['visual_overrides'] ?? [];
-        $videoAnchor = $overrides['videoAnchor'] ?? '';
-        $locationHint = $scene['location_hint'] ?? '';
 
-        // Determine if scene is interior (suppress outdoor environmental cues)
-        $isInterior = !empty($locationHint) && str_starts_with($locationHint, 'interior');
-
-        // Source text = full video_action or direction (NOT stripped)
+        // Source text = video_action (character actions) or direction fallback
         $sourceText = !empty($videoAction) ? $videoAction : $direction;
         if (empty($sourceText)) {
             $sourceText = trim($scene['text'] ?? '');
         }
-
         if (empty($sourceText)) {
             return $this->mapCameraToSeedance($cameraMotion);
         }
 
-        // 2. Build flowing narrative in layers
-        $narrative = '';
+        // 1. Core action — the full source text (already has character descriptions)
+        $narrative = trim($sourceText);
 
-        // Layer 1: Scene setting (the first 1-2 sentences as environment foundation)
-        $narrative .= $this->extractSettingOpener($sourceText);
-
-        // Layer 2: First camera movement woven in
+        // 2. Camera motion — weave in after first sentence (not repeated at end)
         $cameraPhrase = $this->mapCameraToSeedance($cameraMotion);
-        $narrative .= ' ' . $cameraPhrase . '.';
-
-        // Layer 3: Subject action (remaining action content from source)
-        $actionContent = $this->extractActionContent($sourceText);
-        if (!empty($actionContent)) {
-            $narrative .= ' ' . $actionContent;
+        $sentences = preg_split('/(?<=[.!?])\s+/', $narrative, 3, PREG_SPLIT_NO_EMPTY);
+        if (count($sentences) >= 2) {
+            $narrative = $sentences[0] . '. ' . $cameraPhrase . '. ' . implode(' ', array_slice($sentences, 1));
+        } else {
+            $narrative .= ' ' . $cameraPhrase . '.';
         }
 
-        // Layer 4: Environmental physics (expanded — 3-4 rich cues, location-aware)
-        $envDetail = $this->buildRichEnvironmentalDetail($atmosphere, $mood, $sourceText, $videoAnchor, $isInterior);
-        if (!empty($envDetail)) {
-            $narrative .= ' ' . $envDetail;
+        // 3. Dynamic elements only (things that MOVE, not static environment)
+        $dynamicCues = $this->extractDynamicCues($sourceText);
+        if (!empty($dynamicCues)) {
+            $narrative .= ' ' . $dynamicCues;
         }
 
-        // Layer 5: Dialogue hint (if applicable)
+        // 4. Dialogue action (physical speaking description if applicable)
         if (!empty($scene['has_dialogue'])) {
-            $dialogueLine = $this->extractDialogueForSeedance($scene, $filmTemplateConfig);
-            if (!empty($dialogueLine)) {
-                $narrative .= ' ' . $dialogueLine;
+            $dialogueAction = $this->buildDialogueAction($scene, $filmTemplateConfig);
+            if (!empty($dialogueAction)) {
+                $narrative .= ' ' . $dialogueAction;
             }
         }
 
-        // Layer 6: Second camera reference + mood closer
-        $narrative .= ' ' . $this->buildMoodCloser($mood, $cameraMotion);
+        // Enforce 70-100 word range (lean, action-focused)
+        $narrative = $this->enforceWordRange($narrative, 70, 100);
 
-        // Enforce 100-130 word range and clean up
-        $narrative = $this->enforceWordRange($narrative, 100, 130);
-
-        // Sanitize for Seedance
         if (class_exists(SeedancePromptService::class)) {
             $narrative = SeedancePromptService::sanitize($narrative);
         }

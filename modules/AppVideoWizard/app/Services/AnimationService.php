@@ -124,6 +124,7 @@ class AnimationService
             'resolution' => $options['resolution'] ?? '1080p',
             'generate_audio' => $options['generate_audio'] ?? true,
             'anti_speech' => $options['anti_speech'] ?? true,
+            'has_dialogue' => $options['has_dialogue'] ?? false,
             'camera_fixed' => $options['camera_fixed'] ?? false,
             'variant' => $options['variant'] ?? 'pro',
             'end_image_url' => $options['end_image_url'] ?? null,

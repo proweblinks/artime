@@ -58,6 +58,12 @@ class WaveSpeedService
             }
         }
 
+        // Dialogue emphasis: when speech is allowed AND scene has dialogue,
+        // encourage Seedance to generate audible speech with clear lip movement.
+        if (!$antiSpeech && !empty($options['has_dialogue'])) {
+            $prompt = rtrim($prompt) . ' The character speaks audibly with clear lip movement.';
+        }
+
         $payload = [
             'image' => $imageUrl,
             'prompt' => $prompt,
