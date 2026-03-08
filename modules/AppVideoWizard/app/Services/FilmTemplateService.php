@@ -234,6 +234,11 @@ PROMPT;
             // Physical chars appear in images/videos; all chars needed for voice/tracking
             $physicalChars = $this->detectCharactersInScene($direction, $characters);
             $allDetectedChars = $this->detectCharactersInScene($direction . ' ' . $body, $characters);
+
+            // V4: Pronoun resolution — "he/his" → male char, "she/her" → female char
+            // Only when a single character of that gender exists and isn't already detected
+            $physicalChars = $this->resolvePronouns($direction, $physicalChars, $characters);
+            $allDetectedChars = $this->resolvePronouns($direction . ' ' . $body, $allDetectedChars, $characters);
             $mood = $this->detectMood($direction, $body, $sceneType);
             $locationHint = $this->detectLocation($direction);
 
@@ -264,7 +269,7 @@ PROMPT;
             );
 
             // --- Video action (for Seedance: 30-100 words, physical chars only) ---
-            $videoAction = $this->buildConciseVideoAction($direction, $physicalChars, $characters, $isVisualOnly);
+            $videoAction = $this->buildConciseVideoAction($direction, $physicalChars, $characters, $isVisualOnly, $body);
 
             // --- Camera motion (cycle through template rules by scene type) ---
             $typeRules = $cameraRules[$sceneType] ?? $cameraRules['dialogue'] ?? ['slow zoom in'];
@@ -321,6 +326,54 @@ PROMPT;
                 'location_hint' => $effectiveLocation,
                 'scene_type' => $sceneType,
             ];
+        }
+
+        // V4: Character continuity carry-forward pass
+        // If character was in scene N-1 AND N+1 but NOT in N, add them to N
+        // (unless scene N explicitly indicates solitude)
+        $visualScript = $this->applyCharacterCarryForward($visualScript, $characters, $scenes);
+
+        return $visualScript;
+    }
+
+    /**
+     * Post-processing: carry forward characters across adjacent scenes.
+     * Fixes gaps where a character appears in scenes 10 and 12 but not 11.
+     */
+    protected function applyCharacterCarryForward(array $visualScript, array $characters, array $scenes): array
+    {
+        $total = count($visualScript);
+        if ($total < 3) return $visualScript;
+
+        // Solitude keywords — scene explicitly excludes other characters
+        $solitudePattern = '/\b(alone|solitary|solo|by\s+(?:him|her|them)self|isolated|empty\s+room)\b/i';
+
+        for ($i = 1; $i < $total - 1; $i++) {
+            $sceneText = ($scenes[$i]['direction'] ?? '') . ' ' . ($scenes[$i]['text'] ?? '');
+
+            // Skip if scene explicitly indicates solitude
+            if (preg_match($solitudePattern, $sceneText)) continue;
+
+            $currentChars = $visualScript[$i]['characters_in_scene'];
+            $prevChars = $visualScript[$i - 1]['characters_in_scene'];
+            $nextChars = $visualScript[$i + 1]['characters_in_scene'];
+
+            // Also check same-location continuity (char at same location should persist)
+            $sameLocationAsPrev = ($visualScript[$i]['location_hint'] === $visualScript[$i - 1]['location_hint']
+                && $visualScript[$i]['location_hint'] !== 'exterior_unknown');
+
+            foreach ($characters as $char) {
+                $charName = $char['name'];
+                if (in_array($charName, $currentChars)) continue; // Already present
+
+                $inPrev = in_array($charName, $prevChars);
+                $inNext = in_array($charName, $nextChars);
+
+                // Carry forward if: (in prev AND next) OR (in prev AND same location)
+                if (($inPrev && $inNext) || ($inPrev && $sameLocationAsPrev)) {
+                    $visualScript[$i]['characters_in_scene'][] = $charName;
+                }
+            }
         }
 
         return $visualScript;
@@ -528,7 +581,7 @@ PROMPT;
      * Focuses on: subject + motion + key visual detail + degree adverbs.
      * No template prefix/suffix — those go into buildVideoPrompt's style layers.
      */
-    protected function buildConciseVideoAction(string $direction, array $detectedChars, array $characters, bool $isVisualOnly): string
+    protected function buildConciseVideoAction(string $direction, array $detectedChars, array $characters, bool $isVisualOnly, string $dialogueText = ''): string
     {
         if (empty($direction)) return '';
 
@@ -568,6 +621,15 @@ PROMPT;
             }
         }
 
+        // Append dialogue emotional context for Seedance lip-sync
+        // Converts "REN: We need to move now." into "he speaks urgently"
+        if (!$isVisualOnly && !empty(trim($dialogueText))) {
+            $dialogueHint = $this->buildDialogueHint($dialogueText, $detectedChars, $characters);
+            if (!empty($dialogueHint)) {
+                $action .= '. ' . $dialogueHint;
+            }
+        }
+
         // Trim to 100 words max (film mode weaves camera/style inline, not appended)
         $words = explode(' ', $action);
         if (count($words) > 100) {
@@ -575,6 +637,60 @@ PROMPT;
         }
 
         return trim($action);
+    }
+
+    /**
+     * Build a concise dialogue hint for video prompts.
+     * Converts screenplay dialogue lines into visual/emotional descriptors.
+     * "REN: We need to move now." → "A man with cybernetic implant speaks urgently"
+     */
+    protected function buildDialogueHint(string $dialogueText, array $detectedChars, array $characters): string
+    {
+        $lines = preg_split('/\n+/', trim($dialogueText));
+        $hints = [];
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (!preg_match('/^([A-Z][A-Z0-9_\s]+):\s*(.+)$/s', $line, $m)) continue;
+
+            $speakerName = trim($m[1]);
+            $spokenText = trim($m[2], '" ');
+            if (empty($spokenText)) continue;
+
+            // Find matching character
+            $matchedChar = null;
+            foreach ($characters as $char) {
+                if (strtoupper(trim($char['name'])) === strtoupper($speakerName)) {
+                    $matchedChar = $char;
+                    break;
+                }
+            }
+
+            // Determine emotion from spoken text
+            $emotion = $this->detectDialogueEmotion($spokenText);
+            $brief = $matchedChar ? $this->getCharacterVisualBrief($matchedChar) : 'a person';
+            $hints[] = "{$brief} speaks {$emotion}";
+
+            if (count($hints) >= 2) break; // Max 2 speakers for video clarity
+        }
+
+        return implode(', while ', $hints);
+    }
+
+    /**
+     * Detect emotional tone from spoken dialogue text.
+     */
+    protected function detectDialogueEmotion(string $text): string
+    {
+        $lower = strtolower($text);
+        if (preg_match('/[!]{2,}|damn|hell|stop|enough/', $lower)) return 'forcefully';
+        if (preg_match('/\?.*\?|what|who|why|how/', $lower)) return 'questioningly';
+        if (preg_match('/please|help|need|must|hurry/', $lower)) return 'urgently';
+        if (preg_match('/remember|once|long ago|used to/', $lower)) return 'reflectively';
+        if (preg_match('/trust|together|promise|believe/', $lower)) return 'earnestly';
+        if (preg_match('/quiet|whisper|careful|listen/', $lower)) return 'softly';
+        if (preg_match('/never|betray|lie|deceive/', $lower)) return 'fiercely';
+        return 'firmly';
     }
 
     /**
@@ -627,6 +743,41 @@ PROMPT;
             $words = array_slice($words, 0, 4);
         }
         return trim(implode(' ', $words));
+    }
+
+    /**
+     * Resolve pronouns in scene text to detect implied characters.
+     * If text contains "he/his/him" and only one male character exists, add that character.
+     * Same for "she/her" with female characters.
+     */
+    protected function resolvePronouns(string $text, array $detectedChars, array $characters): array
+    {
+        $lower = strtolower($text);
+
+        // Build gender-to-character mapping (only useful when a single char per gender)
+        $maleChars = [];
+        $femaleChars = [];
+        foreach ($characters as $char) {
+            $gender = strtolower($char['gender'] ?? 'unknown');
+            if ($gender === 'male') $maleChars[] = $char['name'];
+            elseif ($gender === 'female') $femaleChars[] = $char['name'];
+        }
+
+        // Resolve male pronouns — only if exactly one male character exists
+        if (count($maleChars) === 1 && !in_array($maleChars[0], $detectedChars)) {
+            if (preg_match('/\b(he|his|him|himself)\b/', $lower)) {
+                $detectedChars[] = $maleChars[0];
+            }
+        }
+
+        // Resolve female pronouns — only if exactly one female character exists
+        if (count($femaleChars) === 1 && !in_array($femaleChars[0], $detectedChars)) {
+            if (preg_match('/\b(she|her|hers|herself)\b/', $lower)) {
+                $detectedChars[] = $femaleChars[0];
+            }
+        }
+
+        return $detectedChars;
     }
 
     /**

@@ -758,14 +758,11 @@ class UrlToVideoOrchestrator
                 'crop' => $crop,
                 'video_edit' => $scene['video_edit'] ?? null,
                 'clips' => $scene['clips'] ?? null,
-                'kenBurns' => [
-                    'startScale' => 1.0,
-                    'endScale' => 1.2,
-                    'startX' => $focalX,
-                    'startY' => $focalY,
-                    'endX' => $focalX + (($i % 2 === 0) ? 0.05 : -0.05),
-                    'endY' => $focalY + (($i % 3 === 0) ? 0.05 : -0.05),
-                ],
+                'kenBurns' => $isFilmMode
+                    // Film mode: static hold, no zoom/pan (cinema, not slideshow)
+                    ? ['startScale' => 1.0, 'endScale' => 1.0, 'startX' => 0.5, 'startY' => 0.5, 'endX' => 0.5, 'endY' => 0.5]
+                    // Story/social mode: gentle Ken Burns zoom
+                    : ['startScale' => 1.0, 'endScale' => 1.2, 'startX' => $focalX, 'startY' => $focalY, 'endX' => $focalX + (($i % 2 === 0) ? 0.05 : -0.05), 'endY' => $focalY + (($i % 3 === 0) ? 0.05 : -0.05)],
             ];
         }
 
