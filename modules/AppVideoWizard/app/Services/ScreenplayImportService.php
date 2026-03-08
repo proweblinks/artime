@@ -46,7 +46,8 @@ class ScreenplayImportService
         $template = $this->buildSyntheticTemplate($parsed, $aspectRatio);
         $transcript = $this->toTranscript($allSegments);
 
-        return [
+        // Ensure everything is valid UTF-8 for JSON serialization (Livewire)
+        $result = [
             'title' => $parsed['title'] ?? 'Imported Screenplay',
             'transcript' => $transcript,
             'segments' => $allSegments,
@@ -54,6 +55,8 @@ class ScreenplayImportService
             'scene_count' => count($allSegments),
             'estimated_duration' => array_sum(array_column($allSegments, 'estimated_duration')),
         ];
+
+        return $this->sanitizeUtf8($result);
     }
 
     // ──────────────────────────────────────────────────
@@ -82,7 +85,7 @@ class ScreenplayImportService
         if ($titleNode) {
             $raw = trim($this->utf8($titleNode->textContent));
             // Strip suffixes like " — A Screenplay"
-            $title = preg_replace('/\s*[—–-]\s*A\s+Screenplay.*/i', '', $raw) ?: $raw;
+            $title = preg_replace('/\s*[—–\-]\s*A\s+Screenplay.*/iu', '', $raw) ?: $raw;
         }
 
         // Find all scene containers
@@ -118,7 +121,7 @@ class ScreenplayImportService
                     }
                     // Extract location name: remove INT./EXT. prefix and time suffix
                     $locationName = preg_replace('/^(INT|EXT)\.?\s*/i', '', $text);
-                    $locationName = preg_replace('/\s*[—–-]\s*(CONTINUOUS|NIGHT|DAY|DAWN|DUSK|LATER|MOMENTS LATER|SAME TIME).*$/i', '', $locationName);
+                    $locationName = preg_replace('/\s*[—–\-]\s*(CONTINUOUS|NIGHT|DAY|DAWN|DUSK|LATER|MOMENTS LATER|SAME TIME).*$/iu', '', $locationName);
                     $locationName = trim($locationName);
                     continue;
                 }
@@ -273,7 +276,7 @@ class ScreenplayImportService
                 $sceneNumber++;
                 $locationType = preg_match('/^EXT/i', $trimmed) ? 'exterior' : 'interior';
                 $locationName = preg_replace('/^(INT|EXT)\.?\s*/i', '', $trimmed);
-                $locationName = preg_replace('/\s*[—–-]\s*(CONTINUOUS|NIGHT|DAY|DAWN|DUSK|LATER|MOMENTS LATER|SAME TIME).*$/i', '', $locationName);
+                $locationName = preg_replace('/\s*[—–\-]\s*(CONTINUOUS|NIGHT|DAY|DAWN|DUSK|LATER|MOMENTS LATER|SAME TIME).*$/iu', '', $locationName);
 
                 $currentScene = [
                     'number' => $sceneNumber,
@@ -633,6 +636,20 @@ class ScreenplayImportService
     }
 
     /**
+     * Recursively sanitize all strings in an array to valid UTF-8.
+     */
+    private function sanitizeUtf8($data)
+    {
+        if (is_string($data)) {
+            return mb_convert_encoding($data, 'UTF-8', 'UTF-8');
+        }
+        if (is_array($data)) {
+            return array_map([$this, 'sanitizeUtf8'], $data);
+        }
+        return $data;
+    }
+
+    /**
      * Check if an element has a specific CSS class.
      */
     private function hasClass(string $classList, string $className): bool
@@ -688,7 +705,7 @@ class ScreenplayImportService
         // Remove INT./EXT. prefix
         $dir = preg_replace('/^(INT|EXT)\.?\s*/i', '', $slug);
         // Remove time/continuity suffixes
-        $dir = preg_replace('/\s*[—–-]\s*(CONTINUOUS|NIGHT|DAY|DAWN|DUSK|LATER|MOMENTS LATER|SAME TIME).*$/i', '', $dir);
+        $dir = preg_replace('/\s*[—–\-]\s*(CONTINUOUS|NIGHT|DAY|DAWN|DUSK|LATER|MOMENTS LATER|SAME TIME).*$/iu', '', $dir);
         $dir = trim($dir);
 
         // Add location type context
