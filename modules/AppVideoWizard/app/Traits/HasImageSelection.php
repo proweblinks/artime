@@ -834,7 +834,7 @@ trait HasImageSelection
                     'model' => 'gemini-2.5-flash',
                     'mimeType' => $mimeType,
                     'temperature' => 0.8,
-                    'maxOutputTokens' => 800,
+                    'maxOutputTokens' => 16384,
                 ]);
                 Log::debug('[VideoPrompt] Raw vision response', [
                     'scene' => $sceneId,
@@ -843,6 +843,9 @@ trait HasImageSelection
                     'text_words' => str_word_count($visionResult['text'] ?? ''),
                     'raw_text' => $visionResult['text'] ?? '(empty)',
                     'error' => $visionResult['error'] ?? null,
+                    'finishReason' => $visionResult['finishReason'] ?? 'unknown',
+                    'thinkingLength' => $visionResult['thinkingLength'] ?? 0,
+                    'partsCount' => $visionResult['partsCount'] ?? 0,
                 ]);
                 if (!empty($visionResult['success']) && !empty($visionResult['text'])) {
                     $generatedPrompt = trim($visionResult['text']);
@@ -856,7 +859,7 @@ trait HasImageSelection
 
             // Text-only fallback (no image or vision failed)
             if (empty($generatedPrompt)) {
-                $textResult = $gemini->generateText($userPrompt, 800, 1, 'text', [
+                $textResult = $gemini->generateText($userPrompt, 16384, 1, 'text', [
                     'model' => 'gemini-2.5-flash',
                     'temperature' => 0.8,
                 ]);

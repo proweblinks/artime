@@ -204,7 +204,16 @@ class GeminiService
             $result = [];
             if (!empty($body['candidates'])) {
                 foreach ($body['candidates'] as $candidate) {
-                    $result[] = $candidate['content']['parts'][0]['text'] ?? '';
+                    // Handle Gemini 2.5 thinking model responses — skip thinking parts
+                    $candidateText = '';
+                    $candidateParts = $candidate['content']['parts'] ?? [];
+                    foreach ($candidateParts as $part) {
+                        if (!empty($part['thought'])) continue; // Skip thinking/reasoning parts
+                        if (isset($part['text'])) {
+                            $candidateText .= $part['text'];
+                        }
+                    }
+                    $result[] = $candidateText;
                 }
             }
 
@@ -1110,13 +1119,31 @@ EOT;
         try {
             $body = $this->sendGenerateContentRequest($model, $payload, $generationConfig);
 
-            // Extract text from response
-            $text = $body['candidates'][0]['content']['parts'][0]['text'] ?? '';
+            // Extract text from response — handle Gemini 2.5 thinking model responses
+            // Thinking models return multiple parts: [{thought:true, text:"..."}, {text:"actual output"}]
+            // We must skip thinking parts and concatenate only the actual output
+            $text = '';
+            $thinkingText = '';
+            $parts = $body['candidates'][0]['content']['parts'] ?? [];
+            foreach ($parts as $part) {
+                if (!empty($part['thought'])) {
+                    $thinkingText .= ($part['text'] ?? '');
+                    continue;
+                }
+                if (isset($part['text'])) {
+                    $text .= $part['text'];
+                }
+            }
+
+            $finishReason = $body['candidates'][0]['finishReason'] ?? 'unknown';
 
             return [
                 'success' => true,
                 'text' => $text,
                 'model' => $model,
+                'finishReason' => $finishReason,
+                'thinkingLength' => strlen($thinkingText),
+                'partsCount' => count($parts),
             ];
 
         } catch (\Throwable $e) {
@@ -1129,6 +1156,7 @@ EOT;
                 'success' => false,
                 'text' => '',
                 'error' => $e->getMessage(),
+                'finishReason' => 'ERROR',
             ];
         }
     }
