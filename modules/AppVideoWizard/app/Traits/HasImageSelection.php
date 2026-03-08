@@ -604,7 +604,7 @@ trait HasImageSelection
                 return;
             }
 
-            $aspectRatio = $this->aspectRatio ?? '9:16';
+            $aspectRatio = property_exists($this, 'imageAspectRatio') ? ($this->imageAspectRatio ?? '9:16') : ($this->aspectRatio ?? '9:16');
             $teamId = session('current_team_id');
 
             // Film mode: use FilmTemplateService for flowing image prompts with visual variety
@@ -1165,7 +1165,7 @@ SYSTEM;
                 'team_id' => $teamId,
                 'name' => '[AI Studio] Image Generation',
                 'status' => 'processing',
-                'aspect_ratio' => $this->aspectRatio ?? '9:16',
+                'aspect_ratio' => property_exists($this, 'imageAspectRatio') ? ($this->imageAspectRatio ?? '9:16') : ($this->aspectRatio ?? '9:16'),
                 'platform' => 'multi-platform',
             ]);
 
@@ -1497,7 +1497,7 @@ SYSTEM;
                 'team_id' => $teamId,
                 'name' => '[AI Studio] Video Generation',
                 'status' => 'processing',
-                'aspect_ratio' => $this->aspectRatio ?? '9:16',
+                'aspect_ratio' => property_exists($this, 'videoAspectRatio') ? ($this->videoAspectRatio ?? '9:16') : ($this->aspectRatio ?? '9:16'),
                 'platform' => 'multi-platform',
             ]);
 
@@ -1534,7 +1534,7 @@ SYSTEM;
                 'sceneIndex' => $sceneIndex,
                 'resolution' => property_exists($this, 'videoResolution') ? $this->videoResolution : '480p',
                 'variant' => property_exists($this, 'videoQuality') ? $this->videoQuality : 'pro',
-                'generate_audio' => false,
+                'generate_audio' => property_exists($this, 'generateAudio') ? $this->generateAudio : true,
             ]);
 
             if (!empty($result['success']) && !empty($result['taskId'])) {
@@ -1936,7 +1936,9 @@ SYSTEM;
                 'source_type' => property_exists($this, 'detectedSourceType') ? ($this->detectedSourceType ?: 'prompt') : 'prompt',
                 'transcript' => property_exists($this, 'editableTranscript') ? $this->editableTranscript : null,
                 'transcript_word_count' => property_exists($this, 'transcriptWordCount') ? $this->transcriptWordCount : 0,
-                'aspect_ratio' => property_exists($this, 'aspectRatio') ? ($this->aspectRatio ?? '9:16') : '9:16',
+                'aspect_ratio' => property_exists($this, 'videoAspectRatio') ? ($this->videoAspectRatio ?? '9:16') : ($this->aspectRatio ?? '9:16'),
+                'image_aspect_ratio' => property_exists($this, 'imageAspectRatio') ? ($this->imageAspectRatio ?? '9:16') : ($this->aspectRatio ?? '9:16'),
+                'video_aspect_ratio' => property_exists($this, 'videoAspectRatio') ? ($this->videoAspectRatio ?? '9:16') : ($this->aspectRatio ?? '9:16'),
                 'voice_id' => property_exists($this, 'selectedVoice') ? ($this->selectedVoice !== 'auto' ? $this->selectedVoice : null) : null,
                 'voice_provider' => property_exists($this, 'voiceProvider') ? ($this->voiceProvider ?: null) : null,
                 'visual_script' => !empty($this->sceneVisualScript) ? array_values($this->sceneVisualScript) : null,
@@ -2006,7 +2008,8 @@ SYSTEM;
         if (property_exists($this, 'editableTranscript')) $this->editableTranscript = $draft->transcript;
         if (property_exists($this, 'transcriptWordCount')) $this->transcriptWordCount = $draft->transcript_word_count ?? 0;
         if (property_exists($this, 'generatedTitle')) $this->generatedTitle = $draft->title;
-        if (property_exists($this, 'aspectRatio')) $this->aspectRatio = $draft->aspect_ratio ?? '9:16';
+        if (property_exists($this, 'imageAspectRatio')) $this->imageAspectRatio = $draft->image_aspect_ratio ?? $draft->aspect_ratio ?? '9:16';
+        if (property_exists($this, 'videoAspectRatio')) $this->videoAspectRatio = $draft->video_aspect_ratio ?? $draft->aspect_ratio ?? '9:16';
         if (property_exists($this, 'selectedVoice')) $this->selectedVoice = $draft->voice_id ?? 'auto';
         if (property_exists($this, 'voiceProvider')) $this->voiceProvider = $draft->voice_provider ?? '';
         if (property_exists($this, 'storedExtractedContent')) $this->storedExtractedContent = $draft->extracted_content ?? [];

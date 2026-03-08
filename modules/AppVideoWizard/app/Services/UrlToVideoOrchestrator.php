@@ -756,6 +756,8 @@ PROMPT;
                     $videoPrompt = $this->buildVideoPrompt($scene, $styleInstruction, $aspectRatio, $styleConfig, null);
                 }
 
+                $generateAudio = $metadata['generate_audio'] ?? $isFilmMode;
+
                 $animationOptions = [
                     'imageUrl' => $imageUrl,
                     'prompt' => $videoPrompt,
@@ -763,8 +765,7 @@ PROMPT;
                     'sceneIndex' => $i,
                     'resolution' => $project->metadata['video_resolution'] ?? '480p',
                     'variant' => $project->metadata['video_quality'] ?? 'pro',
-                    'generate_audio' => $isFilmMode,
-                    'anti_speech' => !$isFilmMode,
+                    'generate_audio' => $generateAudio,
                     'has_dialogue' => !empty($scene['has_dialogue']),
                 ];
 
@@ -934,7 +935,7 @@ PROMPT;
             ],
             'music' => $musicEnabled ? ['volume' => $musicVolume] : null,
             'captions' => $captionsEnabled ? ['enabled' => true, 'style' => 'default'] : null,
-            'preserve_audio' => $isFilmMode,
+            'preserve_audio' => ($metadata['generate_audio'] ?? $isFilmMode),
             'userId' => $project->user_id,
             'projectId' => $project->id,
         ];

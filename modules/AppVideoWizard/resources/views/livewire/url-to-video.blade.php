@@ -60,6 +60,7 @@
                  videoAspectRatio: $wire.entangle('videoAspectRatio'),
                  resolution: @js($videoResolution),
                  quality: @js($videoQuality),
+                 generateAudio: $wire.entangle('generateAudio'),
                  imageModel: $wire.entangle('imageModel'),
                  imageModelNames: { nanobanana2: 'NanoBanana 2', nanobanana: 'NanoBanana', hidream: 'HiDream' },
                  imageModelCosts: { nanobanana2: '3t', nanobanana: '1t', hidream: '2t' },
@@ -345,6 +346,17 @@
                                     </span>
                                     <span class="utv-settings-value">
                                         <span x-text="quality.charAt(0).toUpperCase() + quality.slice(1)"></span>
+                                        <i class="fa-light fa-chevron-right" style="font-size: 0.65rem; opacity: 0.4;"></i>
+                                    </span>
+                                </button>
+
+                                <button @click="generateAudio = !generateAudio" type="button" class="utv-settings-row">
+                                    <span class="d-flex align-items-center gap-2">
+                                        <i class="fa-light fa-volume utv-settings-icon"></i>
+                                        {{ __('Sound') }}
+                                    </span>
+                                    <span class="utv-settings-value">
+                                        <span x-text="generateAudio ? 'On' : 'Off'"></span>
                                         <i class="fa-light fa-chevron-right" style="font-size: 0.65rem; opacity: 0.4;"></i>
                                     </span>
                                 </button>

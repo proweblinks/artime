@@ -32,6 +32,7 @@ class UrlToVideo extends Component
     public string $voiceProvider = '';
     public string $videoResolution = '480p';
     public string $videoQuality = 'pro';
+    public bool $generateAudio = true;
     public string $imageModel = 'nanobanana2';
     public int $videoDuration = 60;
     public string $narrativeStyle = 'hook_reveal';
@@ -736,6 +737,7 @@ class UrlToVideo extends Component
                 'ai_engine' => get_option('story_mode_ai_engine', 'gemini'),
                 'video_resolution' => $this->videoResolution,
                 'video_quality' => $this->videoQuality,
+                'generate_audio' => $this->generateAudio,
                 'image_model' => $this->imageModel,
                 'video_duration_target' => $this->videoDuration,
                 'narrative_style' => $this->filmMode ? 'film' : ($this->creativeMode ? 'creative' : $this->narrativeStyle),
@@ -981,6 +983,7 @@ class UrlToVideo extends Component
         $meta = $project->metadata ?? [];
         $this->videoResolution = $meta['video_resolution'] ?? '480p';
         $this->videoQuality = $meta['video_quality'] ?? 'pro';
+        $this->generateAudio = $meta['generate_audio'] ?? true;
         $this->videoDuration = $meta['video_duration_target'] ?? 60;
         $this->narrativeStyle = $meta['narrative_style'] ?? 'hook_reveal';
         $this->creativeMode = $meta['creative_mode'] ?? false;

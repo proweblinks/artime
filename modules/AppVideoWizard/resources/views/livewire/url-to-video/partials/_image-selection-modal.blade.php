@@ -1488,6 +1488,7 @@
                      imageModel: @js($imageModel),
                      resolution: @js($videoResolution),
                      quality: @js($videoQuality),
+                     generateAudio: @js($generateAudio),
                      init() {
                          this.$watch('imageAspectRatio', (val) => {
                              $wire.set('imageAspectRatio', val);
@@ -1507,6 +1508,9 @@
                          });
                          this.$watch('resolution', (val) => {
                              $wire.set('videoResolution', val);
+                         });
+                         this.$watch('generateAudio', (val) => {
+                             $wire.set('generateAudio', val);
                          });
                      }
                  }">
@@ -1563,6 +1567,11 @@
                         <option value="pro">Pro</option>
                         <option value="fast">Fast</option>
                     </select>
+                </div>
+                <div class="d-flex align-items-center gap-2" @click="generateAudio = !generateAudio" style="cursor: pointer;">
+                    <i class="fa-light fa-volume" style="font-size: 0.85rem; color: var(--at-text-muted, #94a0b8);"></i>
+                    <small style="white-space: nowrap; color: var(--at-text-muted, #94a0b8);">{{ __('Sound') }}</small>
+                    <span class="badge" :class="generateAudio ? 'bg-success' : 'bg-secondary'" style="font-size: 0.7rem;" x-text="generateAudio ? 'On' : 'Off'"></span>
                 </div>
             </div>
             <div class="d-flex gap-3">
