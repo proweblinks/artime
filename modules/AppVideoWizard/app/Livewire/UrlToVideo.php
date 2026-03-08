@@ -12,6 +12,7 @@ use Modules\AppVideoWizard\Services\UrlContentExtractorService;
 use Modules\AppVideoWizard\Services\StoryModeScriptService;
 use Modules\AppVideoWizard\Services\FilmTemplateService;
 use Modules\AppVideoWizard\Services\ImageSourceService;
+use Modules\AppVideoWizard\Services\ScreenplayImportService;
 use Modules\AppVideoWizard\Jobs\UrlToVideoGenerationJob;
 use Modules\AppVideoWizard\Traits\HasImageSelection;
 
@@ -46,6 +47,10 @@ class UrlToVideo extends Component
     public bool $filmMode = false;
     public ?string $selectedFilmTemplate = null;
     public ?array $filmTemplateConfig = null;
+
+    // Script file import
+    public $scriptFile = null;
+    public bool $hasImportedScript = false;
 
     // Extraction state
     public bool $isExtracting = false;
@@ -120,6 +125,59 @@ class UrlToVideo extends Component
             $this->sourceUrl = '';
             $this->detectedSourceType = '';
             $this->extractedPreview = [];
+        }
+    }
+
+    /**
+     * Auto-trigger screenplay import when file upload completes.
+     */
+    public function updatedScriptFile()
+    {
+        if ($this->scriptFile) {
+            $this->importScreenplay();
+        }
+    }
+
+    /**
+     * Import an uploaded screenplay file (.html, .htm, .txt).
+     */
+    public function importScreenplay()
+    {
+        $this->validate(['scriptFile' => 'required|file|max:2048|mimes:html,htm,txt']);
+
+        try {
+            $content = $this->scriptFile->get();
+            $ext = strtolower($this->scriptFile->getClientOriginalExtension());
+            $fileType = in_array($ext, ['html', 'htm']) ? 'html' : 'text';
+
+            $importer = new ScreenplayImportService();
+            $result = $importer->import($content, $fileType, $this->aspectRatio);
+
+            // Set film mode with synthetic template
+            $this->filmMode = true;
+            $this->filmTemplateConfig = $result['template'];
+            $this->selectedFilmTemplate = 'imported_screenplay';
+            $this->hasImportedScript = true;
+
+            // Populate transcript (user can edit before confirming)
+            $this->editableTranscript = $result['transcript'];
+            $this->transcriptWordCount = str_word_count($result['transcript']);
+            $this->generatedTitle = $result['title'];
+            $this->generatedSegments = $result['segments'];
+            $this->videoDuration = (int) $result['estimated_duration'];
+
+            // Clear URL/creative state
+            $this->storedExtractedContent = [];
+            $this->storedContentBrief = [];
+            $this->creativeMode = false;
+
+            // Show transcript modal for review
+            $this->showTranscriptModal = true;
+        } catch (\Exception $e) {
+            Log::error('UrlToVideo: Screenplay import failed', ['error' => $e->getMessage()]);
+            session()->flash('error', 'Failed to import screenplay: ' . $e->getMessage());
+        } finally {
+            $this->scriptFile = null;
         }
     }
 

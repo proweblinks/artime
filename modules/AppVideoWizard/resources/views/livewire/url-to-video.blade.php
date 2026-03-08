@@ -116,6 +116,29 @@
                     {{ $isGeneratingScript ? 'disabled' : '' }}
                 ></textarea>
 
+                {{-- Script Import Loading --}}
+                <div wire:loading wire:target="scriptFile" class="d-flex align-items-center gap-2 px-3 pb-2">
+                    <div class="d-flex align-items-center gap-2 px-3 py-2" style="background: #f5f7fa; border-radius: 10px; font-size: 0.82rem; color: #5a6178;">
+                        <i class="fa-light fa-spinner-third fa-spin" style="color: #f59e0b;"></i>
+                        <span>{{ __('Importing screenplay...') }}</span>
+                    </div>
+                </div>
+
+                {{-- Imported Script Badge --}}
+                @if($hasImportedScript)
+                    <div class="d-flex align-items-center gap-2 px-3 pb-2">
+                        <div class="d-flex align-items-center gap-2 px-3 py-2"
+                             style="background: #f5f7fa; border-radius: 10px;">
+                            <span style="background: rgba(245,158,11,0.15); color: #f59e0b; font-size: 0.7rem; padding: 3px 8px; border-radius: 5px; font-weight: 600;">
+                                <i class="fa-light fa-file-import me-1"></i>Imported Script
+                            </span>
+                            <span style="font-size: 0.78rem; color: var(--at-text-secondary, #5a6178);">
+                                {{ $generatedTitle }}
+                            </span>
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Content Preview Badge --}}
                 @if(!empty($extractedPreview) || $isExtracting)
                     <div class="d-flex align-items-center gap-2 px-3 pb-2">
@@ -349,6 +372,19 @@
                                     </button>
                                 @endforeach
                             </div>
+                        </div>
+
+                        {{-- Script Import Button --}}
+                        <div class="position-relative">
+                            <label for="script-upload" class="utv-tool-btn" style="cursor: pointer; margin: 0;">
+                                <i class="fa-light fa-file-import"></i>
+                                <span>{{ __('Script') }}</span>
+                            </label>
+                            <input type="file"
+                                   id="script-upload"
+                                   wire:model="scriptFile"
+                                   accept=".html,.htm,.txt"
+                                   class="d-none" />
                         </div>
 
                     </div>
