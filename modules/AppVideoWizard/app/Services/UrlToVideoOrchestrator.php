@@ -1324,20 +1324,8 @@ PROMPT;
             }
         }
 
-        // Enforce 55-100 word range — pad with mood-appropriate action phrases if too short
-        $words = explode(' ', trim($narrative));
-        $count = count($words);
-
-        if ($count < 55) {
-            $mood = strtolower($scene['mood'] ?? 'dramatic');
-            $padding = $this->getMoodActionPadding($mood);
-            $idx = 0;
-            while (count(explode(' ', $narrative)) < 55 && $idx < count($padding)) {
-                $narrative .= ' ' . $padding[$idx];
-                $idx++;
-            }
-        }
-
+        // Trim to 100 words max — no minimum padding needed.
+        // Short, focused action prompts (40-60 words) outperform padded prompts for Seedance.
         $words = explode(' ', trim($narrative));
         if (count($words) > 100) {
             $narrative = implode(' ', array_slice($words, 0, 100));

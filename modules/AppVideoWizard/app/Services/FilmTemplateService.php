@@ -585,30 +585,34 @@ PROMPT;
     {
         if (empty($direction)) return '';
 
-        // Replace character names with NAME + visual tag on first mention,
-        // then correct-gender pronouns for subsequent mentions.
-        // e.g. "REN (dark hair, cybernetic implant) leans forward... he pulls out..."
+        // Replace character names with NAME (visual tag) on first mention,
+        // then just NAME for subsequent mentions. Seedance needs names, not pronouns.
+        // e.g. "REN (dark hair, cybernetic implant) leans forward... REN pulls out..."
         $action = $direction;
         foreach ($detectedChars as $charName) {
             foreach ($characters as $char) {
                 if (strtolower($char['name']) === strtolower($charName)) {
                     $namePattern = preg_quote($charName, '/');
-                    $gender = $char['gender'] ?? 'unknown';
-                    $pronoun = match ($gender) { 'male' => 'his', 'female' => 'her', default => 'their' };
-                    $subjectPronoun = match ($gender) { 'male' => 'he', 'female' => 'she', default => 'they' };
+                    $upperName = strtoupper($charName);
 
-                    // Step 1: Replace ALL possessives (NAME's → his/her)
-                    $action = preg_replace("/\b{$namePattern}[\x{0027}\x{2018}\x{2019}\x{02BC}]s\b/iu", $pronoun, $action);
+                    // Step 1: Normalize possessives (NAME's → NAME's with standard apostrophe)
+                    $action = preg_replace("/\b{$namePattern}[\x{0027}\x{2018}\x{2019}\x{02BC}]s\b/iu", "{$upperName}'s", $action);
 
-                    // Step 2: First mention → NAME (visual tag), subsequent → correct pronoun
+                    // Step 2: Build tagged name for first mention
                     $nameRegex = "/\b{$namePattern}\b/i";
                     $visualTag = $this->getCompactVisualTag($char);
-                    $taggedName = strtoupper($charName) . (!empty($visualTag) ? " ({$visualTag})" : '');
+                    $taggedName = $upperName . (!empty($visualTag) ? " ({$visualTag})" : '');
 
+                    // Step 3: Use placeholder to prevent double-replacement
+                    // First mention → tagged name, subsequent → just NAME
                     if (preg_match($nameRegex, $action)) {
-                        $action = preg_replace($nameRegex, $taggedName, $action, 1);
-                        // Remaining occurrences → correct-gender pronoun
-                        $action = preg_replace($nameRegex, $subjectPronoun, $action);
+                        // Replace first occurrence with unique placeholder
+                        $placeholder = "##CHAR_{$upperName}##";
+                        $action = preg_replace($nameRegex, $placeholder, $action, 1);
+                        // Replace remaining occurrences with just the name
+                        $action = preg_replace($nameRegex, $upperName, $action);
+                        // Swap placeholder back to tagged name
+                        $action = str_replace($placeholder, $taggedName, $action);
                     }
 
                     break;
