@@ -546,6 +546,41 @@
                                       class="form-control form-control-sm border-0"
                                       style="background: #f5f7fa; border-radius: 6px; font-size: 0.75rem; resize: vertical; min-height: 44px; color: var(--at-text, #1a1a2e);"
                                       rows="2">{{ $visual['video_action'] ?? '' }}</textarea>
+
+                            {{-- Generate Video Prompt Button (Film mode only) --}}
+                            @if(!empty($this->filmMode))
+                                @php $isGeneratingVideoPrompt = !empty($sceneVideoPromptGenerating[$sceneId]); @endphp
+                                <button wire:click="generateSceneVideoPrompt('{{ $sceneId }}')"
+                                        type="button"
+                                        wire:loading.attr="disabled" wire:target="generateSceneVideoPrompt('{{ $sceneId }}')"
+                                        @if($isGeneratingVideoPrompt) disabled @endif
+                                        class="d-flex align-items-center gap-1 mt-1 px-2 py-1"
+                                        style="background: {{ !empty($visual['video_action']) ? '#fef3c720' : '#d9770615' }};
+                                               border: 1px solid #d9770640; border-radius: 6px; cursor: pointer;
+                                               font-size: 0.68rem; color: #d97706; font-weight: 500;
+                                               width: 100%; justify-content: center; transition: all 0.15s ease;"
+                                        title="{{ __('Uses Gemini Flash to write a Seedance prompt from your scene image + context') }}">
+                                    <span wire:loading.remove wire:target="generateSceneVideoPrompt('{{ $sceneId }}')">
+                                        @if($isGeneratingVideoPrompt)
+                                            <i class="fa-light fa-spinner-third fa-spin" style="font-size: 0.7rem;"></i>
+                                            <span>{{ __('Generating...') }}</span>
+                                        @elseif(!empty($visual['video_action']))
+                                            <i class="fa-light fa-arrows-rotate" style="font-size: 0.7rem;"></i>
+                                            <span>{{ __('Regenerate Video Prompt') }}</span>
+                                        @else
+                                            <i class="fa-light fa-wand-magic-sparkles" style="font-size: 0.7rem;"></i>
+                                            <span>{{ __('Generate Video Prompt') }}</span>
+                                        @endif
+                                    </span>
+                                    <span wire:loading wire:target="generateSceneVideoPrompt('{{ $sceneId }}')">
+                                        <i class="fa-light fa-spinner-third fa-spin" style="font-size: 0.7rem;"></i>
+                                        <span>{{ __('Generating...') }}</span>
+                                    </span>
+                                </button>
+                                <div style="font-size: 0.58rem; color: #94a0b8; text-align: center; margin-top: 2px;">
+                                    {{ __('Gemini Flash analyzes your image + scene context') }}
+                                </div>
+                            @endif
                         </div>
 
                         {{-- Generation Buttons --}}

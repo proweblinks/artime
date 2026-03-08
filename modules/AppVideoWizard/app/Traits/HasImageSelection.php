@@ -66,6 +66,9 @@ trait HasImageSelection
     public array $sceneGeneratedImages = [];     // sceneId => [{url, timestamp}]
     public array $sceneImageGenerating = [];     // sceneId => bool
 
+    // AI Studio: Per-scene video prompt generation (on-demand via Gemini vision)
+    public array $sceneVideoPromptGenerating = []; // sceneId => bool
+
     // AI Studio: Per-scene video generation
     public array $sceneVideoTaskIds = [];        // sceneId => taskId
     public array $sceneVideoStatus = [];         // sceneId => 'idle'|'submitting'|'processing'|'completed'|'failed'
@@ -638,33 +641,38 @@ trait HasImageSelection
                 ];
             }
 
-            // Enrich video_action with 100+ word Seedance narrative prompts
-            $orchestrator = new UrlToVideoOrchestrator();
-            $style = self::VISUAL_STYLE_PRESETS[$this->selectedVisualStyle] ?? self::VISUAL_STYLE_PRESETS['cinematic'];
-            foreach ($this->sceneVisualScript as $sceneId => &$visual) {
-                $sceneIndex = (int) str_replace('scene_', '', $sceneId);
-                $sceneData = [
-                    'video_action' => $visual['video_action'] ?? '',
-                    'direction' => $visual['video_action'] ?? '',
-                    'text' => $segments[$sceneIndex]['text'] ?? '',
-                    'camera_motion' => $visual['camera_motion'] ?? 'slow zoom in',
-                    'mood' => $visual['mood'] ?? 'dramatic',
-                    'has_dialogue' => (bool) preg_match('/^[A-Z][A-Z0-9_\s]+:\s*.+$/m', $segments[$sceneIndex]['text'] ?? ''),
-                    'location_hint' => $visual['location_hint'] ?? '',
-                ];
+            if ($isFilmMode) {
+                // Film mode: skip enrichment — video prompts generated on-demand in AI Studio via Gemini vision
+                foreach ($this->sceneVisualScript as $sceneId => &$visual) {
+                    $visual['direction_context'] = $visual['video_action'] ?? '';
+                    $visual['video_action'] = '';  // Empty until user generates on-demand
+                }
+                unset($visual);
+            } else {
+                // Standard/Creative mode: enrich video_action with 100+ word Seedance narrative prompts
+                $orchestrator = new UrlToVideoOrchestrator();
+                $style = self::VISUAL_STYLE_PRESETS[$this->selectedVisualStyle] ?? self::VISUAL_STYLE_PRESETS['cinematic'];
+                foreach ($this->sceneVisualScript as $sceneId => &$visual) {
+                    $sceneIndex = (int) str_replace('scene_', '', $sceneId);
+                    $sceneData = [
+                        'video_action' => $visual['video_action'] ?? '',
+                        'direction' => $visual['video_action'] ?? '',
+                        'text' => $segments[$sceneIndex]['text'] ?? '',
+                        'camera_motion' => $visual['camera_motion'] ?? 'slow zoom in',
+                        'mood' => $visual['mood'] ?? 'dramatic',
+                        'has_dialogue' => (bool) preg_match('/^[A-Z][A-Z0-9_\s]+:\s*.+$/m', $segments[$sceneIndex]['text'] ?? ''),
+                        'location_hint' => $visual['location_hint'] ?? '',
+                    ];
 
-                if ($isFilmMode) {
-                    $richPrompt = $orchestrator->buildFilmVideoPrompt($sceneData, $style, $this->filmTemplateConfig ?? []);
-                } else {
                     $styleInstr = $styleInstruction ?? "Cinematic, photorealistic";
                     $richPrompt = $orchestrator->buildVideoPrompt($sceneData, $styleInstr, $aspectRatio, $style, null);
-                }
 
-                if (!empty($richPrompt) && str_word_count($richPrompt) > str_word_count($visual['video_action'] ?? '')) {
-                    $visual['video_action'] = $richPrompt;
+                    if (!empty($richPrompt) && str_word_count($richPrompt) > str_word_count($visual['video_action'] ?? '')) {
+                        $visual['video_action'] = $richPrompt;
+                    }
                 }
+                unset($visual);
             }
-            unset($visual); // Break reference
 
             // Set first scene as active in studio
             if (!empty($this->sceneVisualScript) && empty($this->activeStudioScene)) {
@@ -702,6 +710,250 @@ trait HasImageSelection
         if (isset($this->sceneVisualScript[$sceneId])) {
             $this->sceneVisualScript[$sceneId]['video_action'] = trim($prompt);
         }
+    }
+
+    // ────────────────────────────────────────────────────────────────────
+    // AI Studio: On-Demand Video Prompt Generation (Film Mode)
+    // ────────────────────────────────────────────────────────────────────
+
+    /**
+     * Generate a Seedance video prompt for a specific scene using Gemini vision.
+     * Analyzes the scene's generated image + script context to write a focused
+     * motion-first prompt: subject + actions + camera + dialogue/sound cues.
+     */
+    public function generateSceneVideoPrompt(string $sceneId): void
+    {
+        $visual = $this->sceneVisualScript[$sceneId] ?? null;
+        if (!$visual) return;
+
+        $this->sceneVideoPromptGenerating[$sceneId] = true;
+
+        try {
+            $sceneIndex = (int) str_replace('scene_', '', $sceneId);
+            $segment = $this->generatedSegments[$sceneIndex] ?? [];
+            $teamId = session('current_team_id');
+
+            // Gather scene context
+            $direction = $segment['text'] ?? '';
+            $directionContext = $visual['direction_context'] ?? '';
+            $cameraMotion = $visual['camera_motion'] ?? 'slow zoom in';
+            $mood = $visual['mood'] ?? 'dramatic';
+            $charactersInScene = $visual['characters_in_scene'] ?? [];
+            $locationHint = $visual['location_hint'] ?? '';
+            $sceneType = $visual['scene_type'] ?? '';
+
+            // Duration and word target
+            $sceneDuration = (float) ($segment['estimated_duration'] ?? 6);
+            $clipDuration = $this->calculateAIClipDuration($sceneDuration);
+            $targetWords = $this->getTargetWordCount($clipDuration);
+
+            // Get character bible from film template config
+            $characters = $this->filmTemplateConfig['characters'] ?? [];
+
+            // Natural camera direction
+            $cameraDirection = $this->mapCameraMotionToNatural($cameraMotion);
+
+            // Build dialogue text from direction (extract CHARACTER: lines)
+            $dialogueText = '';
+            if (preg_match_all('/^([A-Z][A-Z0-9_\s]+):\s*(.+)$/m', $direction, $matches, PREG_SET_ORDER)) {
+                $dialogueParts = [];
+                foreach ($matches as $m) {
+                    $dialogueParts[] = trim($m[1]) . ' says: "' . trim($m[2]) . '"';
+                }
+                $dialogueText = implode('. ', $dialogueParts);
+            }
+
+            // Try to get scene image as base64 for vision analysis
+            $imageBase64 = null;
+            $mimeType = 'image/png';
+            $imageUrl = $this->getSceneImageUrl($sceneId);
+            if ($imageUrl) {
+                try {
+                    $imageContent = $this->fetchUrlContent($imageUrl);
+                    if ($imageContent !== false && strlen($imageContent) > 100) {
+                        $imageBase64 = base64_encode($imageContent);
+                        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                        $mimeType = $finfo->buffer($imageContent) ?: 'image/png';
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('HasImageSelection: Failed to fetch scene image for video prompt', [
+                        'scene' => $sceneId, 'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            // Build system instruction
+            $atmosphere = $this->filmTemplateConfig['atmosphere'] ?? $mood;
+            $systemInstruction = $this->buildVideoPromptSystemInstruction($characters, $atmosphere, $clipDuration, $targetWords);
+
+            // Build user prompt
+            $userPrompt = "Write a Seedance video prompt for this scene.\n\n";
+            $userPrompt .= "SCENE CONTEXT:\n";
+            if (!empty($locationHint)) $userPrompt .= "- Location: {$locationHint}\n";
+            if (!empty($sceneType)) $userPrompt .= "- Scene type: {$sceneType}\n";
+            $userPrompt .= "- Mood: {$mood}\n";
+            $userPrompt .= "- Camera: {$cameraDirection}\n";
+            $userPrompt .= "- Duration: {$clipDuration} seconds\n";
+            if (!empty($charactersInScene)) {
+                $userPrompt .= "- Characters present: " . implode(', ', $charactersInScene) . "\n";
+            }
+            if (!empty($directionContext)) {
+                $userPrompt .= "\nSCENE DIRECTION:\n{$directionContext}\n";
+            }
+            if (!empty($dialogueText)) {
+                $userPrompt .= "\nDIALOGUE:\n{$dialogueText}\n";
+            }
+            $userPrompt .= "\nWrite the prompt now. Single paragraph, {$targetWords} words, present tense.";
+
+            // Call Gemini 2.5 Flash
+            $options = [
+                'max_tokens' => 300,
+                'system_instruction' => $systemInstruction,
+            ];
+
+            $category = 'text';
+            if ($imageBase64) {
+                $category = 'vision';
+                $options['image_base64'] = $imageBase64;
+                $options['mimeType'] = $mimeType;
+            }
+
+            $response = \AI::processWithOverride(
+                $userPrompt,
+                'gemini',
+                'gemini-2.5-flash-preview-05-20',
+                $category,
+                $options,
+                $teamId
+            );
+
+            // Extract text from response
+            $generatedPrompt = '';
+            if (!empty($response['data'])) {
+                if ($category === 'vision') {
+                    // Vision response: candidates[0].content.parts[0].text
+                    $generatedPrompt = $response['data']['candidates'][0]['content']['parts'][0]['text'] ?? '';
+                } else {
+                    // Text response: data[0]
+                    $generatedPrompt = is_array($response['data']) ? ($response['data'][0] ?? '') : (string) $response['data'];
+                }
+            }
+
+            $generatedPrompt = trim($generatedPrompt);
+
+            // Sanitize via SeedancePromptService
+            if (!empty($generatedPrompt) && class_exists(SeedancePromptService::class)) {
+                $generatedPrompt = SeedancePromptService::sanitize($generatedPrompt);
+            }
+
+            if (!empty($generatedPrompt)) {
+                $this->sceneVisualScript[$sceneId]['video_action'] = $generatedPrompt;
+                Log::info('HasImageSelection: On-demand video prompt generated', [
+                    'scene' => $sceneId,
+                    'words' => str_word_count($generatedPrompt),
+                    'mode' => $imageBase64 ? 'vision' : 'text',
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('HasImageSelection: Video prompt generation failed', [
+                'scene' => $sceneId, 'error' => $e->getMessage(),
+            ]);
+            session()->flash('error', 'Video prompt generation failed: ' . $e->getMessage());
+        } finally {
+            $this->sceneVideoPromptGenerating[$sceneId] = false;
+        }
+    }
+
+    /**
+     * Get the current image URL for a scene (from selected candidates or generated images).
+     */
+    protected function getSceneImageUrl(string $sceneId): ?string
+    {
+        $selection = $this->selectedSceneImages[$sceneId] ?? [];
+        $candidates = $this->sceneImageCandidates[$sceneId] ?? [];
+
+        if (is_array($selection) && !empty($selection)) {
+            $lastIdx = end($selection);
+            $candidate = $candidates[(int) $lastIdx] ?? null;
+            if ($candidate && !empty($candidate['url']) && ($candidate['type'] ?? 'image') !== 'video') {
+                return $candidate['url'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Calculate target word count based on clip duration.
+     * ~11 words per second for Seedance prompts.
+     */
+    protected function getTargetWordCount(int $clipDuration): int
+    {
+        return (int) round($clipDuration * 11);
+    }
+
+    /**
+     * Map camera motion shorthand to natural prose description.
+     */
+    protected function mapCameraMotionToNatural(string $cameraMotion): string
+    {
+        $cameraMap = [
+            'slow zoom in'      => 'The camera slowly pushes in closer',
+            'slow zoom out'     => 'The camera gradually pulls back to reveal more',
+            'dramatic zoom in'  => 'The camera rapidly pushes in',
+            'pan left'          => 'The camera pans slowly to the left',
+            'pan right'         => 'The camera pans slowly to the right',
+            'pan left slow'     => 'The camera drifts gently to the left',
+            'pan right slow'    => 'The camera drifts gently to the right',
+            'tilt up'           => 'The camera tilts slowly upward',
+            'tilt down'         => 'The camera tilts slowly downward',
+            'push to subject'   => 'The camera pushes steadily toward the subject',
+            'rise and reveal'   => 'The camera rises upward in a crane shot, revealing the scene',
+            'settle in'         => 'The camera settles with a subtle, nearly locked-off motion',
+            'breathe'           => 'The camera holds with a very subtle breathing motion',
+            'zoom in pan right' => 'The camera pushes in while panning right',
+            'zoom out pan left' => 'The camera pulls back while panning left',
+            'diagonal drift'    => 'The camera drifts diagonally in a floating motion',
+        ];
+
+        return $cameraMap[strtolower(trim($cameraMotion))] ?? 'The camera slowly pushes in';
+    }
+
+    /**
+     * Build the system instruction for Gemini video prompt generation.
+     */
+    protected function buildVideoPromptSystemInstruction(array $characters, string $atmosphere, int $clipDuration, int $targetWords): string
+    {
+        $characterBible = '';
+        if (!empty($characters)) {
+            $charLines = [];
+            foreach ($characters as $char) {
+                $name = strtoupper($char['name'] ?? 'CHARACTER');
+                $desc = $char['description'] ?? '';
+                $charLines[] = "- {$name}: {$desc}";
+            }
+            $characterBible = "CHARACTER BIBLE:\n" . implode("\n", $charLines) . "\n\n";
+        }
+
+        return <<<SYSTEM
+You are a Seedance 2.0 video prompt specialist. You write prompts that make AI-generated images come alive with motion.
+
+{$characterBible}ATMOSPHERE: {$atmosphere}
+
+RULES:
+1. Use character NAMES from the bible — never "the man", "the woman", "a figure", or "the person"
+2. Do NOT describe static environment or what the image looks like — Seedance already sees the image
+3. Focus ONLY on what MOVES: body actions, gestures, facial micro-expressions, hair/clothing physics, object interactions, environmental motion (wind, rain, light shifts)
+4. Weave camera direction into the prose naturally — don't label it separately
+5. For dialogue scenes: include the actual quoted speech AND physical delivery (lip movement, jaw tension, gestures while speaking)
+6. Single flowing paragraph, present tense, no labels/headers/tags/markdown
+7. Target exactly {$targetWords} words (for {$clipDuration}-second clip)
+8. Every sentence must describe visible MOTION, not static state
+9. End with a subtle environmental motion detail (flickering light, drifting smoke, settling dust)
+
+BAD EXAMPLE: "A dark city street with neon lights reflecting on wet pavement. A man in a leather jacket stands near a doorway."
+GOOD EXAMPLE: "Kai steps through the rain-slicked doorway, water dripping from his collar as he tilts his chin upward, scanning the alley. His jaw tightens and he mutters 'We don't have much time.' The camera pushes in slowly as neon reflections ripple across puddles stirred by his boots."
+SYSTEM;
     }
 
     /**
@@ -1136,7 +1388,22 @@ trait HasImageSelection
             $sceneDuration = $this->generatedSegments[$sceneIndex]['estimated_duration'] ?? 6;
             $clipDuration = $this->calculateAIClipDuration($sceneDuration);
 
-            $prompt = $this->buildInteractiveVideoPrompt($visual, $sceneIndex);
+            // Film mode: use on-demand video_action directly (already a Seedance prompt from Gemini)
+            $isFilmMode = !empty($this->filmMode) && !empty($this->filmTemplateConfig);
+            if ($isFilmMode) {
+                $prompt = trim($visual['video_action'] ?? '');
+                if (empty($prompt)) {
+                    // Auto-generate if user hasn't generated one yet
+                    $this->generateSceneVideoPrompt($sceneId);
+                    $visual = $this->sceneVisualScript[$sceneId] ?? [];
+                    $prompt = trim($visual['video_action'] ?? '');
+                }
+                if (empty($prompt)) {
+                    $prompt = $this->buildInteractiveVideoPrompt($visual, $sceneIndex); // fallback
+                }
+            } else {
+                $prompt = $this->buildInteractiveVideoPrompt($visual, $sceneIndex);
+            }
 
             $animationService = app(AnimationService::class);
             $result = $animationService->generateAnimation($wizardProject, [
