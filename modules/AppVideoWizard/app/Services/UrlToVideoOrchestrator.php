@@ -1131,6 +1131,34 @@ PROMPT;
     }
 
     /**
+     * Extract sentences with motion/action verbs from direction text.
+     * For establishing shots: keeps only things that MOVE, discards static descriptions.
+     * "Towering skyscrapers pierce twilight" → discarded (static)
+     * "Hover-cars glide between buildings" → kept (motion)
+     */
+    protected function extractMotionSentences(string $text): string
+    {
+        $sentences = preg_split('/(?<=[.!?])\s+/', trim($text), -1, PREG_SPLIT_NO_EMPTY);
+
+        $motionVerbs = '/\b(moves?|walk|walks|walking|runs?|running|glides?|gliding|drifts?|drifting|falls?|falling|flickers?|flickering|pulses?|pulsing|shifts?|shifting|hums?|humming|buzzes?|buzzing|streaks?|streaking|drips?|dripping|flows?|flowing|sweeps?|sweeping|flies?|flying|hovers?|hovering|patrols?|patrolling|scans?|scanning|blinks?|blinking|swirls?|swirling|rolls?|rolling|slides?|sliding|spins?|spinning|splashes?|crackles?|sparks?|ripples?|sways?|swaying|whips?|whipping|rattles?|rattling|rumbles?|rumbling|roars?|roaring|whirs?|whirring)\b/i';
+
+        $kept = [];
+        foreach ($sentences as $s) {
+            $s = trim($s);
+            if (preg_match($motionVerbs, $s)) {
+                // Strip leading location/time fragments: "Interior of a bar." → skip
+                if (preg_match('/^(?:Interior|Exterior|Inside|Outside|A|The|An)\s+(?:of|the|a|an)\s+/i', $s)) {
+                    continue; // Location description, not motion
+                }
+                $kept[] = $s;
+            }
+        }
+
+        // Max 2 motion sentences
+        return rtrim(implode(' ', array_slice($kept, 0, 2)), '. ');
+    }
+
+    /**
      * Get mood-appropriate action padding phrases for short video prompts.
      * These describe character behavior and atmosphere — NOT static environment.
      */
@@ -1312,6 +1340,43 @@ PROMPT;
             return $this->mapCameraToSeedance($cameraMotion);
         }
 
+        $cameraPhrase = $this->mapCameraToSeedance($cameraMotion);
+
+        // Check if any named characters appear in the source text
+        $characters = $filmTemplateConfig['characters'] ?? [];
+        $hasCharacter = false;
+        foreach ($characters as $char) {
+            $name = $char['name'] ?? '';
+            if (!empty($name) && stripos($sourceText, $name) !== false) {
+                $hasCharacter = true;
+                break;
+            }
+        }
+
+        // ── Establishing shots (no characters) ──────────────────────────
+        // Seedance already sees the image. Don't describe static environment.
+        // Output: only motion verbs from the direction + camera + dynamic cues.
+        if (!$hasCharacter && empty($scene['has_dialogue'])) {
+            $motionSentences = $this->extractMotionSentences($sourceText);
+            $dynamicCues = $this->extractDynamicCues($sourceText);
+
+            $parts = [];
+            $parts[] = $cameraPhrase . '.';
+            if (!empty($motionSentences)) {
+                $parts[] = $motionSentences;
+            }
+            if (!empty($dynamicCues)) {
+                $parts[] = $dynamicCues . '.';
+            }
+            $narrative = implode(' ', $parts);
+
+            if (class_exists(SeedancePromptService::class)) {
+                $narrative = SeedancePromptService::sanitize($narrative);
+            }
+            return trim($narrative);
+        }
+
+        // ── Character scenes ────────────────────────────────────────────
         // 1. Core action — strip screenplay notation, keep character actions only
         $narrative = trim($sourceText);
 
@@ -1319,14 +1384,13 @@ PROMPT;
         $narrative = preg_replace('/^(?:INT|EXT)\.?\s+[^-\x{2013}\x{2014}]*?[-\x{2013}\x{2014}]\s*/iu', '', $narrative);
         $narrative = preg_replace('/^(?:INT|EXT)\.?\s*/i', '', $narrative);
         // Strip shot type labels (camera direction is added separately below)
-        $narrative = preg_replace('/^(?:CLOSE\s+UP|MEDIUM\s+(?:SHOT|CLOSE[\s-]?UP)|WIDE\s+(?:SHOT|ANGLE)|LOW\s+ANGLE|HIGH\s+ANGLE|ESTABLISHING(?:\s+SHOT)?|TWO[\s-]?SHOT|TRACKING\s+SHOT|OVER\s+\w+[\x{0027}\x{2019}]?s?\s+SHOULDER)\s*[-\x{2013}\x{2014}]\s*/iu', '', $narrative);
+        $narrative = preg_replace('/^(?:CLOSE\s+UP|DETAIL\s+SHOT|MEDIUM\s+(?:SHOT|CLOSE[\s-]?UP)|WIDE\s+(?:SHOT|ANGLE)|LOW\s+ANGLE|HIGH\s+ANGLE|ESTABLISHING(?:\s+SHOT)?|TWO[\s-]?SHOT|INSERT\s+SHOT|TRACKING\s+SHOT|OVER[\s-]?(?:THE[\s-])?SHOULDER|OVER\s+\w+[\x{0027}\x{2019}]?s?\s+SHOULDER)\s*[-:\x{2013}\x{2014}]\s*/iu', '', $narrative);
         $narrative = trim($narrative);
         if (empty($narrative)) {
-            return $this->mapCameraToSeedance($cameraMotion);
+            return $cameraPhrase . '.';
         }
 
         // 2. Camera motion — weave in after first full sentence (skip tiny fragments)
-        $cameraPhrase = $this->mapCameraToSeedance($cameraMotion);
         $sentences = preg_split('/(?<=[.!?])(?<!\bINT\.)(?<!\bEXT\.)\s+/', $narrative, 3, PREG_SPLIT_NO_EMPTY);
         if (count($sentences) >= 2 && count(explode(' ', trim($sentences[0]))) >= 4) {
             $first = rtrim($sentences[0], '.!? ');
@@ -1336,8 +1400,9 @@ PROMPT;
         }
 
         // 3. Dynamic elements only (things that MOVE, not static environment)
+        // Skip if the narrative already mentions the cue (avoid "Rain... Rain continues to fall")
         $dynamicCues = $this->extractDynamicCues($sourceText);
-        if (!empty($dynamicCues)) {
+        if (!empty($dynamicCues) && stripos($narrative, strtolower(explode(' ', $dynamicCues)[0])) === false) {
             $narrative .= ' ' . $dynamicCues;
         }
 
