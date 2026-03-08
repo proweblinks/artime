@@ -1350,6 +1350,8 @@ PROMPT;
         $sourceText = preg_replace('/\[Scene:\s*(?:(?:CLOSE\s+UP|DETAIL\s+SHOT|MEDIUM\s+(?:SHOT|CLOSE[\s-]?UP)|WIDE\s+(?:SHOT|ANGLE)|LOW\s+ANGLE|HIGH\s+ANGLE|ESTABLISHING(?:\s+SHOT)?|TWO[\s-]?SHOT|INSERT\s+SHOT|TRACKING\s+SHOT|OVER[\s-]?(?:THE[\s-])?SHOULDER)\s*[-:\x{2013}\x{2014}]\s*)?/iu', '', $sourceText);
         $sourceText = preg_replace('/\[Scene:\s*/i', '', $sourceText);
         $sourceText = str_replace(['[', ']'], '', $sourceText);
+        // Strip parenthetical stage directions: (muttering, to himself) etc.
+        $sourceText = preg_replace('/\([a-z][^)]{0,80}\)\s*/u', '', $sourceText);
         $sourceText = trim($sourceText);
         if (empty($sourceText)) {
             return $this->mapCameraToSeedance($cameraMotion);

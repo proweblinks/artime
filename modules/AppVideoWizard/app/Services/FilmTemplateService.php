@@ -607,6 +607,11 @@ PROMPT;
 
         // Strip shot type labels (e.g. "CLOSE UP - ", "WIDE SHOT: ")
         $direction = preg_replace('/^(?:CLOSE\s+UP|DETAIL\s+SHOT|MEDIUM\s+(?:SHOT|CLOSE[\s-]?UP)|WIDE\s+(?:SHOT|ANGLE)|LOW\s+ANGLE|HIGH\s+ANGLE|ESTABLISHING(?:\s+SHOT)?|TWO[\s-]?SHOT|INSERT\s+SHOT|TRACKING\s+SHOT|OVER[\s-]?(?:THE[\s-])?SHOULDER)\s*[-:\x{2013}\x{2014}]\s*/iu', '', $direction);
+
+        // Strip parenthetical stage directions that leaked from dialogue into direction
+        // Screenplay parentheticals are always lowercase text in parens: (muttering, to himself)
+        $direction = preg_replace('/\([a-z][^)]{0,80}\)\s*/u', '', $direction);
+
         $direction = trim($direction);
         if (empty($direction)) return '';
 
