@@ -66,8 +66,9 @@ class ScreenplayImportService
     public function parseHtml(string $html): array
     {
         $dom = new DOMDocument();
-        // Prepend XML encoding declaration to preserve UTF-8 characters (em-dashes, etc.)
-        @$dom->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NOERROR);
+        // Convert non-ASCII to numeric entities so DOMDocument preserves them
+        $encoded = mb_encode_numericentity($html, [0x80, 0x10FFFF, 0, 0xFFFFFF], 'UTF-8');
+        @$dom->loadHTML($encoded, LIBXML_NOERROR);
         $xpath = new DOMXPath($dom);
 
         // Extract title from <title> tag or .main-title element
