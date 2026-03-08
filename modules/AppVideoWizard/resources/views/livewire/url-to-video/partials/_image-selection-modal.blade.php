@@ -247,6 +247,30 @@
                             <span wire:loading wire:target="regenerateAllPrompts">{{ __('Regenerating...') }}</span>
                         </button>
                     @endif
+
+                    {{-- Generate All Video Prompts (Film mode only) --}}
+                    @if(!empty($this->filmMode) && !empty($sceneVisualScript))
+                        <button wire:click="generateAllSceneVideoPrompts" type="button"
+                                wire:loading.attr="disabled" wire:target="generateAllSceneVideoPrompts, generateSceneVideoPrompt"
+                                @if($isBatchGeneratingVideoPrompts) disabled @endif
+                                class="d-flex align-items-center gap-1 px-3 py-1"
+                                style="border: 1px solid #d9770650; background: #d9770610; border-radius: 20px;
+                                       cursor: pointer; white-space: nowrap; font-size: 0.7rem; color: #d97706;
+                                       font-weight: 600; flex-shrink: 0;"
+                                title="{{ __('Generate Seedance video prompts for all scenes using Gemini Flash vision') }}">
+                            <i class="fa-light fa-bolt" wire:loading.class="fa-spin" wire:target="generateAllSceneVideoPrompts" style="font-size: 0.75rem;"></i>
+                            <span wire:loading.remove wire:target="generateAllSceneVideoPrompts">
+                                @if($isBatchGeneratingVideoPrompts)
+                                    {{ __('Generating') }} {{ $batchVideoPromptProgress }}/{{ $batchVideoPromptTotal }}...
+                                @else
+                                    {{ __('Video Prompts') }}
+                                @endif
+                            </span>
+                            <span wire:loading wire:target="generateAllSceneVideoPrompts">
+                                {{ __('Generating') }} {{ $batchVideoPromptProgress }}/{{ $batchVideoPromptTotal }}...
+                            </span>
+                        </button>
+                    @endif
                 </div>
             </div>
         @endif

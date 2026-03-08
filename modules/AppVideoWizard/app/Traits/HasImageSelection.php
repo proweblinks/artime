@@ -68,6 +68,9 @@ trait HasImageSelection
 
     // AI Studio: Per-scene video prompt generation (on-demand via Gemini vision)
     public array $sceneVideoPromptGenerating = []; // sceneId => bool
+    public bool $isBatchGeneratingVideoPrompts = false;
+    public int $batchVideoPromptProgress = 0;
+    public int $batchVideoPromptTotal = 0;
 
     // AI Studio: Per-scene video generation
     public array $sceneVideoTaskIds = [];        // sceneId => taskId
@@ -771,7 +774,6 @@ trait HasImageSelection
                 try {
                     $imageContent = @file_get_contents($imageUrl);
                     if ($imageContent === false) {
-                        // Fallback to cURL
                         $ch = curl_init($imageUrl);
                         curl_setopt_array($ch, [
                             CURLOPT_RETURNTRANSFER => true,
@@ -788,63 +790,86 @@ trait HasImageSelection
                         $mimeType = $finfo->buffer($imageContent) ?: 'image/png';
                     }
                 } catch (\Exception $e) {
-                    Log::warning('HasImageSelection: Failed to fetch scene image for video prompt', [
-                        'scene' => $sceneId, 'error' => $e->getMessage(),
+                    Log::warning('[VideoPrompt] Failed to fetch scene image', [
+                        'scene' => $sceneId, 'url' => $imageUrl, 'error' => $e->getMessage(),
                     ]);
                 }
             }
 
-            // Build system instruction
+            // Build the prompt — Seedance 2.0 formula: Subject → Action → Camera → Style
             $atmosphere = $this->filmTemplateConfig['atmosphere'] ?? $mood;
             $systemInstruction = $this->buildVideoPromptSystemInstruction($characters, $atmosphere, $clipDuration, $targetWords);
 
-            // Build user prompt (include system instruction inline since GeminiService doesn't support system_instruction)
             $userPrompt = $systemInstruction . "\n\n---\n\n";
-            $userPrompt .= "Write a Seedance video prompt for this scene.\n\n";
+            $userPrompt .= "Write a Seedance 2.0 video prompt for this scene. Output ONLY the prompt paragraph — no labels, no explanation.\n\n";
             $userPrompt .= "SCENE CONTEXT:\n";
             if (!empty($locationHint)) $userPrompt .= "- Location: {$locationHint}\n";
             if (!empty($sceneType)) $userPrompt .= "- Scene type: {$sceneType}\n";
-            $userPrompt .= "- Mood: {$mood}\n";
-            $userPrompt .= "- Camera: {$cameraDirection}\n";
-            $userPrompt .= "- Duration: {$clipDuration} seconds\n";
+            $userPrompt .= "- Mood/atmosphere: {$mood}\n";
+            $userPrompt .= "- Camera movement: {$cameraDirection}\n";
+            $userPrompt .= "- Clip duration: {$clipDuration} seconds (target {$targetWords} words)\n";
             if (!empty($charactersInScene)) {
-                $userPrompt .= "- Characters present: " . implode(', ', $charactersInScene) . "\n";
+                $userPrompt .= "- Characters in scene: " . implode(', ', $charactersInScene) . "\n";
             }
             if (!empty($directionContext)) {
-                $userPrompt .= "\nSCENE DIRECTION:\n{$directionContext}\n";
+                $userPrompt .= "\nSCENE DIRECTION (what happens):\n{$directionContext}\n";
             }
             if (!empty($dialogueText)) {
-                $userPrompt .= "\nDIALOGUE:\n{$dialogueText}\n";
+                $userPrompt .= "\nDIALOGUE TO INCLUDE:\n{$dialogueText}\n";
             }
-            $userPrompt .= "\nWrite the prompt now. Single paragraph, {$targetWords} words, present tense.";
-
-            // Call Gemini 2.5 Flash
-            $generatedPrompt = '';
             if ($imageBase64) {
-                // Vision mode: use GeminiService::analyzeImageWithPrompt directly (respects model override)
-                $gemini = app(\App\Services\GeminiService::class);
+                $userPrompt .= "\nThe attached image is the STARTING FRAME. Do NOT describe what the image looks like — Seedance already sees it. Instead, describe what should START MOVING from this frame: body motions, gestures, facial changes, object interactions, environmental physics (wind, rain, light flicker), and camera movement. Every sentence must describe visible MOTION.\n";
+            } else {
+                $userPrompt .= "\nNo image is available. Write the prompt based on the scene direction above, focusing entirely on MOTION: what the subject does, how they move, gestures, facial expressions, and camera movement. Do NOT describe static environment or appearance.\n";
+            }
+            $userPrompt .= "\nOutput exactly one paragraph of {$targetWords} words. Present tense. No headers. No markdown. Start directly with the subject's action.";
+
+            // Call Gemini 2.5 Flash — always use analyzeImageWithPrompt for both vision and text
+            $generatedPrompt = '';
+            $gemini = app(\App\Services\GeminiService::class);
+
+            if ($imageBase64) {
+                // Vision mode: image + prompt
                 $visionResult = $gemini->analyzeImageWithPrompt($imageBase64, $userPrompt, [
                     'model' => 'gemini-2.5-flash',
                     'mimeType' => $mimeType,
-                    'temperature' => 0.7,
-                    'maxOutputTokens' => 400,
+                    'temperature' => 0.8,
+                    'maxOutputTokens' => 800,
                 ]);
                 if (!empty($visionResult['success']) && !empty($visionResult['text'])) {
                     $generatedPrompt = trim($visionResult['text']);
+                } else {
+                    Log::warning('[VideoPrompt] Vision call failed', [
+                        'scene' => $sceneId,
+                        'error' => $visionResult['error'] ?? 'unknown',
+                    ]);
                 }
-            } else {
-                // Text-only fallback
-                $response = \AI::processWithOverride(
-                    $userPrompt,
-                    'gemini',
-                    'gemini-2.5-flash',
-                    'text',
-                    ['max_tokens' => 300],
-                    $teamId
-                );
-                if (!empty($response['data'])) {
-                    $generatedPrompt = is_array($response['data']) ? trim($response['data'][0] ?? '') : trim((string) $response['data']);
+            }
+
+            // Text-only fallback (no image or vision failed)
+            if (empty($generatedPrompt)) {
+                $textResult = $gemini->generateText($userPrompt, 800, 1, 'text', [
+                    'model' => 'gemini-2.5-flash',
+                    'temperature' => 0.8,
+                ]);
+                if (!empty($textResult['data'])) {
+                    $generatedPrompt = is_array($textResult['data'])
+                        ? trim($textResult['data'][0] ?? '')
+                        : trim((string) $textResult['data']);
                 }
+            }
+
+            // Clean up AI artifacts: remove markdown, labels, thinking blocks
+            if (!empty($generatedPrompt)) {
+                // Remove ```...``` code blocks
+                $generatedPrompt = preg_replace('/```[\s\S]*?```/', '', $generatedPrompt);
+                // Remove **bold** markers
+                $generatedPrompt = preg_replace('/\*\*([^*]+)\*\*/', '$1', $generatedPrompt);
+                // Remove leading labels like "Prompt:" or "Video Prompt:"
+                $generatedPrompt = preg_replace('/^(?:video\s+)?prompt\s*:\s*/i', '', trim($generatedPrompt));
+                // Remove thinking blocks <think>...</think>
+                $generatedPrompt = preg_replace('/<think>[\s\S]*?<\/think>/i', '', $generatedPrompt);
+                $generatedPrompt = trim($generatedPrompt);
             }
 
             // Sanitize via SeedancePromptService
@@ -852,21 +877,84 @@ trait HasImageSelection
                 $generatedPrompt = SeedancePromptService::sanitize($generatedPrompt);
             }
 
-            if (!empty($generatedPrompt)) {
+            $wordCount = str_word_count($generatedPrompt);
+            if (!empty($generatedPrompt) && $wordCount >= 15) {
                 $this->sceneVisualScript[$sceneId]['video_action'] = $generatedPrompt;
-                Log::info('HasImageSelection: On-demand video prompt generated', [
+                Log::info('[VideoPrompt] Generated', [
                     'scene' => $sceneId,
-                    'words' => str_word_count($generatedPrompt),
+                    'words' => $wordCount,
                     'mode' => $imageBase64 ? 'vision' : 'text',
+                    'preview' => substr($generatedPrompt, 0, 120),
+                ]);
+            } else {
+                Log::warning('[VideoPrompt] Output too short or empty', [
+                    'scene' => $sceneId,
+                    'words' => $wordCount,
+                    'raw' => substr($generatedPrompt, 0, 200),
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('HasImageSelection: Video prompt generation failed', [
+            Log::error('[VideoPrompt] Generation failed', [
                 'scene' => $sceneId, 'error' => $e->getMessage(),
             ]);
-            session()->flash('error', 'Video prompt generation failed: ' . $e->getMessage());
         } finally {
             $this->sceneVideoPromptGenerating[$sceneId] = false;
+        }
+    }
+
+    /**
+     * Generate video prompts for ALL scenes sequentially (batch mode).
+     * Processes one scene at a time for quality, with progress tracking.
+     */
+    public function generateAllSceneVideoPrompts(): void
+    {
+        if ($this->isBatchGeneratingVideoPrompts) return;
+
+        $sceneIds = array_keys($this->sceneVisualScript);
+        if (empty($sceneIds)) return;
+
+        $this->isBatchGeneratingVideoPrompts = true;
+        $this->batchVideoPromptTotal = count($sceneIds);
+        $this->batchVideoPromptProgress = 0;
+
+        try {
+            foreach ($sceneIds as $sceneId) {
+                $this->batchVideoPromptProgress++;
+
+                // Skip scenes that already have a good prompt (30+ words)
+                $existing = trim($this->sceneVisualScript[$sceneId]['video_action'] ?? '');
+                if (str_word_count($existing) >= 30) {
+                    continue;
+                }
+
+                $this->generateSceneVideoPrompt($sceneId);
+
+                // Save draft periodically (every 5 scenes)
+                if ($this->batchVideoPromptProgress % 5 === 0) {
+                    $this->saveDraftState();
+                }
+            }
+
+            $this->saveDraftState();
+
+            // Count results
+            $filled = 0;
+            foreach ($this->sceneVisualScript as $v) {
+                if (str_word_count($v['video_action'] ?? '') >= 15) $filled++;
+            }
+            Log::info('[VideoPrompt] Batch generation complete', [
+                'total' => $this->batchVideoPromptTotal,
+                'filled' => $filled,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('[VideoPrompt] Batch generation failed', [
+                'progress' => $this->batchVideoPromptProgress,
+                'error' => $e->getMessage(),
+            ]);
+        } finally {
+            $this->isBatchGeneratingVideoPrompts = false;
+            $this->batchVideoPromptProgress = 0;
+            $this->batchVideoPromptTotal = 0;
         }
     }
 
@@ -938,27 +1026,32 @@ trait HasImageSelection
                 $desc = $char['description'] ?? '';
                 $charLines[] = "- {$name}: {$desc}";
             }
-            $characterBible = "CHARACTER BIBLE:\n" . implode("\n", $charLines) . "\n\n";
+            $characterBible = "CHARACTERS:\n" . implode("\n", $charLines) . "\n\n";
         }
 
         return <<<SYSTEM
-You are a Seedance 2.0 video prompt specialist. You write prompts that make AI-generated images come alive with motion.
+You write Seedance 2.0 video prompts. Seedance prompts follow: Subject → Action → Camera → Style.
 
-{$characterBible}ATMOSPHERE: {$atmosphere}
+{$characterBible}CLIP: {$clipDuration} seconds. Write exactly {$targetWords} words. Atmosphere: {$atmosphere}.
 
-RULES:
-1. Use character NAMES from the bible — never "the man", "the woman", "a figure", or "the person"
-2. Do NOT describe static environment or what the image looks like — Seedance already sees the image
-3. Focus ONLY on what MOVES: body actions, gestures, facial micro-expressions, hair/clothing physics, object interactions, environmental motion (wind, rain, light shifts)
-4. Weave camera direction into the prose naturally — don't label it separately
-5. For dialogue scenes: include the actual quoted speech AND physical delivery (lip movement, jaw tension, gestures while speaking)
-6. Single flowing paragraph, present tense, no labels/headers/tags/markdown
-7. Target exactly {$targetWords} words (for {$clipDuration}-second clip)
-8. Every sentence must describe visible MOTION, not static state
-9. End with a subtle environmental motion detail (flickering light, drifting smoke, settling dust)
+SEEDANCE FORMULA:
+- SUBJECT: Name the character (use names from CHARACTERS above, never "the man/woman/figure"). State what they do with ONE clear present-tense verb per action beat.
+- ACTION: Describe visible physical motion — hands, face, body, objects they interact with. Include micro-details: fingers tightening, breath visible, fabric shifting, hair moving. For dialogue: write the quoted line AND the physical delivery (jaw movement, breath pattern, gesture while speaking).
+- CAMERA: Weave camera direction as a sentence in the prose. Use cinematic terms: dolly, push-in, handheld sway, locked-off, crane rise, rack focus. One movement per shot.
+- STYLE: End with one environmental motion detail that grounds the scene (light flicker, rain streaking, dust motes, smoke drift).
 
-BAD EXAMPLE: "A dark city street with neon lights reflecting on wet pavement. A man in a leather jacket stands near a doorway."
-GOOD EXAMPLE: "Kai steps through the rain-slicked doorway, water dripping from his collar as he tilts his chin upward, scanning the alley. His jaw tightens and he mutters 'We don't have much time.' The camera pushes in slowly as neon reflections ripple across puddles stirred by his boots."
+CRITICAL RULES:
+1. NEVER describe what the image looks like — no colors, no lighting, no environment description, no "neon-lit street", no "dim room". Seedance SEES the image already.
+2. NEVER describe appearance or clothing — no "wearing a leather jacket", no "her silver hair". The image shows this already.
+3. Every single sentence MUST describe MOTION — something physically moving or changing.
+4. Start immediately with the subject's name and action verb. No scene-setting.
+5. Single flowing paragraph. Present tense. No headers, labels, markdown, or quotation formatting.
+
+BAD (describes environment + appearance — Seedance already sees this):
+"A dark cyberpunk cityscape with neon-lit streets glistening in the rain. A man in a dark leather jacket with cybernetic implants stands at a holographic console, blue light illuminating his face. The atmosphere is tense and mysterious with electronic hums filling the air."
+
+GOOD (describes only MOTION — what Seedance should animate):
+"Ren leans forward, his fingers dancing across the holographic keys as data cascades faster across every screen. His eyes widen and his lips part, recognition flickering across his face. He traces a fractal pattern with his fingertip, pulling it closer as the camera pushes in steadily. He whispers 'There it is' through clenched teeth, his breath visible in the cold air. Behind him, a monitor flickers and the overhead light sways from a distant vibration."
 SYSTEM;
     }
 
@@ -1394,18 +1487,21 @@ SYSTEM;
             $sceneDuration = $this->generatedSegments[$sceneIndex]['estimated_duration'] ?? 6;
             $clipDuration = $this->calculateAIClipDuration($sceneDuration);
 
-            // Film mode: use on-demand video_action directly (already a Seedance prompt from Gemini)
+            // Film mode: use on-demand video_action directly (Seedance prompt from Gemini vision)
+            // No fallback to buildInteractiveVideoPrompt — that produces static environment descriptions
             $isFilmMode = !empty($this->filmMode) && !empty($this->filmTemplateConfig);
             if ($isFilmMode) {
                 $prompt = trim($visual['video_action'] ?? '');
-                if (empty($prompt)) {
-                    // Auto-generate if user hasn't generated one yet
+                if (empty($prompt) || str_word_count($prompt) < 20) {
+                    // Auto-generate via Gemini if prompt is empty or too short
                     $this->generateSceneVideoPrompt($sceneId);
                     $visual = $this->sceneVisualScript[$sceneId] ?? [];
                     $prompt = trim($visual['video_action'] ?? '');
                 }
                 if (empty($prompt)) {
-                    $prompt = $this->buildInteractiveVideoPrompt($visual, $sceneIndex); // fallback
+                    // Absolute last resort: use direction_context as-is (still better than buildInteractiveVideoPrompt)
+                    $prompt = trim($visual['direction_context'] ?? $visual['image_prompt'] ?? '');
+                    Log::warning('[VideoPrompt] Using raw direction_context as fallback', ['scene' => $sceneId]);
                 }
             } else {
                 $prompt = $this->buildInteractiveVideoPrompt($visual, $sceneIndex);
