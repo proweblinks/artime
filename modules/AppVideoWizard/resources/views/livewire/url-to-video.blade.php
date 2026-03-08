@@ -393,8 +393,8 @@
                     <div>
                         <button wire:click="submitPrompt" type="button"
                                 class="utv-submit-btn"
-                                :class="promptText.length > 9 ? 'active' : ''"
-                                :disabled="promptText.length < 10 || {{ $isGeneratingScript ? 'true' : 'false' }}">
+                                :class="(promptText.length > 9 || {{ $hasImportedScript ? 'true' : 'false' }}) ? 'active' : ''"
+                                :disabled="(promptText.length < 10 && !{{ $hasImportedScript ? 'true' : 'false' }}) || {{ $isGeneratingScript ? 'true' : 'false' }}">
                             @if($isGeneratingScript)
                                 <i class="fa-light fa-spinner-third fa-spin"></i>
                             @else

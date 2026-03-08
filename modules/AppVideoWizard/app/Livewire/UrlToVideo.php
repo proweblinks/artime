@@ -220,7 +220,7 @@ class UrlToVideo extends Component
      */
     public function submitPrompt()
     {
-        if (empty($this->sourceUrl) && mb_strlen($this->prompt) < 10) {
+        if (empty($this->sourceUrl) && mb_strlen($this->prompt) < 10 && !$this->hasImportedScript) {
             session()->flash('error', 'Please paste a URL or enter a prompt (at least 10 characters).');
             return;
         }
