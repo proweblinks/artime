@@ -370,6 +370,11 @@
                                     <i class="fa-light fa-spinner-third fa-spin" style="font-size: 0.35rem; color: #fff;"></i>
                                 </span>
                             @endif
+
+                            {{-- Dialogue indicator --}}
+                            @if(!empty($sfSegment['text']))
+                                <span style="position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; border-radius: 50%; background: #ec4899; border: 1px solid rgba(255,255,255,0.5); z-index: 3;" title="{{ __('Has dialogue') }}"></span>
+                            @endif
                         </div>
 
                         {{-- Scene label --}}
@@ -454,6 +459,13 @@
                             <span class="badge" style="background: #1e3a5f30; color: #38bdf8; font-size: 0.65rem;">
                                 <i class="fa-light fa-clock me-1"></i>{{ number_format($sceneDuration, 1) }}s
                             </span>
+                            @if(!empty($sceneText))
+                                <span class="badge" style="background: #ec489920; color: #ec4899; font-size: 0.6rem;" title="{{ __('Scene has dialogue') }}">
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 2px; vertical-align: middle;">
+                                        <path d="M12 2C6.48 2 2 5.36 2 9.5c0 2.58 1.64 4.86 4.14 6.22-.28 1.48-1.04 2.78-1.04 2.78s2.34-.7 3.9-1.8c.98.2 2 .3 3 .3 5.52 0 10-3.36 10-7.5S17.52 2 12 2z"/>
+                                    </svg>
+                                </span>
+                            @endif
                             @if($isSplitScene)
                                 <span class="badge" style="background: #f59e0b20; color: #d97706; font-size: 0.6rem;">
                                     {{ __('Part') }} {{ $splitPart }}/2

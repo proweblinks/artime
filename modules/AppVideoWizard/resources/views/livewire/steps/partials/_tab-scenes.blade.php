@@ -20,6 +20,7 @@
                 $hasImage = !empty($imageUrl);
                 $hasVideo = !empty($animationScene['videoUrl']);
                 $hasVoice = !empty($animationScene['voiceoverUrl']);
+                $hasDialogue = !empty($scene['narration']) || !empty($scene['text']) || !empty($scene['speechSegments']);
                 // Match getPreviewScenes() logic for duration
                 $duration = $scene['visualDuration'] ?? $scene['duration'] ?? 8;
             @endphp
@@ -37,7 +38,14 @@
                     <div class="vw-scene-number">{{ $index + 1 }}</div>
                 </div>
                 <div class="vw-scene-info">
-                    <div class="vw-scene-duration">{{ $duration }}s</div>
+                    <div style="display: flex; align-items: center; gap: 0.35rem;">
+                        <span class="vw-scene-duration">{{ $duration }}s</span>
+                        @if($hasDialogue)
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="#ec4899" title="{{ __('Has dialogue') }}" style="flex-shrink: 0; opacity: 0.85;">
+                                <path d="M12 2C6.48 2 2 5.36 2 9.5c0 2.58 1.64 4.86 4.14 6.22-.28 1.48-1.04 2.78-1.04 2.78s2.34-.7 3.9-1.8c.98.2 2 .3 3 .3 5.52 0 10-3.36 10-7.5S17.52 2 12 2z"/>
+                            </svg>
+                        @endif
+                    </div>
                     <div class="vw-scene-status">
                         <span class="status-dot {{ $hasImage ? 'green' : 'yellow' }}" title="{{ $hasImage ? 'Has image' : 'No image' }}"></span>
                         <span class="status-dot {{ $hasVideo ? 'green' : 'gray' }}" title="{{ $hasVideo ? 'Has video' : 'No video' }}"></span>

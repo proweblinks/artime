@@ -71,14 +71,21 @@
                 {{ __('Scene') }} {{ $sceneIndex + 1 }}
             </div>
 
-            {{-- Multi-Shot Badge - Compact, top right --}}
-            @if($hasMultiShot && !empty($decomposed['shots']))
-                <div style="position: absolute; top: 0.75rem; right: 0.75rem; z-index: 10; display: flex; align-items: center; gap: 0.35rem;">
+            {{-- Multi-Shot Badge + Dialogue Badge - top right --}}
+            <div style="position: absolute; top: 0.75rem; right: 0.75rem; z-index: 10; display: flex; align-items: center; gap: 0.35rem;">
+                @if(!empty($scene['narration']) || !empty($scene['speechSegments']))
+                    <span title="{{ __('Scene has dialogue') }}" style="background: rgba(236,72,153,0.85); color: white; padding: 0.2rem 0.4rem; border-radius: 0.3rem; font-size: 0.65rem; font-weight: 600; display: flex; align-items: center; gap: 0.2rem;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink: 0;">
+                            <path d="M12 2C6.48 2 2 5.36 2 9.5c0 2.58 1.64 4.86 4.14 6.22-.28 1.48-1.04 2.78-1.04 2.78s2.34-.7 3.9-1.8c.98.2 2 .3 3 .3 5.52 0 10-3.36 10-7.5S17.52 2 12 2z"/>
+                        </svg>
+                    </span>
+                @endif
+                @if($hasMultiShot && !empty($decomposed['shots']))
                     <span style="background: linear-gradient(135deg, #03fcf4, #06b6d4); color: #0a2e2e; padding: 0.25rem 0.5rem; border-radius: 0.3rem; font-size: 0.7rem; font-weight: 600; display: flex; align-items: center; gap: 0.25rem;">
                         {{ count($decomposed['shots']) }} shots
                     </span>
-                </div>
-            @endif
+                @endif
+            </div>
 
             {{-- Main Image Content Area --}}
             <div class="vw-scene-image-container">
