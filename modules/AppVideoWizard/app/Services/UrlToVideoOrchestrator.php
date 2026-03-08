@@ -1398,8 +1398,11 @@ PROMPT;
         $narrative = trim($sourceText);
 
         // Strip INT./EXT. location headers (Seedance animates existing images, doesn't need scene headers)
-        $narrative = preg_replace('/^(?:INT|EXT)\.?\s+[^-\x{2013}\x{2014}]*?[-\x{2013}\x{2014}]\s*/iu', '', $narrative);
-        $narrative = preg_replace('/^(?:INT|EXT)\.?\s*/i', '', $narrative);
+        // \b prevents matching inside words like "Interior" (which would strip "Int" → "erior")
+        $narrative = preg_replace('/^(?:INT|EXT)\b\.?\s+[^-\x{2013}\x{2014}]*?[-\x{2013}\x{2014}]\s*/iu', '', $narrative);
+        $narrative = preg_replace('/^(?:INT|EXT)\b\.?\s*/i', '', $narrative);
+        // Also strip full-word "Interior/Exterior" location prefixes
+        $narrative = preg_replace('/^(?:Interior|Exterior)\s+(?:of\s+)?/i', '', $narrative);
         // Strip shot type labels (camera direction is added separately below)
         $narrative = preg_replace('/^(?:CLOSE\s+UP|DETAIL\s+SHOT|MEDIUM\s+(?:SHOT|CLOSE[\s-]?UP)|WIDE\s+(?:SHOT|ANGLE)|LOW\s+ANGLE|HIGH\s+ANGLE|ESTABLISHING(?:\s+SHOT)?|TWO[\s-]?SHOT|INSERT\s+SHOT|TRACKING\s+SHOT|OVER[\s-]?(?:THE[\s-])?SHOULDER|OVER\s+\w+[\x{0027}\x{2019}]?s?\s+SHOULDER)\s*[-:\x{2013}\x{2014}]\s*/iu', '', $narrative);
         $narrative = trim($narrative);
