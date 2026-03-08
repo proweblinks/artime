@@ -218,8 +218,8 @@ PROMPT;
 
             // Fallback: if direction is empty, extract scene description from body text
             if (empty($direction) && !empty($body)) {
-                // Try to extract from [Scene: ...] marker embedded in text
-                if (preg_match('/\[Scene:\s*([^\]]+)\]/i', $body, $sceneMatch)) {
+                // Try to extract from [Scene: ...] marker embedded in text (with or without closing bracket)
+                if (preg_match('/\[Scene:\s*([^\]]+?)(?:\]|$)/i', $body, $sceneMatch)) {
                     $direction = trim($sceneMatch[1]);
                 } else {
                     // Use the body text directly — first 2-3 sentences as scene description
@@ -228,6 +228,9 @@ PROMPT;
                     $direction = implode(' ', array_slice($sentences, 0, min(3, count($sentences))));
                 }
             }
+
+            // Strip any remaining [Scene: SHOT_TYPE - ] markup from direction text
+            $direction = $this->stripScreenplayMarkup($direction);
 
             $sceneType = $this->detectSceneType($i, $total, $direction, $isVisualOnly, $body);
             // V3: Separate physical presence (direction) from dialogue mentions (body)
@@ -577,12 +580,34 @@ PROMPT;
     }
 
     /**
+     * Strip screenplay [Scene: SHOT_TYPE - ] markup and brackets from text.
+     */
+    protected function stripScreenplayMarkup(string $text): string
+    {
+        // Strip [Scene: SHOT_TYPE - ...] tags — the shot label + separator
+        $text = preg_replace('/\[Scene:\s*(?:(?:CLOSE\s+UP|DETAIL\s+SHOT|MEDIUM\s+(?:SHOT|CLOSE[\s-]?UP)|WIDE\s+(?:SHOT|ANGLE)|LOW\s+ANGLE|HIGH\s+ANGLE|ESTABLISHING(?:\s+SHOT)?|TWO[\s-]?SHOT|INSERT\s+SHOT|TRACKING\s+SHOT|OVER[\s-]?(?:THE[\s-])?SHOULDER)\s*[-:\x{2013}\x{2014}]\s*)?/iu', '', $text);
+        // Strip any remaining bare [Scene: tags
+        $text = preg_replace('/\[Scene:\s*/i', '', $text);
+        // Remove leftover brackets
+        $text = str_replace(['[', ']'], '', $text);
+        return trim($text);
+    }
+
+    /**
      * Build concise video_action for Seedance (30-100 words).
      * Focuses on: subject + motion + key visual detail + degree adverbs.
      * No template prefix/suffix — those go into buildVideoPrompt's style layers.
      */
     protected function buildConciseVideoAction(string $direction, array $detectedChars, array $characters, bool $isVisualOnly, string $dialogueText = ''): string
     {
+        if (empty($direction)) return '';
+
+        // Strip screenplay [Scene: SHOT_TYPE - ] markup before processing
+        $direction = $this->stripScreenplayMarkup($direction);
+
+        // Strip shot type labels (e.g. "CLOSE UP - ", "WIDE SHOT: ")
+        $direction = preg_replace('/^(?:CLOSE\s+UP|DETAIL\s+SHOT|MEDIUM\s+(?:SHOT|CLOSE[\s-]?UP)|WIDE\s+(?:SHOT|ANGLE)|LOW\s+ANGLE|HIGH\s+ANGLE|ESTABLISHING(?:\s+SHOT)?|TWO[\s-]?SHOT|INSERT\s+SHOT|TRACKING\s+SHOT|OVER[\s-]?(?:THE[\s-])?SHOULDER)\s*[-:\x{2013}\x{2014}]\s*/iu', '', $direction);
+        $direction = trim($direction);
         if (empty($direction)) return '';
 
         // Replace character names with NAME (visual tag) on first mention,
@@ -664,6 +689,15 @@ PROMPT;
             $spokenText = trim($m[2], '" ');
             if (empty($spokenText)) continue;
 
+            // Extract parenthetical stage direction (e.g., "(muttering, almost to himself)")
+            // Use it for manner detection, then strip it from spoken text
+            $parenthetical = '';
+            if (preg_match('/^\(([^)]+)\)\s*/', $spokenText, $parenMatch)) {
+                $parenthetical = trim($parenMatch[1]);
+                $spokenText = trim(preg_replace('/^\([^)]+\)\s*/', '', $spokenText));
+                if (empty($spokenText)) continue;
+            }
+
             // Find matching character
             $matchedChar = null;
             foreach ($characters as $char) {
@@ -674,7 +708,10 @@ PROMPT;
             }
 
             $name = $matchedChar ? strtoupper(trim($matchedChar['name'])) : $speakerName;
-            $manner = $this->getDialogueManner($spokenText);
+            // Use parenthetical for manner if available, otherwise detect from text
+            $manner = !empty($parenthetical)
+                ? $this->parentheticalToManner($parenthetical)
+                : $this->getDialogueManner($spokenText);
 
             // Truncate long dialogue to first sentence (max ~15 words for prompt economy)
             $speech = $this->truncateDialogue($spokenText, 15);
@@ -702,6 +739,27 @@ PROMPT;
         if (preg_match('/quiet|whisper|careful|listen/', $lower)) return 'speaks softly, leaning close';
         if (preg_match('/never|betray|lie|deceive/', $lower)) return 'speaks fiercely, eyes narrowing';
         return 'speaks firmly';
+    }
+
+    /**
+     * Convert parenthetical stage direction to physical manner description.
+     * "(muttering, almost to himself)" → "mutters quietly, almost to himself"
+     */
+    protected function parentheticalToManner(string $parenthetical): string
+    {
+        $lower = strtolower($parenthetical);
+        if (str_contains($lower, 'mutter')) return 'mutters under their breath';
+        if (str_contains($lower, 'whisper')) return 'whispers, leaning close';
+        if (str_contains($lower, 'shout') || str_contains($lower, 'yell')) return 'shouts forcefully';
+        if (str_contains($lower, 'laugh') || str_contains($lower, 'chuckl')) return 'speaks with a slight laugh';
+        if (str_contains($lower, 'sigh')) return 'sighs, speaking wearily';
+        if (str_contains($lower, 'angrily') || str_contains($lower, 'furious')) return 'speaks angrily, jaw tight';
+        if (str_contains($lower, 'softly') || str_contains($lower, 'gently')) return 'speaks softly';
+        if (str_contains($lower, 'urgent')) return 'speaks urgently, leaning forward';
+        if (str_contains($lower, 'calm')) return 'speaks calmly, relaxed';
+        if (str_contains($lower, 'cold')) return 'speaks coldly, expression hardening';
+        if (str_contains($lower, 'sarcas')) return 'speaks with dry sarcasm';
+        return 'speaks, ' . $lower;
     }
 
     /**

@@ -649,7 +649,7 @@ trait HasImageSelection
                     'text' => $segments[$sceneIndex]['text'] ?? '',
                     'camera_motion' => $visual['camera_motion'] ?? 'slow zoom in',
                     'mood' => $visual['mood'] ?? 'dramatic',
-                    'has_dialogue' => !empty(trim($segments[$sceneIndex]['text'] ?? '')),
+                    'has_dialogue' => (bool) preg_match('/^[A-Z][A-Z0-9_\s]+:\s*.+$/m', $segments[$sceneIndex]['text'] ?? ''),
                     'location_hint' => $visual['location_hint'] ?? '',
                 ];
 

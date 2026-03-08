@@ -1236,6 +1236,12 @@ PROMPT;
             $spokenText = trim($m[2], '" ');
             if (empty($spokenText)) continue;
 
+            // Strip parenthetical stage directions: "(muttering)" → use for manner, strip from speech
+            if (preg_match('/^\(([^)]+)\)\s*/', $spokenText, $parenMatch)) {
+                $spokenText = trim(preg_replace('/^\([^)]+\)\s*/', '', $spokenText));
+                if (empty($spokenText)) continue;
+            }
+
             // Truncate long lines to first sentence, max 15 words
             $firstSentence = preg_split('/(?<=[.!?])\s+/', $spokenText, 2, PREG_SPLIT_NO_EMPTY);
             $speech = $firstSentence[0] ?? $spokenText;
@@ -1336,6 +1342,15 @@ PROMPT;
         if (empty($sourceText)) {
             $sourceText = trim($scene['text'] ?? '');
         }
+        if (empty($sourceText)) {
+            return $this->mapCameraToSeedance($cameraMotion);
+        }
+
+        // Strip screenplay [Scene: SHOT_TYPE - ] markup and brackets
+        $sourceText = preg_replace('/\[Scene:\s*(?:(?:CLOSE\s+UP|DETAIL\s+SHOT|MEDIUM\s+(?:SHOT|CLOSE[\s-]?UP)|WIDE\s+(?:SHOT|ANGLE)|LOW\s+ANGLE|HIGH\s+ANGLE|ESTABLISHING(?:\s+SHOT)?|TWO[\s-]?SHOT|INSERT\s+SHOT|TRACKING\s+SHOT|OVER[\s-]?(?:THE[\s-])?SHOULDER)\s*[-:\x{2013}\x{2014}]\s*)?/iu', '', $sourceText);
+        $sourceText = preg_replace('/\[Scene:\s*/i', '', $sourceText);
+        $sourceText = str_replace(['[', ']'], '', $sourceText);
+        $sourceText = trim($sourceText);
         if (empty($sourceText)) {
             return $this->mapCameraToSeedance($cameraMotion);
         }
