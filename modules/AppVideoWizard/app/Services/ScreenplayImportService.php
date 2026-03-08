@@ -66,9 +66,14 @@ class ScreenplayImportService
     public function parseHtml(string $html): array
     {
         $dom = new DOMDocument();
-        // Convert non-ASCII to numeric entities so DOMDocument preserves them
-        $encoded = mb_encode_numericentity($html, [0x80, 0x10FFFF, 0, 0xFFFFFF], 'UTF-8');
-        @$dom->loadHTML($encoded, LIBXML_NOERROR);
+        // Inject charset meta to force DOMDocument UTF-8 mode.
+        // If <head> exists, inject after it; otherwise prepend to HTML.
+        if (stripos($html, '<head') !== false) {
+            $utf8Html = preg_replace('/<head([^>]*)>/i', '<head$1><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">', $html, 1);
+        } else {
+            $utf8Html = '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">' . $html;
+        }
+        @$dom->loadHTML($utf8Html, LIBXML_NOERROR);
         $xpath = new DOMXPath($dom);
 
         // Extract title from <title> tag or .main-title element
