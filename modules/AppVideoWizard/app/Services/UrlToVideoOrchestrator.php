@@ -1131,6 +1131,50 @@ PROMPT;
     }
 
     /**
+     * Get mood-appropriate action padding phrases for short video prompts.
+     * These describe character behavior and atmosphere — NOT static environment.
+     */
+    protected function getMoodActionPadding(string $mood): array
+    {
+        $padding = [
+            'tense' => [
+                'Every motion is deliberate, tension visible in each gesture.',
+                'The air feels charged with anticipation, breaths shallow and controlled.',
+            ],
+            'dramatic' => [
+                'Each movement carries weight and purpose, emotions visible in every gesture.',
+                'The scene unfolds with cinematic intensity, every detail heightened.',
+            ],
+            'mysterious' => [
+                'Shadows shift subtly across the face, hinting at hidden depths.',
+                'Each glance reveals layers of unspoken meaning and quiet calculation.',
+            ],
+            'calm' => [
+                'Movements are unhurried, carrying a quiet confidence and ease.',
+                'The scene breathes with natural, effortless rhythm and composure.',
+            ],
+            'intense' => [
+                'Energy pulses through every action and reaction, urgency building.',
+                'The pace quickens with each passing moment, stakes rising visibly.',
+            ],
+            'intimate' => [
+                'Micro-expressions reveal deep, unspoken emotion between characters.',
+                'The space narrows with shared vulnerability, each look meaningful.',
+            ],
+            'reflective' => [
+                'The gaze drifts inward, lost in thought, features softening with memory.',
+                'A quiet stillness settles, movements slowing as realization takes hold.',
+            ],
+            'hopeful' => [
+                'The expression brightens subtly, a warmth spreading across the features.',
+                'Body language opens, tension releasing as possibility takes shape.',
+            ],
+        ];
+
+        return $padding[$mood] ?? $padding['dramatic'];
+    }
+
+    /**
      * Build physical speaking description for dialogue scenes.
      * Maps mood to body language and identifies speakers from screenplay text.
      */
@@ -1280,7 +1324,20 @@ PROMPT;
             }
         }
 
-        // Trim to max 100 words — NO minimum padding (short action prompts are fine for Seedance)
+        // Enforce 55-100 word range — pad with mood-appropriate action phrases if too short
+        $words = explode(' ', trim($narrative));
+        $count = count($words);
+
+        if ($count < 55) {
+            $mood = strtolower($scene['mood'] ?? 'dramatic');
+            $padding = $this->getMoodActionPadding($mood);
+            $idx = 0;
+            while (count(explode(' ', $narrative)) < 55 && $idx < count($padding)) {
+                $narrative .= ' ' . $padding[$idx];
+                $idx++;
+            }
+        }
+
         $words = explode(' ', trim($narrative));
         if (count($words) > 100) {
             $narrative = implode(' ', array_slice($words, 0, 100));

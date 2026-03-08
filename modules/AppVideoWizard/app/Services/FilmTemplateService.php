@@ -585,35 +585,29 @@ PROMPT;
     {
         if (empty($direction)) return '';
 
-        // Replace character names with brief visual descriptors for Seedance
-        // (Seedance doesn't know who "Ren" is — describe what we see)
+        // Replace character names with NAME + visual tag on first mention,
+        // then correct-gender pronouns for subsequent mentions.
+        // e.g. "REN (dark hair, cybernetic implant) leans forward... he pulls out..."
         $action = $direction;
         foreach ($detectedChars as $charName) {
             foreach ($characters as $char) {
                 if (strtolower($char['name']) === strtolower($charName)) {
                     $namePattern = preg_quote($charName, '/');
+                    $gender = $char['gender'] ?? 'unknown';
+                    $pronoun = match ($gender) { 'male' => 'his', 'female' => 'her', default => 'their' };
+                    $subjectPronoun = match ($gender) { 'male' => 'he', 'female' => 'she', default => 'they' };
 
-                    // Step 1: Replace ALL possessives FIRST (NAME'S → his/her/their)
-                    // This prevents broken output like "A man with cybernetic implant'S apartment"
-                    $pronoun = match ($char['gender'] ?? 'unknown') {
-                        'male' => 'his',
-                        'female' => 'her',
-                        default => 'their',
-                    };
-                    // Match all common apostrophe variants: ' (ASCII), ' ' (curly), ʼ (modifier letter)
+                    // Step 1: Replace ALL possessives (NAME's → his/her)
                     $action = preg_replace("/\b{$namePattern}[\x{0027}\x{2018}\x{2019}\x{02BC}]s\b/iu", $pronoun, $action);
 
-                    // Step 2: Replace first remaining name with visual brief
-                    $brief = $this->getCharacterVisualBrief($char);
-                    $subjectPronoun = match ($char['gender'] ?? 'unknown') {
-                        'male' => 'he',
-                        'female' => 'she',
-                        default => 'they',
-                    };
+                    // Step 2: First mention → NAME (visual tag), subsequent → correct pronoun
                     $nameRegex = "/\b{$namePattern}\b/i";
+                    $visualTag = $this->getCompactVisualTag($char);
+                    $taggedName = strtoupper($charName) . (!empty($visualTag) ? " ({$visualTag})" : '');
+
                     if (preg_match($nameRegex, $action)) {
-                        $action = preg_replace($nameRegex, $brief, $action, 1);
-                        // Remaining occurrences → subject pronoun
+                        $action = preg_replace($nameRegex, $taggedName, $action, 1);
+                        // Remaining occurrences → correct-gender pronoun
                         $action = preg_replace($nameRegex, $subjectPronoun, $action);
                     }
 
@@ -669,7 +663,13 @@ PROMPT;
 
             // Determine emotion from spoken text
             $emotion = $this->detectDialogueEmotion($spokenText);
-            $brief = $matchedChar ? $this->getCharacterVisualBrief($matchedChar) : 'a person';
+            if ($matchedChar) {
+                $tag = $this->getCompactVisualTag($matchedChar);
+                $name = strtoupper(trim($matchedChar['name']));
+                $brief = !empty($tag) ? "{$name} ({$tag})" : $name;
+            } else {
+                $brief = 'a person';
+            }
             $hints[] = "{$brief} speaks {$emotion}";
 
             if (count($hints) >= 2) break; // Max 2 speakers for video clarity
@@ -725,6 +725,40 @@ PROMPT;
         }
 
         return $subject;
+    }
+
+    /**
+     * Get a compact visual tag for a character — 2-3 key traits for parenthetical insertion.
+     * "Ren" → "dark hair, cybernetic implant"
+     * "Kira" → "silver-white cropped hair, reflective visor"
+     */
+    protected function getCompactVisualTag(array $char): string
+    {
+        $desc = $char['description'] ?? '';
+        if (empty($desc)) {
+            return match ($char['gender'] ?? 'unknown') {
+                'male' => 'male', 'female' => 'female', default => '',
+            };
+        }
+
+        $parts = array_map('trim', explode(',', $desc));
+        $tags = [];
+
+        foreach ($parts as $part) {
+            $lower = strtolower(trim($part));
+            // Skip age/generic descriptors like "Late 20s", "early 30s"
+            if (preg_match('/^\s*(late|early|mid)?\s*\d+s?\s*$/i', $lower)) continue;
+            if (preg_match('/^\s*(sharp|angular|athletic|tall|short|slim|stocky)\s/i', $lower)) continue;
+            // Keep distinctive visual traits (hair, implants, clothing, accessories)
+            if (preg_match('/\b(hair|implant|scar|tattoo|visor|jacket|suit|bodysuit|dress|armor|hood|cloak|prosthetic|augmented|chrome|glowing)\b/i', $lower)) {
+                // Shorten positional phrases
+                $lower = preg_replace('/\b(above|below|on|near|behind|across|around|over|under|pushed\s+up\s+on|attached\s+to)\b.*$/i', '', $lower);
+                $tags[] = trim($lower);
+                if (count($tags) >= 2) break;
+            }
+        }
+
+        return implode(', ', $tags);
     }
 
     /**
