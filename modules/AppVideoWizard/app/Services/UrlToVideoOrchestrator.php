@@ -1297,13 +1297,23 @@ PROMPT;
             return $this->mapCameraToSeedance($cameraMotion);
         }
 
-        // 1. Core action — the full source text (already has character descriptions)
+        // 1. Core action — strip screenplay notation, keep character actions only
         $narrative = trim($sourceText);
 
-        // 2. Camera motion — weave in after first sentence (not repeated at end)
+        // Strip INT./EXT. location headers (Seedance animates existing images, doesn't need scene headers)
+        $narrative = preg_replace('/^(?:INT|EXT)\.?\s+[^-\x{2013}\x{2014}]*?[-\x{2013}\x{2014}]\s*/iu', '', $narrative);
+        $narrative = preg_replace('/^(?:INT|EXT)\.?\s*/i', '', $narrative);
+        // Strip shot type labels (camera direction is added separately below)
+        $narrative = preg_replace('/^(?:CLOSE\s+UP|MEDIUM\s+(?:SHOT|CLOSE[\s-]?UP)|WIDE\s+(?:SHOT|ANGLE)|LOW\s+ANGLE|HIGH\s+ANGLE|ESTABLISHING(?:\s+SHOT)?|TWO[\s-]?SHOT|TRACKING\s+SHOT|OVER\s+\w+[\x{0027}\x{2019}]?s?\s+SHOULDER)\s*[-\x{2013}\x{2014}]\s*/iu', '', $narrative);
+        $narrative = trim($narrative);
+        if (empty($narrative)) {
+            return $this->mapCameraToSeedance($cameraMotion);
+        }
+
+        // 2. Camera motion — weave in after first full sentence (skip tiny fragments)
         $cameraPhrase = $this->mapCameraToSeedance($cameraMotion);
-        $sentences = preg_split('/(?<=[.!?])\s+/', $narrative, 3, PREG_SPLIT_NO_EMPTY);
-        if (count($sentences) >= 2) {
+        $sentences = preg_split('/(?<=[.!?])(?<!\bINT\.)(?<!\bEXT\.)\s+/', $narrative, 3, PREG_SPLIT_NO_EMPTY);
+        if (count($sentences) >= 2 && count(explode(' ', trim($sentences[0]))) >= 4) {
             $narrative = $sentences[0] . '. ' . $cameraPhrase . '. ' . implode(' ', array_slice($sentences, 1));
         } else {
             $narrative .= ' ' . $cameraPhrase . '.';

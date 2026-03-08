@@ -587,8 +587,17 @@ PROMPT;
 
         // Replace character names with NAME (visual tag) on first mention,
         // then just NAME for subsequent mentions. Seedance needs names, not pronouns.
-        // e.g. "REN (dark hair, cybernetic implant) leans forward... REN pulls out..."
+        // e.g. "REN, dark hair, cybernetic implant, leans forward... REN pulls out..."
         $action = $direction;
+
+        // Strip embedded quoted dialogue — Seedance needs physical actions, not spoken words
+        // e.g. 'grabs his arm: "Stick to the plan!"' → 'grabs his arm'
+        $action = preg_replace('/"[^"]*"/u', '', $action);
+        $action = preg_replace("/[\x{201C}][^\x{201D}]*[\x{201D}]/u", '', $action);
+        $action = preg_replace('/\s{2,}/', ' ', $action);
+        $action = rtrim(trim($action), ':');
+        if (empty(trim($action))) return '';
+
         foreach ($detectedChars as $charName) {
             foreach ($characters as $char) {
                 if (strtolower($char['name']) === strtolower($charName)) {
@@ -618,6 +627,12 @@ PROMPT;
                     break;
                 }
             }
+        }
+
+        // Clean up dangling character name fragments at end of text (e.g., trailing "REN.")
+        foreach ($detectedChars as $charName) {
+            $upperName = strtoupper($charName);
+            $action = preg_replace('/\.\s+' . preg_quote($upperName, '/') . '\s*\.?\s*$/', '.', $action);
         }
 
         // Append dialogue emotional context for Seedance lip-sync
