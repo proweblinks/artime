@@ -83,10 +83,52 @@ class VideoUtilService
     }
 
     /**
+     * Download a remote video to a local temp file for reliable FFmpeg seeking.
+     * Returns the temp file path, or the original path if already local.
+     * Caller must clean up temp files.
+     */
+    protected static function ensureLocalFile(string $videoInput): array
+    {
+        // Already a local file
+        if (!str_starts_with($videoInput, 'http://') && !str_starts_with($videoInput, 'https://')) {
+            return ['path' => $videoInput, 'temp' => false];
+        }
+
+        $tempPath = sys_get_temp_dir() . '/vutil_' . md5($videoInput) . '_' . uniqid() . '.mp4';
+
+        try {
+            $ch = curl_init($videoInput);
+            $fp = fopen($tempPath, 'wb');
+            curl_setopt_array($ch, [
+                CURLOPT_FILE => $fp,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_TIMEOUT => 120,
+                CURLOPT_SSL_VERIFYPEER => false,
+            ]);
+            curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            fclose($fp);
+
+            if ($httpCode >= 200 && $httpCode < 300 && file_exists($tempPath) && filesize($tempPath) > 0) {
+                return ['path' => $tempPath, 'temp' => true];
+            }
+        } catch (\Throwable $e) {
+            Log::warning('VideoUtil: failed to download remote video for local seeking', ['error' => $e->getMessage()]);
+        }
+
+        @unlink($tempPath);
+        // Fallback: return the URL and let FFmpeg try directly
+        return ['path' => $videoInput, 'temp' => false];
+    }
+
+    /**
      * Extract a frame from a video at a specific timestamp.
      */
     public static function extractFrameAtTimestamp(string $videoUrl, float $timestamp, int $projectId): ?string
     {
+        $tempInfo = null;
+
         try {
             $ffmpeg = self::findFfmpeg();
             if (!$ffmpeg) {
@@ -99,6 +141,10 @@ class VideoUtilService
                 Log::error('VideoUtil: cannot resolve video for frame extraction', ['url' => substr($videoUrl, 0, 80)]);
                 return null;
             }
+
+            // Download remote videos locally for reliable seeking
+            $tempInfo = self::ensureLocalFile($videoInput);
+            $localInput = $tempInfo['path'];
 
             $frameFilename = 'extend_frame_' . str_replace('.', '_', (string) $timestamp) . '_' . uniqid() . '.png';
             $frameStoragePath = "wizard-videos/{$projectId}/{$frameFilename}";
@@ -113,7 +159,7 @@ class VideoUtilService
             $probeCmd = sprintf(
                 '%s -v error -show_entries format=duration -of csv=p=0 %s 2>&1',
                 escapeshellarg(str_replace('ffmpeg', 'ffprobe', $ffmpeg)),
-                escapeshellarg($videoInput)
+                escapeshellarg($localInput)
             );
             $probeOutput = [];
             exec($probeCmd, $probeOutput);
@@ -123,11 +169,14 @@ class VideoUtilService
                 $timestamp = max(0, $videoDuration - 0.1);
             }
 
+            // Use output seeking (-ss after -i) for accurate frame extraction.
+            // Input seeking (-ss before -i) is faster but unreliable on AI-generated
+            // videos with sparse keyframes (Seedance, Kling, etc.) — often returns frame 0.
             $cmd = sprintf(
-                '%s -ss %s -i %s -frames:v 1 -update 1 %s -y 2>&1',
+                '%s -i %s -ss %s -frames:v 1 -update 1 %s -y 2>&1',
                 escapeshellarg($ffmpeg),
+                escapeshellarg($localInput),
                 escapeshellarg(number_format($timestamp, 3, '.', '')),
-                escapeshellarg($videoInput),
                 escapeshellarg($frameDiskPath)
             );
 
@@ -140,10 +189,15 @@ class VideoUtilService
                 $retryCmd = sprintf(
                     '%s -sseof -0.1 -i %s -frames:v 1 -update 1 %s -y 2>&1',
                     escapeshellarg($ffmpeg),
-                    escapeshellarg($videoInput),
+                    escapeshellarg($localInput),
                     escapeshellarg($frameDiskPath)
                 );
                 exec($retryCmd, $output, $returnCode);
+            }
+
+            // Clean up temp file
+            if ($tempInfo['temp']) {
+                @unlink($tempInfo['path']);
             }
 
             if ($returnCode !== 0 || !file_exists($frameDiskPath) || filesize($frameDiskPath) === 0) {
@@ -157,6 +211,10 @@ class VideoUtilService
             return url('/files/' . $frameStoragePath);
 
         } catch (\Throwable $e) {
+            // Clean up temp file on error
+            if ($tempInfo && $tempInfo['temp']) {
+                @unlink($tempInfo['path']);
+            }
             Log::error('VideoUtil: frame extraction error', ['error' => $e->getMessage()]);
             return null;
         }
