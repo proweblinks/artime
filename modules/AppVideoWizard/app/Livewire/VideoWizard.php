@@ -3591,6 +3591,12 @@ class VideoWizard extends Component
                     }
                 }
 
+                Log::info('VideoWizard: goToStep(4) — hasExistingContent check', [
+                    'hasExistingContent' => $hasExistingContent,
+                    'existingShotCount' => count($existingShots),
+                    'firstFrameInConcept' => $this->concept['socialContent']['firstFrameUrl'] ?? 'NOT SET',
+                ]);
+
                 if (!$hasExistingContent) {
                     $this->workflowTrackNode('build_script', 'running');
                     $this->autoGenerateSocialScript();
@@ -3772,6 +3778,12 @@ class VideoWizard extends Component
 
         // If cloned video has a first frame, use it as the base image
         $clonedFirstFrame = $selectedIdea['firstFrameUrl'] ?? null;
+
+        Log::info('VideoWizard: autoDecomposeSocialScene — firstFrameUrl check', [
+            'clonedFirstFrame' => $clonedFirstFrame ?? 'NULL',
+            'hasSocialContent' => isset($this->concept['socialContent']),
+            'socialContentKeys' => array_keys($this->concept['socialContent'] ?? []),
+        ]);
 
         $shot = [
             'id' => 'shot_social_' . uniqid(),
@@ -6194,6 +6206,7 @@ PROMPT;
     public function useAnalyzedConcept(): void
     {
         if (!$this->videoAnalysisResult) {
+            Log::warning('VideoWizard: useAnalyzedConcept called but videoAnalysisResult is null');
             return;
         }
 
@@ -6203,10 +6216,20 @@ PROMPT;
         $idea = $this->videoAnalysisResult;
         $idea['source'] = 'cloned';
 
+        Log::info('VideoWizard: useAnalyzedConcept — firstFrameUrl in idea', [
+            'hasFirstFrame' => isset($idea['firstFrameUrl']),
+            'firstFrameUrl' => $idea['firstFrameUrl'] ?? 'NOT SET',
+        ]);
+
         // Add as first item in conceptVariations and select it
         array_unshift($this->conceptVariations, $idea);
         $this->selectedConceptIndex = 0;
         $this->selectViralIdea(0);
+
+        Log::info('VideoWizard: useAnalyzedConcept — after selectViralIdea, concept.socialContent.firstFrameUrl', [
+            'hasFirstFrame' => isset($this->concept['socialContent']['firstFrameUrl']),
+            'firstFrameUrl' => $this->concept['socialContent']['firstFrameUrl'] ?? 'NOT SET',
+        ]);
 
         // Clear any stale errors from previous project polling
         $this->error = null;
