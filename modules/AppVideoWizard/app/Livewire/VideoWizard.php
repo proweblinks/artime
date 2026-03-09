@@ -3640,6 +3640,8 @@ class VideoWizard extends Component
     {
         $idea = $this->concept['socialContent']
             ?? $this->conceptVariations[$this->selectedConceptIndex ?? 0]
+            ?? $this->videoAnalysisResult
+            ?? $this->concept['_pendingAnalysisResult']
             ?? null;
 
         if (!$idea) return;
@@ -3774,10 +3776,20 @@ class VideoWizard extends Component
 
         // Determine video model and audio settings based on engine
         $isSeedance = $this->videoEngine === 'seedance';
-        $selectedIdea = $this->concept['socialContent'] ?? ($this->conceptVariations[$this->selectedConceptIndex ?? 0] ?? []);
+        $selectedIdea = $this->concept['socialContent']
+            ?? ($this->conceptVariations[$this->selectedConceptIndex ?? 0] ?? null)
+            ?? $this->videoAnalysisResult
+            ?? $this->concept['_pendingAnalysisResult']
+            ?? [];
 
         // If cloned video has a first frame, use it as the base image
         $clonedFirstFrame = $selectedIdea['firstFrameUrl'] ?? null;
+
+        // Fallback: try originalFirstFrameUrl if the selectedIdea lost it
+        if (!$clonedFirstFrame && $this->originalFirstFrameUrl) {
+            $clonedFirstFrame = $this->originalFirstFrameUrl;
+            Log::info('VideoWizard: autoDecomposeSocialScene — recovered firstFrameUrl from originalFirstFrameUrl');
+        }
 
         Log::info('VideoWizard: autoDecomposeSocialScene — firstFrameUrl check', [
             'clonedFirstFrame' => $clonedFirstFrame ?? 'NULL',
@@ -5757,6 +5769,16 @@ PROMPT;
             $this->videoAnalysisResult = $result;
             $this->videoAnalysisStage = null;
 
+            // Persist analysis result to concept immediately so it survives Livewire round-trips.
+            // The videoAnalysisResult property can be lost during Livewire snapshot
+            // serialization/deserialization if the payload is too large. Storing it in
+            // concept['_pendingAnalysisResult'] ensures it's saved to the database and
+            // available when useAnalyzedConcept() runs on the next HTTP request.
+            $this->concept['_pendingAnalysisResult'] = $result;
+            if ($firstFrameUrl) {
+                $this->originalFirstFrameUrl = $firstFrameUrl;
+            }
+
             // Workflow: pause at user_approve node
             $this->workflowTrackNode('user_approve', 'paused');
 
@@ -5918,6 +5940,12 @@ PROMPT;
 
             $this->videoAnalysisResult = $result;
             $this->videoAnalysisStage = null;
+
+            // Persist analysis result to concept immediately (same fix as file upload path)
+            $this->concept['_pendingAnalysisResult'] = $result;
+            if ($firstFrameUrl) {
+                $this->originalFirstFrameUrl = $firstFrameUrl;
+            }
 
             // Workflow: pause at user_approve node
             $this->workflowTrackNode('user_approve', 'paused');
@@ -6205,8 +6233,15 @@ PROMPT;
      */
     public function useAnalyzedConcept(): void
     {
+        // Fallback: if videoAnalysisResult was lost during Livewire round-trip,
+        // recover it from the persisted concept['_pendingAnalysisResult']
+        if (!$this->videoAnalysisResult && !empty($this->concept['_pendingAnalysisResult'])) {
+            Log::info('VideoWizard: useAnalyzedConcept recovering from _pendingAnalysisResult (Livewire snapshot loss)');
+            $this->videoAnalysisResult = $this->concept['_pendingAnalysisResult'];
+        }
+
         if (!$this->videoAnalysisResult) {
-            Log::warning('VideoWizard: useAnalyzedConcept called but videoAnalysisResult is null');
+            Log::warning('VideoWizard: useAnalyzedConcept called but videoAnalysisResult is null (no recovery available)');
             return;
         }
 
@@ -6225,6 +6260,9 @@ PROMPT;
         array_unshift($this->conceptVariations, $idea);
         $this->selectedConceptIndex = 0;
         $this->selectViralIdea(0);
+
+        // Clean up the pending analysis result now that it's been consumed
+        unset($this->concept['_pendingAnalysisResult']);
 
         Log::info('VideoWizard: useAnalyzedConcept — after selectViralIdea, concept.socialContent.firstFrameUrl', [
             'hasFirstFrame' => isset($this->concept['socialContent']['firstFrameUrl']),
