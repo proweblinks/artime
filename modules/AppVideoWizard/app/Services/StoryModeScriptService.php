@@ -475,14 +475,20 @@ PROMPT;
         string $engine, string $model, int $teamId
     ): ?array {
         // Build treatment context header
-        $visualTone = $treatment['visual_tone'] ?? 'cinematic';
+        $visualTone = $this->safeStr($treatment['visual_tone'] ?? 'cinematic', 'cinematic');
         $locationDescs = '';
         foreach ($treatment['location_bible'] ?? [] as $loc) {
-            $locationDescs .= "- {$loc['name']} ({$loc['id']}): {$loc['description']}\n";
+            $name = $this->safeStr($loc['name'] ?? '');
+            $id = $this->safeStr($loc['id'] ?? '');
+            $desc = $this->safeStr($loc['description'] ?? '');
+            $locationDescs .= "- {$name} ({$id}): {$desc}\n";
         }
         $charDescs = '';
         foreach ($treatment['character_bible'] ?? [] as $char) {
-            $charDescs .= "- {$char['name']} ({$char['id']}): {$char['description']}\n";
+            $name = $this->safeStr($char['name'] ?? '');
+            $id = $this->safeStr($char['id'] ?? '');
+            $desc = $this->safeStr($char['description'] ?? '');
+            $charDescs .= "- {$name} ({$id}): {$desc}\n";
         }
 
         // Build continuity context from previous 2 scenes
@@ -505,11 +511,11 @@ PROMPT;
             $beat = $windowBeats[$idx] ?? [];
             $windowBlock .= "Segment {$segNum}: \"{$seg['text']}\"\n";
             if (!empty($beat)) {
-                $windowBlock .= "  Director's beat: visual_summary=\"" . ($beat['visual_summary'] ?? '') . "\", "
-                    . "location=\"" . ($beat['location_id'] ?? '') . "\", "
-                    . "mood_hint=\"" . ($beat['mood_hint'] ?? '') . "\", "
-                    . "camera_hint=\"" . ($beat['camera_hint'] ?? '') . "\", "
-                    . "continuity=\"" . ($beat['continuity_note'] ?? '') . "\"\n";
+                $windowBlock .= "  Director's beat: visual_summary=\"" . $this->safeStr($beat['visual_summary'] ?? '') . "\", "
+                    . "location=\"" . $this->safeStr($beat['location_id'] ?? '') . "\", "
+                    . "mood_hint=\"" . $this->safeStr($beat['mood_hint'] ?? '') . "\", "
+                    . "camera_hint=\"" . $this->safeStr($beat['camera_hint'] ?? '') . "\", "
+                    . "continuity=\"" . $this->safeStr($beat['continuity_note'] ?? '') . "\"\n";
             }
         }
 
@@ -1512,5 +1518,17 @@ PROMPT;
         // Clean up whitespace
         $cleaned = preg_replace('/\s{2,}/', ' ', trim($cleaned));
         return !empty($cleaned) ? $cleaned : $text;
+    }
+
+    /**
+     * Safely convert any value to a string. Handles arrays/objects from AI responses.
+     */
+    protected function safeStr(mixed $value, string $default = ''): string
+    {
+        if (is_string($value)) return $value;
+        if (is_null($value)) return $default;
+        if (is_scalar($value)) return (string) $value;
+        if (is_array($value)) return implode(', ', array_map(fn($v) => is_scalar($v) ? (string) $v : json_encode($v), $value));
+        return json_encode($value) ?: $default;
     }
 }
