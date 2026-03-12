@@ -67,22 +67,26 @@ class StoryModeScriptService
             'target_words' => $targetWords,
         ]);
 
-        // Always allow retries — Gemini often truncates JSON on first attempt
-        $maxAttempts = $rawPrompt ? 2 : 2;
+        // Allow retries — Gemini often truncates JSON or writes too few words
+        $maxAttempts = $rawPrompt ? 2 : 3;
         $wordCount = 0;
         $lastParsed = null;
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             try {
-                // Attempt 1: JSON format. Attempt 2: plain text (or re-try JSON for rawPrompt)
+                // Attempt 1: JSON format. Attempt 2+: plain text (or re-try JSON for rawPrompt)
                 if ($attempt === 1) {
                     $fullPrompt = "{$systemMessage}\n\n{$compiledPrompt}";
                 } elseif ($rawPrompt) {
                     // Raw prompt mode (creative): retry the same prompt with more tokens
                     $fullPrompt = "{$systemMessage}\n\n{$compiledPrompt}\n\nIMPORTANT: Your previous response was truncated. You MUST output the COMPLETE JSON with ALL fields including the full transcript. Do not stop mid-sentence.";
                 } else {
+                    $prevWordCount = $lastParsed ? str_word_count($lastParsed['transcript'] ?? '') : 0;
                     $plainTextPrompt = $this->buildPlainTextRetryPrompt($prompt, $targetDuration, $targetWords, $maxWords);
                     $plainTextSystem = "You are a professional video narration scriptwriter. Write engaging, vivid narration scripts for video content. Output ONLY the narration text — no JSON, no formatting, no headers, no markdown.";
+                    if ($attempt >= 3 && $prevWordCount > 0) {
+                        $plainTextPrompt .= "\n\nCRITICAL: Your last attempt was only {$prevWordCount} words. That is FAR too short. You MUST write at least {$targetWords} words. Write a LONG, detailed, rich narration. Think of {$targetDuration} seconds of continuous narration at 140 words per minute. EVERY second needs words.";
+                    }
                     $fullPrompt = "{$plainTextSystem}\n\n{$plainTextPrompt}";
                 }
 
