@@ -404,6 +404,35 @@ class StoryMode extends Component
     }
 
     /**
+     * Cancel a generating project.
+     */
+    public function cancelProject(int $projectId)
+    {
+        $project = StoryModeProject::where('id', $projectId)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if ($project && $project->isGenerating()) {
+            $project->update([
+                'status' => 'cancelled',
+                'current_stage' => 'Cancelled by user',
+            ]);
+
+            Log::info('StoryMode: Project cancelled by user', ['project_id' => $projectId]);
+
+            $project->deleteWithFiles();
+            Cache::forget('story-mode-projects-' . auth()->id());
+
+            if ($this->detailProjectId === $projectId) {
+                $this->detailProjectId = null;
+            }
+            if ($this->activeProjectId === $projectId) {
+                $this->activeProjectId = null;
+            }
+        }
+    }
+
+    /**
      * Delete a project.
      */
     public function deleteProject(int $projectId)
