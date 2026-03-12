@@ -617,10 +617,11 @@ class StoryModeOrchestrator
 
         // Collect image URLs for end_image_url continuity
         $imageUrls = array_map(fn($s) => $s['image_url'] ?? null, $scenes);
-        $crossfade = (float) get_option('story_mode_crossfade_duration', 0.5);
 
-        // Phase 1: Submit all video generation jobs
-        $pendingTasks = []; // index => taskId
+        // Phase 1: Submit all video generation jobs (including multi-clip for long scenes)
+        $pendingTasks = []; // "sceneIdx" or "sceneIdx_subIdx" => taskId
+        $multiClipScenes = []; // sceneIdx => count of sub-clips
+
         foreach ($scenes as $i => $scene) {
             $imageUrl = $scene['image_url'] ?? null;
             if (empty($imageUrl)) {
@@ -629,34 +630,91 @@ class StoryModeOrchestrator
 
             try {
                 $audioDuration = isset($scene['audio_duration']) ? (float) $scene['audio_duration'] : null;
-                $clipDuration = $this->calculateClipDuration($audioDuration);
+                $clipPlan = $this->planClipDurations($audioDuration);
 
-                $animationOptions = [
-                    'imageUrl' => $imageUrl,
-                    'prompt' => $this->buildStoryVideoPrompt($scene, $styleInstruction, $aspectRatio),
-                    'duration' => $clipDuration,
-                    'sceneIndex' => $i,
-                    'resolution' => $project->metadata['video_resolution'] ?? '480p',
-                    'variant' => $project->metadata['video_quality'] ?? 'pro',
-                    'generate_audio' => false,
-                ];
+                $basePrompt = $this->buildStoryVideoPrompt($scene, $styleInstruction, $aspectRatio);
+                $resolution = $project->metadata['video_resolution'] ?? '480p';
+                $variant = $project->metadata['video_quality'] ?? 'pro';
 
-                // Visual continuity: end frame transitions toward next scene
-                if ($i < count($scenes) - 1 && !empty($imageUrls[$i + 1])) {
-                    $animationOptions['end_image_url'] = $imageUrls[$i + 1];
-                }
+                if (count($clipPlan) === 1) {
+                    // Single clip — original behavior
+                    $animationOptions = [
+                        'imageUrl' => $imageUrl,
+                        'prompt' => $basePrompt,
+                        'duration' => $clipPlan[0],
+                        'sceneIndex' => $i,
+                        'resolution' => $resolution,
+                        'variant' => $variant,
+                        'generate_audio' => false,
+                    ];
 
-                $result = $this->animationService->generateAnimation($wizardProject, $animationOptions);
+                    if ($i < count($scenes) - 1 && !empty($imageUrls[$i + 1])) {
+                        $animationOptions['end_image_url'] = $imageUrls[$i + 1];
+                    }
 
-                if (!empty($result['success']) && !empty($result['taskId'])) {
-                    $pendingTasks[$i] = $result['taskId'];
-                    $scenes[$i]['video_task_id'] = $result['taskId'];
-                    Log::info("StoryModeOrchestrator: Video job submitted for scene {$i}", [
-                        'taskId' => $result['taskId'],
+                    $result = $this->animationService->generateAnimation($wizardProject, $animationOptions);
+
+                    if (!empty($result['success']) && !empty($result['taskId'])) {
+                        $pendingTasks["{$i}"] = $result['taskId'];
+                        $scenes[$i]['video_task_id'] = $result['taskId'];
+                    } elseif (!empty($result['videoUrl'])) {
+                        $scenes[$i]['video_url'] = $result['videoUrl'];
+                    }
+                } else {
+                    // Multi-clip: scene needs more than one Seedance clip
+                    $multiClipScenes[$i] = count($clipPlan);
+                    $scenes[$i]['clips'] = [];
+
+                    Log::info("StoryModeOrchestrator: Scene {$i} needs multi-clip", [
+                        'audio_duration' => $audioDuration,
+                        'clip_plan' => $clipPlan,
                     ]);
-                } elseif (!empty($result['videoUrl'])) {
-                    // Immediate result (unlikely with Seedance)
-                    $scenes[$i]['video_url'] = $result['videoUrl'];
+
+                    foreach ($clipPlan as $ci => $subDuration) {
+                        $subPrompt = $basePrompt;
+                        // Vary camera motion for sub-clips to avoid identical frozen look
+                        if ($ci > 0) {
+                            $altCameras = ['Slow pull-back camera', 'Slow pan right', 'Gentle diagonal tracking', 'Very subtle breathing movement', 'Slow tilt up'];
+                            $altCamera = $altCameras[$ci % count($altCameras)];
+                            $subPrompt = preg_replace('/Slow push-in camera|Slow pull-back camera|Slow pan (?:left|right)|Gentle diagonal tracking|Crane shot rising upward|Very subtle breathing movement|Subtle settle, nearly locked-off|Fast push-in camera|Slow tilt (?:up|down)|Push-in with pan right|Pull-back with pan left/i', $altCamera, $subPrompt, 1);
+                        }
+
+                        $animationOptions = [
+                            'imageUrl' => $imageUrl,
+                            'prompt' => $subPrompt,
+                            'duration' => $subDuration,
+                            'sceneIndex' => $i,
+                            'resolution' => $resolution,
+                            'variant' => $variant,
+                            'generate_audio' => false,
+                        ];
+
+                        // Last sub-clip transitions toward next scene
+                        if ($ci === count($clipPlan) - 1 && $i < count($scenes) - 1 && !empty($imageUrls[$i + 1])) {
+                            $animationOptions['end_image_url'] = $imageUrls[$i + 1];
+                        }
+
+                        $result = $this->animationService->generateAnimation($wizardProject, $animationOptions);
+
+                        if (!empty($result['success']) && !empty($result['taskId'])) {
+                            $pendingTasks["{$i}_{$ci}"] = $result['taskId'];
+                            $scenes[$i]['clips'][$ci] = [
+                                'task_id' => $result['taskId'],
+                                'duration' => $subDuration,
+                                'type' => 'video',
+                            ];
+                            Log::info("StoryModeOrchestrator: Multi-clip job submitted for scene {$i} sub-clip {$ci}", [
+                                'taskId' => $result['taskId'],
+                                'duration' => $subDuration,
+                            ]);
+                        } elseif (!empty($result['videoUrl'])) {
+                            $scenes[$i]['clips'][$ci] = [
+                                'video_url' => $result['videoUrl'],
+                                'duration' => $subDuration,
+                                'type' => 'video',
+                            ];
+                        }
+                    }
                 }
             } catch (\Exception $e) {
                 Log::warning("StoryModeOrchestrator: Video submission failed for segment {$i}", [
@@ -667,22 +725,34 @@ class StoryModeOrchestrator
 
         $project->update(['scenes' => $scenes]);
 
-        // Phase 2: Poll all pending tasks until complete (max 8 minutes)
+        // Phase 2: Poll all pending tasks until complete (max 10 minutes for multi-clip)
         if (!empty($pendingTasks)) {
-            $project->updateProgress('generating_video', 72, 'Waiting for video clips (' . count($pendingTasks) . ' jobs)');
+            $totalJobs = count($pendingTasks);
+            $project->updateProgress('generating_video', 72, "Waiting for video clips ({$totalJobs} jobs)");
 
-            $maxAttempts = 96; // 96 * 5s = 8 minutes
+            $maxAttempts = 120; // 120 * 5s = 10 minutes
             for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
                 sleep(5);
 
                 $stillPending = 0;
                 $completedCount = 0;
 
-                foreach ($pendingTasks as $sceneIndex => $taskId) {
-                    // Skip already completed
-                    if (!empty($scenes[$sceneIndex]['video_url'])) {
-                        $completedCount++;
-                        continue;
+                foreach ($pendingTasks as $key => $taskId) {
+                    $parts = explode('_', (string) $key);
+                    $sceneIndex = (int) $parts[0];
+                    $subIndex = isset($parts[1]) ? (int) $parts[1] : null;
+
+                    // Check if already completed
+                    if ($subIndex === null) {
+                        if (!empty($scenes[$sceneIndex]['video_url'])) {
+                            $completedCount++;
+                            continue;
+                        }
+                    } else {
+                        if (!empty($scenes[$sceneIndex]['clips'][$subIndex]['video_url'])) {
+                            $completedCount++;
+                            continue;
+                        }
                     }
 
                     try {
@@ -690,16 +760,20 @@ class StoryModeOrchestrator
                         $state = $status['status'] ?? 'unknown';
 
                         if ($state === 'completed' && !empty($status['videoUrl'])) {
-                            $scenes[$sceneIndex]['video_url'] = $status['videoUrl'];
+                            if ($subIndex === null) {
+                                $scenes[$sceneIndex]['video_url'] = $status['videoUrl'];
+                            } else {
+                                $scenes[$sceneIndex]['clips'][$subIndex]['video_url'] = $status['videoUrl'];
+                            }
                             $completedCount++;
-                            Log::info("StoryModeOrchestrator: Video clip completed for scene {$sceneIndex}", [
+                            Log::info("StoryModeOrchestrator: Video clip completed for {$key}", [
                                 'videoUrl' => substr($status['videoUrl'], 0, 80),
                             ]);
                         } elseif ($state === 'failed') {
-                            Log::warning("StoryModeOrchestrator: Video clip failed for scene {$sceneIndex}", [
+                            Log::warning("StoryModeOrchestrator: Video clip failed for {$key}", [
                                 'error' => $status['error'] ?? 'Unknown',
                             ]);
-                            unset($pendingTasks[$sceneIndex]);
+                            unset($pendingTasks[$key]);
                         } else {
                             $stillPending++;
                         }
@@ -708,13 +782,11 @@ class StoryModeOrchestrator
                     }
                 }
 
-                $totalTasks = count($pendingTasks);
-                $progress = 72 + (int) (($completedCount / max(1, $totalTasks)) * 13);
+                $progress = 72 + (int) (($completedCount / max(1, $totalJobs)) * 13);
                 $project->updateProgress('generating_video', min(85, $progress),
-                    "Video clips: {$completedCount}/{$totalTasks} complete"
+                    "Video clips: {$completedCount}/{$totalJobs} complete"
                 );
 
-                // Save progress
                 $project->update(['scenes' => $scenes]);
 
                 if ($stillPending === 0) {
@@ -723,8 +795,63 @@ class StoryModeOrchestrator
             }
         }
 
+        // For multi-clip scenes: set video_url to first clip as fallback display
+        foreach ($multiClipScenes as $sceneIdx => $count) {
+            if (empty($scenes[$sceneIdx]['video_url']) && !empty($scenes[$sceneIdx]['clips'])) {
+                $firstClip = collect($scenes[$sceneIdx]['clips'])->first(fn($c) => !empty($c['video_url']));
+                if ($firstClip) {
+                    $scenes[$sceneIdx]['video_url'] = $firstClip['video_url'];
+                }
+            }
+        }
+
         $project->update(['scenes' => $scenes]);
         $wizardProject->delete();
+    }
+
+    /**
+     * Plan how to split a scene's duration into Seedance-compatible clip durations.
+     * Seedance supports: 5, 6, 8, 10 seconds.
+     * Returns an array of durations, e.g. [10, 8] for an 18-second scene.
+     */
+    protected function planClipDurations(?float $audioDuration): array
+    {
+        if ($audioDuration === null || $audioDuration <= 0) {
+            return [8];
+        }
+
+        $withPadding = $audioDuration + 1.5;
+        $supported = [5, 6, 8, 10];
+
+        // If it fits in a single clip, use calculateClipDuration logic
+        if ($withPadding <= 10) {
+            return [$this->calculateClipDuration($audioDuration)];
+        }
+
+        // Need multiple clips — greedily fill with largest possible durations
+        $remaining = $withPadding;
+        $plan = [];
+
+        while ($remaining > 0) {
+            if ($remaining <= 10) {
+                // Last chunk: snap UP to nearest supported duration
+                $snapped = 10;
+                foreach ($supported as $dur) {
+                    if ($dur >= $remaining - 0.5) { // 0.5s tolerance
+                        $snapped = $dur;
+                        break;
+                    }
+                }
+                $plan[] = $snapped;
+                break;
+            }
+
+            // Take a 10s chunk and continue
+            $plan[] = 10;
+            $remaining -= 10;
+        }
+
+        return $plan;
     }
 
     /**
@@ -771,7 +898,7 @@ class StoryModeOrchestrator
                 $duration += 2.5;
             }
 
-            $manifestScenes[] = [
+            $manifestScene = [
                 'imageUrl' => $scene['image_url'] ?? null,
                 'videoUrl' => $scene['video_url'] ?? null,
                 'voiceoverUrl' => $scene['audio_url'] ?? null,
@@ -788,6 +915,13 @@ class StoryModeOrchestrator
                     'endY' => 0.5 + (($i % 3 === 0) ? 0.05 : -0.05),
                 ],
             ];
+
+            // Pass multi-clip data through for VideoRenderService to concatenate
+            if (!empty($scene['clips']) && is_array($scene['clips']) && count($scene['clips']) > 1) {
+                $manifestScene['clips'] = $scene['clips'];
+            }
+
+            $manifestScenes[] = $manifestScene;
         }
 
         $manifest = [
