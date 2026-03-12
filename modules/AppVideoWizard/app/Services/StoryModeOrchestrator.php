@@ -805,6 +805,20 @@ class StoryModeOrchestrator
             }
         }
 
+        // Check how many scenes got video clips — warn if most failed
+        $scenesWithVideo = collect($scenes)->filter(fn($s) => !empty($s['video_url']))->count();
+        $totalScenes = count($scenes);
+        if ($scenesWithVideo < $totalScenes) {
+            Log::warning("StoryModeOrchestrator: Only {$scenesWithVideo}/{$totalScenes} scenes have video clips", [
+                'project_id' => $project->id,
+            ]);
+        }
+        if ($scenesWithVideo <= 1 && $totalScenes > 1) {
+            Log::error("StoryModeOrchestrator: Only {$scenesWithVideo}/{$totalScenes} clips generated — assembly will likely fail", [
+                'project_id' => $project->id,
+            ]);
+        }
+
         $project->update(['scenes' => $scenes]);
         $wizardProject->delete();
     }
@@ -965,18 +979,49 @@ class StoryModeOrchestrator
                 'outputSize' => $result['outputSize'] ?? 0,
             ]);
         } catch (\Exception $e) {
-            Log::error('StoryModeOrchestrator: Local assembly failed', [
+            Log::error('StoryModeOrchestrator: Local assembly failed, attempting simple concat fallback', [
                 'project_id' => $project->id,
                 'error' => $e->getMessage(),
             ]);
 
-            // Fallback: use the first available video clip URL
-            $videoUrl = null;
-            foreach ($scenes as $scene) {
-                if (!empty($scene['video_url'])) {
-                    $videoUrl = $scene['video_url'];
-                    break;
+            // Retry with simpler manifest (no crossfade transitions) — xfade is the most fragile part
+            try {
+                $simpleManifest = $manifest;
+                $simpleManifest['transitions']['crossfadeDuration'] = 0;
+                $simpleManifest['transitions']['type'] = 'none';
+                foreach ($simpleManifest['scenes'] as &$ms) {
+                    $ms['transition_type'] = 'none';
+                    $ms['transition_duration'] = 0;
                 }
+                unset($ms);
+
+                $project->updateProgress('assembling', 90, 'Retrying assembly without transitions...');
+                $result = $this->renderService->processStoryModeExport($simpleManifest, $progressCallback);
+                $videoUrl = $result['outputUrl'] ?? null;
+                $videoPath = $result['outputPath'] ?? null;
+
+                Log::info('StoryModeOrchestrator: Simple concat fallback succeeded', [
+                    'project_id' => $project->id,
+                    'outputUrl' => $videoUrl,
+                ]);
+            } catch (\Exception $e2) {
+                Log::error('StoryModeOrchestrator: Simple concat also failed — marking project failed', [
+                    'project_id' => $project->id,
+                    'error' => $e2->getMessage(),
+                    'original_error' => $e->getMessage(),
+                ]);
+
+                $project->update([
+                    'status' => 'failed',
+                    'progress_percent' => 0,
+                    'current_stage' => 'Assembly failed',
+                    'metadata' => array_merge($project->metadata ?? [], [
+                        'failed_at' => now()->toIso8601String(),
+                        'failure_reason' => 'FFmpeg assembly failed: ' . $e->getMessage(),
+                        'fallback_error' => $e2->getMessage(),
+                    ]),
+                ]);
+                return;
             }
         }
 

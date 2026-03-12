@@ -345,6 +345,19 @@ class VideoRenderService
                 $this->updateProgress($progressCallback, $dlProgress, 'Downloading scene ' . ($i + 1) . "/{$sceneCount}...");
             }
 
+            // Validate that enough scenes were downloaded
+            $validClipCount = count(array_filter($clipFiles));
+            if ($validClipCount === 0) {
+                throw new Exception("[StoryExport:{$jobId}] No scene clips could be downloaded");
+            }
+            if ($validClipCount <= 1 && $sceneCount > 1) {
+                Log::error("[StoryExport:{$jobId}] Only {$validClipCount}/{$sceneCount} scene clips downloaded — aborting to prevent single-clip output");
+                throw new Exception("Only {$validClipCount} of {$sceneCount} scene clips could be downloaded — most downloads failed");
+            }
+            if ($validClipCount < $sceneCount) {
+                Log::warning("[StoryExport:{$jobId}] {$validClipCount}/{$sceneCount} scenes downloaded — some scenes will be missing");
+            }
+
             // Step 2: Normalize and prepare scene videos
             $this->updateProgress($progressCallback, 30, 'Processing video scenes...');
             $normalizedClips = [];
@@ -541,7 +554,7 @@ class VideoRenderService
                 }
 
                 if (file_exists($normalizedPath)) {
-                    $normalizedClips[] = $normalizedPath;
+                    $normalizedClips[$i] = $normalizedPath;
                 }
 
                 $normProgress = 30 + (int) round(($i / $sceneCount) * 25);
@@ -552,6 +565,13 @@ class VideoRenderService
                 throw new Exception('No video clips were produced');
             }
 
+            // Re-index clips and matching scenes to ensure no gaps (keys may skip failed scenes)
+            $survivingKeys = array_keys($normalizedClips);
+            $normalizedClips = array_values($normalizedClips);
+            $survivingScenes = array_values(array_intersect_key($scenes, array_flip($survivingKeys)));
+
+            Log::info("[StoryExport:{$jobId}] Normalized clips ready: " . count($normalizedClips) . " clips for concatenation");
+
             // Step 3: Concatenate video clips with transitions
             $this->updateProgress($progressCallback, 58, 'Joining video clips with transitions...');
             $transitions = $manifest['transitions'] ?? [];
@@ -561,12 +581,21 @@ class VideoRenderService
                 $transitions,
                 $workDir,
                 $output,
-                $scenes
+                $survivingScenes
             );
 
             if (!file_exists($concatenatedVideo)) {
                 throw new Exception('Failed to concatenate video clips');
             }
+
+            // Sanity check: verify output video is not absurdly shorter than expected
+            $expectedTotalDuration = array_sum(array_column($scenes, 'duration'));
+            $concatDuration = $this->getVideoDuration($concatenatedVideo);
+            if ($concatDuration > 0 && $expectedTotalDuration > 0 && $concatDuration < $expectedTotalDuration * 0.3) {
+                Log::error("[StoryExport:{$jobId}] Concatenated video too short: {$concatDuration}s vs expected ~{$expectedTotalDuration}s");
+                throw new Exception("Concatenated video ({$concatDuration}s) is far shorter than expected ({$expectedTotalDuration}s) — likely xfade failure");
+            }
+
             // Step 4: Audio preparation (voiceover concat handled inside combineVideoWithAudio)
             $this->updateProgress($progressCallback, 65, 'Preparing audio...');
 
