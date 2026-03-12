@@ -26,11 +26,14 @@ class StoryMode extends Component
     public $customStyleImage = null;
     public string $customStyleName = '';
     public string $aspectRatio = '9:16';
+    public string $imageAspectRatio = '9:16';
+    public string $videoAspectRatio = '9:16';
     public string $selectedVoice = 'auto';
     public string $voiceProvider = '';
     public string $videoResolution = '480p';
     public string $videoQuality = 'pro';
     public string $imageModel = 'nanobanana2';
+    public bool $generateAudio = true;
     public $attachedFile = null;
 
     // Transcript editing
