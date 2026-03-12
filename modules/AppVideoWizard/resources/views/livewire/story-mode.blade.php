@@ -214,6 +214,39 @@
                             <i class="fa-light fa-waveform-lines"></i>
                             <span>{{ $selectedVoice === 'auto' ? __('Voice') : $selectedVoice }}</span>
                         </button>
+
+                        {{-- Duration Button --}}
+                        <div class="position-relative" x-data="{ showDuration: false }">
+                            <button @click="showDuration = !showDuration" type="button"
+                                    class="story-tool-btn" :class="showDuration ? 'active' : ''">
+                                <i class="fa-light fa-timer"></i>
+                                <span>{{ collect($this->durationPresets)->firstWhere('value', $videoDuration)['label'] ?? '1 min' }}</span>
+                            </button>
+                            <div x-show="showDuration" x-cloak
+                                 @click.away="showDuration = false"
+                                 x-transition:enter="transition ease-out duration-150"
+                                 x-transition:enter-start="opacity-0"
+                                 x-transition:enter-end="opacity-100"
+                                 x-transition:leave="transition ease-in duration-100"
+                                 x-transition:leave-start="opacity-100"
+                                 x-transition:leave-end="opacity-0"
+                                 class="story-settings-popover">
+                                <div class="story-settings-label">{{ __('Video Duration') }}</div>
+                                @foreach($this->durationPresets as $preset)
+                                    <button wire:click="$set('videoDuration', {{ $preset['value'] }})"
+                                            @click="showDuration = false"
+                                            type="button" class="story-settings-row">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <i class="fa-light fa-clock story-settings-icon"></i>
+                                            {{ $preset['label'] }}
+                                        </span>
+                                        @if($videoDuration === $preset['value'])
+                                            <i class="fa-solid fa-check" style="color: #03fcf4; font-size: 0.75rem;"></i>
+                                        @endif
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
                     </div>
 
                     {{-- Submit Button --}}

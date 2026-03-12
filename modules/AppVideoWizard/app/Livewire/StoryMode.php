@@ -34,6 +34,7 @@ class StoryMode extends Component
     public string $videoQuality = 'pro';
     public string $imageModel = 'nanobanana2';
     public bool $generateAudio = true;
+    public int $videoDuration = 60;
     public $attachedFile = null;
 
     // Transcript editing
@@ -94,8 +95,8 @@ class StoryMode extends Component
 
         try {
             $scriptService = new StoryModeScriptService();
-            $targetDuration = (int) get_option('story_mode_default_duration', 35);
-            $maxWords = (int) get_option('story_mode_max_words', 450);
+            $targetDuration = $this->videoDuration;
+            $maxWords = $this->calculateMaxWords($this->videoDuration);
 
             $result = $scriptService->generateScript($this->prompt, $targetDuration, $maxWords);
 
@@ -124,7 +125,7 @@ class StoryMode extends Component
         // If we already have candidates, verify scene count still matches
         if (!empty($this->sceneImageCandidates)) {
             $scriptService = new StoryModeScriptService();
-            $targetDuration = (int) get_option('story_mode_default_duration', 35);
+            $targetDuration = $this->videoDuration;
             $currentSegments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
             $currentCount = count($currentSegments);
             $cachedCount = count($this->sceneImageCandidates);
@@ -145,7 +146,7 @@ class StoryMode extends Component
 
         // Segment the transcript and source images
         $scriptService = new StoryModeScriptService();
-        $targetDuration = (int) get_option('story_mode_default_duration', 35);
+        $targetDuration = $this->videoDuration;
         $segments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
 
         // Source images (opens image selection modal via trait)
@@ -163,7 +164,7 @@ class StoryMode extends Component
 
         try {
             $scriptService = new StoryModeScriptService();
-            $targetDuration = (int) get_option('story_mode_default_duration', 35);
+            $targetDuration = $this->videoDuration;
             $segments = $scriptService->segmentTranscript($this->editableTranscript, $targetDuration);
             $wordCount = str_word_count($this->editableTranscript);
 
@@ -269,6 +270,7 @@ class StoryMode extends Component
                 'metadata' => [
                     'started_at' => now()->toIso8601String(),
                     'ai_engine' => get_option('story_mode_ai_engine', 'gemini'),
+                    'video_duration_target' => $this->videoDuration,
                     'video_resolution' => $this->videoResolution,
                     'video_quality' => $this->videoQuality,
                     'image_model' => $this->imageModel,
@@ -482,6 +484,22 @@ class StoryMode extends Component
             ['id' => 'am_adam', 'name' => 'Adam', 'gender' => 'male', 'provider' => 'kokoro', 'description' => 'Natural American male'],
             ['id' => 'am_michael', 'name' => 'Michael', 'gender' => 'male', 'provider' => 'kokoro', 'description' => 'Professional American male'],
         ];
+    }
+
+    public function getDurationPresetsProperty(): array
+    {
+        return [
+            ['value' => 30,  'label' => '30 sec'],
+            ['value' => 60,  'label' => '1 min'],
+            ['value' => 90,  'label' => '1.5 min'],
+            ['value' => 120, 'label' => '2 min'],
+            ['value' => 180, 'label' => '3 min'],
+        ];
+    }
+
+    protected function calculateMaxWords(int $duration): int
+    {
+        return (int) round(($duration / 60) * 140 * 1.3);
     }
 
     public function render()
