@@ -81,11 +81,25 @@ class StoryModeScriptService
                     // Raw prompt mode (creative): retry the same prompt with more tokens
                     $fullPrompt = "{$systemMessage}\n\n{$compiledPrompt}\n\nIMPORTANT: Your previous response was truncated. You MUST output the COMPLETE JSON with ALL fields including the full transcript. Do not stop mid-sentence.";
                 } else {
-                    $prevWordCount = $lastParsed ? str_word_count($lastParsed['transcript'] ?? '') : 0;
-                    $plainTextPrompt = $this->buildPlainTextRetryPrompt($prompt, $targetDuration, $targetWords, $maxWords);
+                    $prevTranscript = $lastParsed['transcript'] ?? '';
+                    $prevWordCount = str_word_count($prevTranscript);
                     $plainTextSystem = "You are a professional video narration scriptwriter. Write engaging, vivid narration scripts for video content. Output ONLY the narration text — no JSON, no formatting, no headers, no markdown.";
-                    if ($attempt >= 3 && $prevWordCount > 0) {
-                        $plainTextPrompt .= "\n\nCRITICAL: Your last attempt was only {$prevWordCount} words. That is FAR too short. You MUST write at least {$targetWords} words. Write a LONG, detailed, rich narration. Think of {$targetDuration} seconds of continuous narration at 140 words per minute. EVERY second needs words.";
+
+                    if ($attempt >= 3 && $prevWordCount > 0 && $prevWordCount < $targetWords * 0.85) {
+                        // Attempt 3: expand the previous short script instead of generating from scratch
+                        $wordsNeeded = $targetWords - $prevWordCount;
+                        $plainTextPrompt = <<<PROMPT
+Below is an INCOMPLETE narration script ({$prevWordCount} words) for a {$targetDuration}-second video. It needs to be at least {$targetWords} words total.
+
+EXISTING SCRIPT:
+{$prevTranscript}
+
+YOUR TASK: Rewrite and EXPAND this into a COMPLETE {$targetWords}-word narration. Keep the same story and tone, but add much more detail, description, and new scenes. You need roughly {$wordsNeeded} more words. Add vivid sensory details, expand each moment, and ensure the story has a proper beginning, middle, and end with a satisfying conclusion.
+
+Output ONLY the complete expanded narration text — no titles, no labels, no formatting.
+PROMPT;
+                    } else {
+                        $plainTextPrompt = $this->buildPlainTextRetryPrompt($prompt, $targetDuration, $targetWords, $maxWords);
                     }
                     $fullPrompt = "{$plainTextSystem}\n\n{$plainTextPrompt}";
                 }
@@ -96,8 +110,8 @@ class StoryModeScriptService
                     $model,
                     'text',
                     [
-                        'temperature' => 0.7,
-                        'max_tokens' => $rawPrompt ? max(8000, (int) ($maxWords * 10)) : max(4000, (int) ($maxWords * 6)),
+                        'temperature' => $attempt >= 3 ? 0.9 : 0.7,
+                        'max_tokens' => $rawPrompt ? max(8000, (int) ($maxWords * 10)) : max(4000, (int) ($maxWords * 8)),
                     ],
                     auth()->user()?->team_id ?? 0
                 );
