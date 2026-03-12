@@ -917,6 +917,29 @@
                     $sceneDuration = $generatedSegments[$sceneIndex]['estimated_duration'] ?? 6;
                     $clipDuration = $isVideoSelected ? ($selectedCandidate['duration'] ?? 0) : 0;
                     $isAutoTrimmed = $videoTrim && $clipDuration > $sceneDuration;
+
+                    // Pre-compute AI clip plan for this scene
+                    $_aiSupported = [5, 6, 8, 10];
+                    $_aiPadded = $sceneDuration + 1.5;
+                    $aiClipPlan = [];
+                    if ($_aiPadded <= 10) {
+                        $_snap = 10;
+                        foreach ($_aiSupported as $_d) { if ($_d >= $_aiPadded - 0.5) { $_snap = $_d; break; } }
+                        $aiClipPlan = [$_snap];
+                    } else {
+                        $_rem = $_aiPadded;
+                        while ($_rem > 0) {
+                            if ($_rem <= 10) {
+                                $_snap = 10;
+                                foreach ($_aiSupported as $_d) { if ($_d >= $_rem - 0.5) { $_snap = $_d; break; } }
+                                $aiClipPlan[] = $_snap;
+                                break;
+                            }
+                            $aiClipPlan[] = 10;
+                            $_rem -= 10;
+                        }
+                    }
+                    $aiClipCount = count($aiClipPlan);
                 @endphp
 
                 <div class="utv-scene-row mb-4">
@@ -930,6 +953,11 @@
                                 <span class="badge" style="background: #7c3aed20; color: #a78bfa; font-size: 0.65rem;">
                                     <i class="fa-light fa-wand-magic-sparkles me-1"></i>{{ __('AI Image') }}
                                 </span>
+                                @if($aiClipCount > 1)
+                                    <span class="badge" style="background: #7c3aed15; color: #c084fc; font-size: 0.6rem;">
+                                        <i class="fa-light fa-layer-group me-1"></i>{{ $aiClipCount }} {{ __('clips') }}
+                                    </span>
+                                @endif
                             @elseif(!empty($sceneSelections))
                                 <span class="badge" style="background: rgba(3,252,244,0.1); color: #0891b2; font-size: 0.65rem;">
                                     <i class="fa-light fa-check me-1"></i>{{ count($sceneSelections) }} {{ __('selected') }}
@@ -1100,10 +1128,19 @@
                         <div class="utv-thumb-row-wrap">
                             {{-- AI overlay when AI image selected --}}
                             @if($isAI)
+                                @php $aiTotalDur = array_sum($aiClipPlan); @endphp
                                 <div class="utv-ai-overlay" wire:click="markSceneForAI('{{ $sceneId }}')">
                                     <i class="fa-light fa-wand-magic-sparkles"></i>
                                     <span>{{ __('Will Generate with AI') }}</span>
-                                    <small>{{ __('Click to choose a stock image instead') }}</small>
+                                    @if($aiClipCount > 1)
+                                        <small style="color: #a78bfa; font-weight: 600;">
+                                            <i class="fa-light fa-layer-group me-1"></i>{{ $aiClipCount }} {{ __('clips') }}: {{ implode('s + ', $aiClipPlan) }}s = {{ $aiTotalDur }}s
+                                        </small>
+                                        <small style="color: #94a3b8;">{{ __('Scene needs') }} {{ number_format($sceneDuration, 1) }}s — {{ __('multi-clip AI generation') }}</small>
+                                    @else
+                                        <small style="color: #94a3b8;">{{ __('1 AI clip') }} · {{ $aiClipPlan[0] ?? 10 }}s {{ __('for') }} {{ number_format($sceneDuration, 1) }}s {{ __('scene') }}</small>
+                                    @endif
+                                    <small style="margin-top: 4px;">{{ __('Click to choose a stock image instead') }}</small>
                                 </div>
                             @endif
                             <div class="utv-thumb-row"
